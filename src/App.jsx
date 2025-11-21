@@ -20,7 +20,7 @@ import RecentViewedPage from './pages/RecentViewedPage';
 
 function App() {
   return (
-    <Router basename="/web_3pl">
+    <Router>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
