@@ -22,8 +22,12 @@ const AdminLogin = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (formData.username === 'admin' && formData.password === '1231') {
+
+    const adminId = import.meta.env.VITE_ADMIN_ID;
+    const adminPw = import.meta.env.VITE_ADMIN_PASSWORD;
+
+    if (formData.username === adminId && formData.password === adminPw) {
+      localStorage.removeItem('currentUser'); // 일반 사용자 권한 제거 (관리자 로그인 시)
       localStorage.setItem('adminAuth', 'true');
       navigate('/admin/dashboard');
     } else {
@@ -127,12 +131,8 @@ const AdminLogin = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">테스트 계정</span>
+                <span className="px-2 bg-white text-gray-500">관리자 전용</span>
               </div>
-            </div>
-            <div className="mt-4 text-center text-sm text-gray-600">
-              <p>아이디: <span className="font-mono">admin</span></p>
-              <p>비밀번호: <span className="font-mono">1231</span></p>
             </div>
           </div>
         </div>

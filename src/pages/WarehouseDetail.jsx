@@ -1,16 +1,28 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Square, Thermometer, Truck, Star, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { warehouseData } from '../data/sampleData';
 import ContactModal from '../components/ContactModal';
 import { formatArea } from '../utils/areaConverter';
-import { getDisplayName } from '../utils/viewingPassUtils';
+import { getDisplayName, isAlreadyViewed } from '../utils/viewingPassUtils';
 
 const WarehouseDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [showContactModal, setShowContactModal] = useState(false);
-  
+
   const warehouse = warehouseData.find(w => w.id === parseInt(id));
+
+  useEffect(() => {
+    // 접근 권한 확인
+    const isAdmin = localStorage.getItem('adminAuth') === 'true';
+    const isViewed = warehouse && isAlreadyViewed(warehouse.id, 'warehouse');
+
+    if (!isAdmin && !isViewed) {
+      alert('접근 권한이 없습니다. 먼저 열람권을 사용하여 잠금을 해제해주세요.');
+      navigate('/warehouse-search');
+    }
+  }, [warehouse, navigate]);
 
   if (!warehouse) {
     return (
@@ -68,7 +80,7 @@ const WarehouseDetail = () => {
               {/* 기본 정보 */}
               <div className="lg:col-span-2">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">창고 정보</h2>
-                
+
                 <div className="space-y-6">
                   {/* 면적 정보 */}
                   <div className="bg-gray-50 rounded-lg p-6">
@@ -160,7 +172,7 @@ const WarehouseDetail = () => {
               <div className="lg:col-span-1">
                 <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-8">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">연락처 정보</h3>
-                  
+
                   <div className="space-y-4 mb-6">
                     <div className="flex items-center text-gray-600">
                       <Phone className="w-5 h-5 mr-3" />

@@ -26,29 +26,33 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // 관리자 로그인 체크 (이메일이 "admin"이고 비밀번호가 "1231"인 경우)
-    if (formData.email.toLowerCase() === 'admin' && formData.password === '1231') {
+
+    // 관리자 로그인 체크
+    const adminId = import.meta.env.VITE_ADMIN_ID;
+    const adminPw = import.meta.env.VITE_ADMIN_PASSWORD;
+
+    if (formData.email.toLowerCase() === adminId && formData.password === adminPw) {
       localStorage.setItem('adminAuth', 'true');
       navigate('/admin/dashboard');
       return;
     }
-    
+
     // 실제 로그인 로직 (localStorage에서 사용자 데이터 확인)
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => 
-      u.email === formData.email && 
+    const user = users.find(u =>
+      u.email === formData.email &&
       u.userType === formData.userType &&
       comparePassword(formData.password, u.password) // 해싱된 비밀번호와 비교
     );
 
     if (user) {
       // 로그인 성공
+      localStorage.removeItem('adminAuth'); // 관리자 권한 제거 (일반 사용자 로그인 시)
       localStorage.setItem('currentUser', JSON.stringify(user));
-      
+
       // 커스텀 이벤트 발생시켜 Header에 알림
       window.dispatchEvent(new CustomEvent('userLogin'));
-      
+
       // 로그인 성공 시 메인페이지로 이동
       navigate('/');
     } else {
@@ -94,11 +98,10 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, userType: 'warehouse' }))}
-                  className={`flex items-center justify-center px-4 py-3 border rounded-lg transition-colors ${
-                    formData.userType === 'warehouse'
+                  className={`flex items-center justify-center px-4 py-3 border rounded-lg transition-colors ${formData.userType === 'warehouse'
                       ? 'border-primary-500 bg-primary-50 text-primary-700'
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Building2 className="w-5 h-5 mr-2" />
                   창고업체
@@ -106,11 +109,10 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, userType: 'customer' }))}
-                  className={`flex items-center justify-center px-4 py-3 border rounded-lg transition-colors ${
-                    formData.userType === 'customer'
+                  className={`flex items-center justify-center px-4 py-3 border rounded-lg transition-colors ${formData.userType === 'customer'
                       ? 'border-primary-500 bg-primary-50 text-primary-700'
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Users className="w-5 h-5 mr-2" />
                   고객사
