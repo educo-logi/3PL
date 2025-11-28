@@ -2,6 +2,7 @@
   "name": "3pl-platform",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://educo-logi.github.io/3PL",
   "type": "module",
   "scripts": {
     "dev": "vite",
