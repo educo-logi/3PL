@@ -149,13 +149,13 @@ const Home = () => {
                 <Search className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600 mr-2 sm:mr-3" />
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">창고 찾기</h2>
               </div>
-              <a
-                href="/warehouse-search"
-                className="flex items-center text-primary-600 hover:text-primary-700 font-semibold text-sm sm:text-base"
+              <button
+                onClick={() => navigate('/warehouse-search')}
+                className="flex items-center text-primary-600 hover:text-primary-700 font-semibold text-sm sm:text-base cursor-pointer"
               >
                 전체보기
                 <ArrowRight className="w-4 h-4 ml-2" />
-              </a>
+              </button>
             </div>
 
             {premiumWarehouses.length > 0 && (
@@ -180,13 +180,13 @@ const Home = () => {
                 <Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600 mr-2 sm:mr-3" />
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">고객사 찾기</h2>
               </div>
-              <a
-                href="/customer-search"
-                className="flex items-center text-primary-600 hover:text-primary-700 font-semibold text-sm sm:text-base"
+              <button
+                onClick={() => navigate('/customer-search')}
+                className="flex items-center text-primary-600 hover:text-primary-700 font-semibold text-sm sm:text-base cursor-pointer"
               >
                 전체보기
                 <ArrowRight className="w-4 h-4 ml-2" />
-              </a>
+              </button>
             </div>
 
             {premiumCustomers.length > 0 && (

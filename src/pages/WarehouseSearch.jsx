@@ -51,9 +51,9 @@ const WarehouseSearch = () => {
             id, location, city, dong, 
             available_area, pallet_count, 
             products, delivery_companies, storage_types, 
-            temperature, experience, solution, 
+            experience, solutions, 
             company_name, status, 
-            approved_at, submitted_at, created_at, is_premium
+            approved_at, submitted_at
           `)
           .eq('status', 'approved');
 
@@ -77,12 +77,15 @@ const WarehouseSearch = () => {
         }
 
         // 에러 처리 개선: 각 쿼리별로 에러 처리
-        const results = await Promise.all(promises.map((promise, index) => 
-          promise.catch(err => {
+        const results = await Promise.all(promises.map(async (query, index) => {
+          try {
+            const result = await query;
+            return result;
+          } catch (err) {
             console.error(`❌ [QUERY ${index}] 에러:`, err);
             return { data: null, error: err };
-          })
-        ));
+          }
+        }));
 
         // 쿼리 결과 확인
         console.log('📊 [QUERY RESULTS]', {
@@ -139,9 +142,9 @@ const WarehouseSearch = () => {
           storageTypes: Array.isArray(item.storage_types) 
             ? item.storage_types 
             : (item.storage_types ? [item.storage_types] : []),
-          temperature: Array.isArray(item.storage_types)
+          temperature: Array.isArray(item.storage_types) && item.storage_types.length > 0
             ? item.storage_types.join('/')
-            : item.temperature || '',
+            : '',
           experience: item.experience || '',
           companyName: item.company_name, // company_name을 companyName으로 매핑
         }));
