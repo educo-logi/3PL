@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, Users } from 'lucide-react';
 import { formatArea } from '../utils/areaConverter';
-import { getDisplayName } from '../utils/viewingPassUtils';
+import { useViewedStatus } from '../hooks/useViewedStatus';
 
 const ComparePage = () => {
   const location = useLocation();
@@ -37,6 +37,8 @@ const ComparePage = () => {
   const [item1, item2] = items;
   const type = item1.userType || item1.type || 'warehouse';
   const isWarehouse = type === 'warehouse';
+  const { displayName: name1, loading: name1Loading } = useViewedStatus(item1, type);
+  const { displayName: name2, loading: name2Loading } = useViewedStatus(item2, type);
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -75,10 +77,10 @@ const ComparePage = () => {
                     항목
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/8">
-                    {getDisplayName(item1, type)}
+                    {name1Loading ? '로딩중...' : name1}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/8">
-                    {getDisplayName(item2, type)}
+                    {name2Loading ? '로딩중...' : name2}
                   </th>
                 </tr>
               </thead>
@@ -89,10 +91,10 @@ const ComparePage = () => {
                     회사명
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {getDisplayName(item1, type)}
+                    {name1Loading ? '로딩중...' : name1}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {getDisplayName(item2, type)}
+                    {name2Loading ? '로딩중...' : name2}
                   </td>
                 </tr>
                 <tr>

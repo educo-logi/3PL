@@ -4,10 +4,48 @@ import { X, Building2, Users, MapPin, Phone, Mail, Square, Package, Calendar } f
 const DetailModal = ({ isOpen, onClose, data, type }) => {
   if (!isOpen || !data) return null;
 
-  const formatArea = (squareMeters) => {
-    const pyeong = Math.round(squareMeters * 0.3025);
-    return `${squareMeters.toLocaleString()}㎡(${pyeong}p)`;
+  const toNumber = (val) => {
+    const num = Number(val);
+    return Number.isFinite(num) ? num : null;
   };
+
+  const formatArea = (squareMeters) => {
+    const num = toNumber(squareMeters);
+    if (num === null) return '-';
+    const pyeong = Math.round(num * 0.3025);
+    return `${num.toLocaleString()}㎡(${pyeong}p)`;
+  };
+
+  // Supabase 컬럼명/JSON 키 혼용 대비
+  const totalArea = toNumber(data.totalArea ?? data.total_area);
+  const availableArea = toNumber(data.availableArea ?? data.available_area);
+  const requiredArea = toNumber(data.requiredArea ?? data.required_area);
+  const warehouseCount = toNumber(data.warehouseCount ?? data.warehouse_count);
+  const monthlyVolume = toNumber(data.monthlyVolume ?? data.monthly_volume);
+  const palletCount = toNumber(data.palletCount ?? data.pallet_count);
+  const experience = data.experience ?? data.experience_years ?? data.experienceMonths ?? data.experience_months;
+
+  const storageList = Array.isArray(data.storageTypes) ? data.storageTypes
+    : Array.isArray(data.storage_types) ? data.storage_types
+    : data.temperature ? [data.temperature] : [];
+
+  const deliveryList = Array.isArray(data.deliveryCompanies) ? data.deliveryCompanies
+    : Array.isArray(data.delivery_companies) ? data.delivery_companies
+    : Array.isArray(data.delivery) ? data.delivery
+    : [];
+
+  const productList = Array.isArray(data.products) ? data.products
+    : Array.isArray(data.products_handled) ? data.products_handled
+    : data.products ? [data.products] : [];
+
+  const solutionList = Array.isArray(data.solutions) ? data.solutions
+    : Array.isArray(data.solution_list) ? data.solution_list
+    : data.solution ? [data.solution] : [];
+
+  const desiredDeliveryList = Array.isArray(data.desiredDelivery) ? data.desiredDelivery
+    : Array.isArray(data.desired_delivery) ? data.desired_delivery
+    : data.desiredDelivery ? [data.desiredDelivery]
+    : [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -68,7 +106,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                     <Phone className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
                       <p className="text-sm text-gray-500">전화번호</p>
-                      <p className="font-medium text-gray-900">{data.phone}</p>
+                      <p className="font-medium text-gray-900">{data.phone ?? '-'}</p>
                     </div>
                   </div>
 
@@ -96,7 +134,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                     <Mail className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
                       <p className="text-sm text-gray-500">이메일</p>
-                      <p className="font-medium text-gray-900">{data.email}</p>
+                      <p className="font-medium text-gray-900">{data.email ?? '-'}</p>
                     </div>
                   </div>
                 </div>
@@ -114,7 +152,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <Square className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                         <div>
                           <p className="text-sm text-gray-500">총 면적</p>
-                          <p className="font-medium text-gray-900">{formatArea(data.totalArea)}</p>
+                          <p className="font-medium text-gray-900">{formatArea(totalArea)}</p>
                         </div>
                       </div>
 
@@ -122,7 +160,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <Square className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                         <div>
                           <p className="text-sm text-gray-500">이용가능 면적</p>
-                          <p className="font-medium text-gray-900">{formatArea(data.availableArea)}</p>
+                          <p className="font-medium text-gray-900">{formatArea(availableArea)}</p>
                         </div>
                       </div>
 
@@ -130,7 +168,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <Building2 className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                         <div>
                           <p className="text-sm text-gray-500">창고 개수</p>
-                          <p className="font-medium text-gray-900">{data.warehouseCount}개</p>
+                          <p className="font-medium text-gray-900">{warehouseCount !== null ? `${warehouseCount}개` : '-'}</p>
                         </div>
                       </div>
 
@@ -139,7 +177,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <div>
                           <p className="text-sm text-gray-500">보관 방식</p>
                           <p className="font-medium text-gray-900">
-                            {Array.isArray(data.storageTypes) ? data.storageTypes.join(', ') : data.temperature}
+                            {storageList.length ? storageList.join(', ') : '-'}
                           </p>
                         </div>
                       </div>
@@ -149,7 +187,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <div>
                           <p className="text-sm text-gray-500">배송사</p>
                           <p className="font-medium text-gray-900">
-                            {Array.isArray(data.deliveryCompanies) ? data.deliveryCompanies.join(', ') : data.delivery?.join(', ')}
+                            {deliveryList.length ? deliveryList.join(', ') : '-'}
                           </p>
                         </div>
                       </div>
@@ -158,7 +196,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                         <div>
                           <p className="text-sm text-gray-500">경력</p>
-                          <p className="font-medium text-gray-900">{data.experience}</p>
+                          <p className="font-medium text-gray-900">{experience ?? '-'}</p>
                         </div>
                       </div>
 
@@ -167,7 +205,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <div>
                           <p className="text-sm text-gray-500">취급 물품</p>
                           <p className="font-medium text-gray-900">
-                            {Array.isArray(data.products) ? data.products.join(', ') : data.products}
+                            {productList.length ? productList.join(', ') : '-'}
                           </p>
                         </div>
                       </div>
@@ -177,7 +215,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <div>
                           <p className="text-sm text-gray-500">솔루션</p>
                           <p className="font-medium text-gray-900">
-                            {Array.isArray(data.solutions) ? data.solutions.join(', ') : data.solution}
+                            {solutionList.length ? solutionList.join(', ') : '-'}
                           </p>
                         </div>
                       </div>
@@ -193,7 +231,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <Square className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                         <div>
                           <p className="text-sm text-gray-500">필요 면적</p>
-                          <p className="font-medium text-gray-900">{formatArea(data.requiredArea)}</p>
+                          <p className="font-medium text-gray-900">{formatArea(requiredArea)}</p>
                         </div>
                       </div>
 
@@ -201,7 +239,9 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <Package className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                         <div>
                           <p className="text-sm text-gray-500">월 평균 출고량</p>
-                          <p className="font-medium text-gray-900">{data.monthlyVolume?.toLocaleString()}개</p>
+                          <p className="font-medium text-gray-900">
+                            {monthlyVolume !== null ? `${monthlyVolume.toLocaleString()}개` : '-'}
+                          </p>
                         </div>
                       </div>
 
@@ -210,7 +250,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <div>
                           <p className="text-sm text-gray-500">취급 물품</p>
                           <p className="font-medium text-gray-900">
-                            {Array.isArray(data.products) ? data.products.join(', ') : data.products}
+                            {productList.length ? productList.join(', ') : '-'}
                           </p>
                         </div>
                       </div>
@@ -220,7 +260,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                         <div>
                           <p className="text-sm text-gray-500">원하는 배송사</p>
                           <p className="font-medium text-gray-900">
-                            {Array.isArray(data.desiredDelivery) ? data.desiredDelivery.join(', ') : data.desiredDelivery}
+                            {desiredDeliveryList.length ? desiredDeliveryList.join(', ') : '-'}
                           </p>
                         </div>
                       </div>

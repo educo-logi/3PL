@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
-import { comparePassword } from '../utils/passwordHash';
+import { supabase } from '../utils/supabaseClient';
 
 const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
   const [formData, setFormData] = useState({
@@ -11,6 +11,7 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   // ESC 키로 모달 닫기
@@ -42,8 +43,10 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setIsLoading(true);
     
     // 관리자 로그인 체크 (이메일이 "admin"이고 비밀번호가 "1231"인 경우)
     if (formData.email.toLowerCase() === 'admin' && formData.password === '1231') {
@@ -53,17 +56,29 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
       return;
     }
     
-    // 실제 로그인 로직 (localStorage에서 사용자 데이터 확인)
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => 
-      u.email === formData.email && 
-      u.userType === formData.userType &&
-      comparePassword(formData.password, u.password) // 해싱된 비밀번호와 비교
-    );
+    try {
+      const { data, error: supaError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
 
-    if (user) {
+      if (supaError) {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+        return;
+      }
+
+      const supaUser = data?.user;
+      const metadata = supaUser?.user_metadata || {};
+      const mergedUser = {
+        id: supaUser?.id || metadata.id || `${formData.userType}-${Date.now()}`,
+        email: supaUser?.email || formData.email,
+        userType: metadata.userType || formData.userType,
+        status: metadata.status || 'pending',
+        ...metadata
+      };
+
       // 로그인 성공
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      localStorage.setItem('currentUser', JSON.stringify(mergedUser));
       
       // 커스텀 이벤트 발생시켜 Header에 알림
       window.dispatchEvent(new CustomEvent('userLogin'));
@@ -71,8 +86,11 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
       onClose(); // 모달 닫기
       // 메인페이지로 이동
       navigate('/');
-    } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+    } catch (err) {
+      console.error('Supabase 로그인 오류:', err);
+      setError('로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -209,8 +227,9 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
               <button
                 type="submit"
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                disabled={isLoading}
               >
-                로그인
+                {isLoading ? '로그인 중...' : '로그인'}
               </button>
             </div>
           </form>

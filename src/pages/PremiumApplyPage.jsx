@@ -4,6 +4,8 @@ import { CreditCard, CheckCircle, AlertCircle, Star } from 'lucide-react';
 import { paymentConfig } from '../config/paymentConfig';
 import { premiumPackages, createPremiumApplication } from '../utils/premiumUtils';
 import { createNotification } from '../utils/notificationUtils';
+import { supabase } from '../utils/supabaseClient';
+import { warehouseData, customerData } from '../data/sampleData';
 
 const PremiumApplyPage = () => {
   const navigate = useNavigate();
@@ -12,98 +14,167 @@ const PremiumApplyPage = () => {
   const itemId = searchParams.get('itemId');
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [profileStatus, setProfileStatus] = useState('pending');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState('1month');
   const [itemInfo, setItemInfo] = useState(null);
+  const isPending = profileStatus === 'pending' || !profileStatus;
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (!user) {
-      navigate('/login');
-      return;
-    }
+    const loadUserAndItem = async () => {
+      const { data } = await supabase.auth.getUser();
+      const supaUser = data?.user;
+      const localUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      const baseUser = supaUser
+        ? {
+            id: supaUser.id,
+            email: supaUser.email,
+            userType: supaUser.user_metadata?.userType,
+            status: supaUser.user_metadata?.status || 'pending'
+          }
+        : localUser;
 
-    // users 배열에서 최신 상태 확인
-    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const latestUser = allUsers.find(u => u.id === user.id) || user;
-    setCurrentUser(latestUser);
+      if (!baseUser) {
+        navigate('/login');
+        return;
+      }
 
-    // 아이템 정보 가져오기
-    if (itemId && itemType) {
-      loadItemInfo(itemId, itemType);
-    }
+      setCurrentUser(baseUser);
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', baseUser.id)
+        .maybeSingle();
+      if (error) {
+        console.error('프로필 조회 오류:', error);
+      }
+      setProfileStatus(profile?.status || baseUser.status || 'pending');
+
+      if (itemId && itemType) {
+        loadItemInfo(itemId, itemType);
+      }
+    };
+
+    loadUserAndItem();
   }, [navigate, itemId, itemType]);
 
-  const loadItemInfo = (id, type) => {
+  const loadItemInfo = async (id, type) => {
     if (type === 'warehouse') {
-      // 승인된 창고, 대기 중인 창고, 샘플 데이터 모두 확인
-      const approvedWarehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
-      const pendingWarehouses = JSON.parse(localStorage.getItem('pendingWarehouses') || '[]');
-      const warehouseData = JSON.parse(localStorage.getItem('warehouseData') || '[]');
-
-      const allWarehouses = [
-        ...approvedWarehouses,
-        ...pendingWarehouses,
-        ...warehouseData
-      ];
-
-      const warehouse = allWarehouses.find(w => w.id === id);
-
-      // 찾지 못한 경우, users 배열에서 직접 찾기
-      if (!warehouse) {
-        const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-        const user = allUsers.find(u => u.id === id && u.userType === 'warehouse');
-        if (user) {
-          setItemInfo({
-            id: user.id,
-            name: user.companyName || '창고',
-            type: 'warehouse'
-          });
-          return;
-        }
-      } else {
+      const { data, error } = await supabase
+        .from('warehouses')
+        .select('id, company_name')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) {
+        console.error('창고 조회 오류:', error);
+      }
+      if (data) {
         setItemInfo({
-          id: warehouse.id,
-          name: warehouse.companyName || '창고',
+          id: data.id,
+          name: data.company_name || '창고',
+          type: 'warehouse'
+        });
+        return;
+      }
+
+      const fallback = warehouseData.find(w => w.id === id);
+      if (fallback) {
+        setItemInfo({
+          id: fallback.id,
+          name: fallback.companyName || '창고',
           type: 'warehouse'
         });
       }
     } else if (type === 'customer') {
-      // 승인된 고객사, 대기 중인 고객사, 샘플 데이터 모두 확인
-      const approvedCustomers = JSON.parse(localStorage.getItem('approvedCustomers') || '[]');
-      const pendingCustomers = JSON.parse(localStorage.getItem('pendingCustomers') || '[]');
-      const customerData = JSON.parse(localStorage.getItem('customerData') || '[]');
-
-      const allCustomers = [
-        ...approvedCustomers,
-        ...pendingCustomers,
-        ...customerData
-      ];
-
-      const customer = allCustomers.find(c => c.id === id);
-
-      // 찾지 못한 경우, users 배열에서 직접 찾기
-      if (!customer) {
-        const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-        const user = allUsers.find(u => u.id === id && u.userType === 'customer');
-        if (user) {
-          setItemInfo({
-            id: user.id,
-            name: user.companyName || '고객사',
-            type: 'customer'
-          });
-          return;
-        }
-      } else {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, company_name')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) {
+        console.error('고객사 조회 오류:', error);
+      }
+      if (data) {
         setItemInfo({
-          id: customer.id,
-          name: customer.companyName || '고객사',
+          id: data.id,
+          name: data.company_name || '고객사',
+          type: 'customer'
+        });
+        return;
+      }
+
+      const fallback = customerData.find(c => c.id === id);
+      if (fallback) {
+        setItemInfo({
+          id: fallback.id,
+          name: fallback.companyName || '고객사',
           type: 'customer'
         });
       }
     }
   };
+
+  const handlePayment = () => {
+    if (!currentUser || !itemInfo) return;
+    if (isPending) {
+      alert('승인 대기 중입니다. 관리자 승인 후 진행해주세요.');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    // 테스트 모드 결제 시뮬레이션
+    if (paymentConfig.isTestMode) {
+      setTimeout(() => {
+        createPremiumApplication(itemInfo.id, itemInfo.type, selectedPackage, currentUser.id);
+        createNotification(
+          currentUser.id,
+          'premium',
+          '프리미엄 신청 완료',
+          `${itemInfo.name} 프리미엄 신청이 완료되었습니다.`
+        );
+        setIsProcessing(false);
+        setIsSuccess(true);
+      }, 800);
+    } else {
+      alert('실제 결제는 추후 PG 연동 후 제공될 예정입니다.');
+      setIsProcessing(false);
+    }
+  };
+
+  if (isSuccess) {
+    const info = premiumPackages[selectedPackage];
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">프리미엄 신청 완료</h2>
+          <p className="text-gray-600 mb-6">
+            {itemInfo?.name}의 프리미엄 신청이 완료되었습니다.
+            <br />
+            관리자 승인 후 노출이 시작됩니다.
+          </p>
+          <div className="bg-gray-50 p-4 rounded-lg mb-6 text-left">
+            <p className="text-sm text-gray-700 mb-2">
+              <strong>신청 내역:</strong>
+            </p>
+            <p className="text-sm text-gray-600">
+              • 기간: {info?.months}개월<br />
+              • 금액: {info?.price?.toLocaleString()}원
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/mypage')}
+            className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+          >
+            마이페이지로 이동
+          </button>
+        </div>
+      </div>
+    );
+  }
 
 
   // 로그인하지 않았거나 아이템 정보를 찾지 못한 경우

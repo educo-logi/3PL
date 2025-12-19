@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, ArrowLeft, Building2, Users, Eye } from 'lucide-react';
-import { getRecentViewedItems, getDisplayName } from '../utils/viewingPassUtils';
-import { warehouseData, customerData } from '../data/sampleData';
+import { getRecentViewedItems } from '../utils/viewingPassUtils';
+import { supabase } from '../utils/supabaseClient';
+import { useViewedStatus } from '../hooks/useViewedStatus';
 import DetailModal from '../components/DetailModal';
 
 const RecentViewedPage = () => {
@@ -23,27 +24,31 @@ const RecentViewedPage = () => {
     loadRecentItems();
   }, [navigate]);
 
-  const loadRecentItems = () => {
-    const recent = getRecentViewedItems(20);
+  const loadRecentItems = async () => {
+    const recent = await getRecentViewedItems(20);
     setRecentItems(recent);
 
-    // 모든 데이터에서 최근 본 항목 찾기
-    const allWarehouses = [
-      ...warehouseData,
-      ...JSON.parse(localStorage.getItem('approvedWarehouses') || '[]')
-    ];
-    const allCustomers = [
-      ...customerData,
-      ...JSON.parse(localStorage.getItem('approvedCustomers') || '[]')
-    ];
+    const warehouseIds = recent.filter(r => r.item_type === 'warehouse').map(r => r.item_id);
+    const customerIds = recent.filter(r => r.item_type === 'customer').map(r => r.item_id);
 
-    const recentItemsData = recent.map(recentItem => {
-      if (recentItem.itemType === 'warehouse') {
-        return allWarehouses.find(w => w.id === recentItem.itemId);
-      } else {
-        return allCustomers.find(c => c.id === recentItem.itemId);
-      }
-    }).filter(Boolean);
+    const [warehousesRes, customersRes] = await Promise.all([
+      warehouseIds.length
+        ? supabase.from('warehouses').select('*').in('id', warehouseIds)
+        : { data: [] },
+      customerIds.length
+        ? supabase.from('customers').select('*').in('id', customerIds)
+        : { data: [] }
+    ]);
+
+    const warehouseMap = new Map((warehousesRes.data || []).map(w => [w.id, w]));
+    const customerMap = new Map((customersRes.data || []).map(c => [c.id, c]));
+
+    const recentItemsData = recent
+      .map(r => {
+        if (r.item_type === 'warehouse') return warehouseMap.get(r.item_id);
+        return customerMap.get(r.item_id);
+      })
+      .filter(Boolean);
 
     setItems(recentItemsData);
   };
@@ -85,7 +90,8 @@ const RecentViewedPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item, index) => {
               const recentItem = recentItems[index];
-              const type = recentItem?.itemType || 'warehouse';
+              const type = recentItem?.item_type || 'warehouse';
+              const { displayName, loading } = useViewedStatus(item, type);
               return (
                 <div key={item.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between mb-4">
@@ -95,7 +101,9 @@ const RecentViewedPage = () => {
                       ) : (
                         <Users className="w-5 h-5 text-green-600 mr-2" />
                       )}
-                      <h3 className="text-lg font-bold text-gray-900">{getDisplayName(item, type)}</h3>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {loading ? '로딩중...' : displayName}
+                      </h3>
                     </div>
                   </div>
                   
@@ -103,7 +111,7 @@ const RecentViewedPage = () => {
                     {item.location} {item.city} {item.dong}
                   </p>
                   <p className="text-xs text-gray-400 mb-4">
-                    열람일: {recentItem?.viewedAt ? new Date(recentItem.viewedAt).toLocaleString('ko-KR') : '-'}
+                    열람일: {recentItem?.viewed_at ? new Date(recentItem.viewed_at).toLocaleString('ko-KR') : '-'}
                   </p>
 
                   <button

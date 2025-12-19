@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Building2, 
-  Users, 
-  BarChart3, 
-  TrendingUp, 
-  MapPin, 
+import {
+  Building2,
+  Users,
+  BarChart3,
+  TrendingUp,
+  MapPin,
   Package,
   LogOut,
   Eye,
@@ -16,85 +16,100 @@ import {
   Clock,
   AlertCircle
 } from 'lucide-react';
-import { warehouseData, customerData } from '../data/sampleData';
-import { pendingWarehouses, pendingCustomers } from '../data/pendingData';
 import DetailModal from '../components/DetailModal';
+import { supabase } from '../utils/supabaseClient';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [warehouses, setWarehouses] = useState(warehouseData);
-  const [customers, setCustomers] = useState(customerData);
-  const [pendingWarehouseList, setPendingWarehouseList] = useState(pendingWarehouses);
-  const [pendingCustomerList, setPendingCustomerList] = useState(pendingCustomers);
+  const [warehouses, setWarehouses] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [pendingWarehouseList, setPendingWarehouseList] = useState([]);
+  const [pendingCustomerList, setPendingCustomerList] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedItemType, setSelectedItemType] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
+  // Supabase -> UI 데이터 정규화
+  const normalizeWarehouse = (w = {}) => {
+    const num = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+    return {
+      ...w,
+      companyName: w.companyName ?? w.company_name ?? '',
+      location: w.location ?? '',
+      city: w.city ?? '',
+      dong: w.dong ?? '',
+      totalArea: num(w.totalArea ?? w.total_area),
+      availableArea: num(w.availableArea ?? w.available_area),
+      warehouseCount: num(w.warehouseCount ?? w.warehouse_count),
+      palletCount: num(w.palletCount ?? w.pallet_count),
+      experience: w.experience ?? w.experience_years ?? w.experienceMonths ?? w.experience_months ?? '',
+      storageTypes: arr(w.storageTypes ?? w.storage_types),
+      deliveryCompanies: arr(w.deliveryCompanies ?? w.delivery_companies ?? w.delivery),
+      products: arr(w.products),
+      solutions: arr(w.solutions ?? w.solution_list ?? w.solution),
+      isPremium: w.isPremium ?? w.is_premium ?? false,
+      submittedAt: w.submittedAt ?? w.submitted_at,
+    };
+  };
+
+  const normalizeCustomer = (c = {}) => {
+    const num = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+    return {
+      ...c,
+      companyName: c.companyName ?? c.company_name ?? '',
+      location: c.location ?? '',
+      city: c.city ?? '',
+      dong: c.dong ?? '',
+      requiredArea: num(c.requiredArea ?? c.required_area),
+      monthlyVolume: num(c.monthlyVolume ?? c.monthly_volume),
+      palletCount: num(c.palletCount ?? c.pallet_count),
+      products: arr(c.products),
+      desiredDelivery: arr(c.desiredDelivery ?? c.desired_delivery),
+      submittedAt: c.submittedAt ?? c.submitted_at,
+    };
+  };
+
   useEffect(() => {
-    // 관리자 인증 확인
     const isAdmin = localStorage.getItem('adminAuth');
     if (!isAdmin) {
       navigate('/admin/login');
       return;
     }
-    
-    // localStorage에서 승인된 창고와 고객사 불러오기
-    const approvedWarehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
-    const approvedCustomers = JSON.parse(localStorage.getItem('approvedCustomers') || '[]');
-    
-    // 승인된 창고/고객사를 warehouses/customers 상태에 추가 (중복 제거)
-    setWarehouses(prev => {
-      const existingIds = prev.map(w => w.id);
-      const newWarehouses = approvedWarehouses.filter(w => !existingIds.includes(w.id));
-      return [...prev, ...newWarehouses];
-    });
-    
-    setCustomers(prev => {
-      const existingIds = prev.map(c => c.id);
-      const newCustomers = approvedCustomers.filter(c => !existingIds.includes(c.id));
-      return [...prev, ...newCustomers];
-    });
-    
-    // localStorage에서 모든 사용자 데이터 불러오기
-    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // users에서 pending 상태인 창고와 고객사 추출
-    const pendingWarehousesFromUsers = allUsers.filter(user => 
-      user.userType === 'warehouse' && 
-      (user.status === 'pending' || !user.status) // status가 pending이거나 없으면 대기 중
-    );
-    
-    const pendingCustomersFromUsers = allUsers.filter(user => 
-      user.userType === 'customer' && 
-      (user.status === 'pending' || !user.status) // status가 pending이거나 없으면 대기 중
-    );
-    
-    // localStorage에서 대기 중인 데이터 불러오기
-    const storedPendingWarehouses = JSON.parse(localStorage.getItem('pendingWarehouses') || '[]');
-    const storedPendingCustomers = JSON.parse(localStorage.getItem('pendingCustomers') || '[]');
-    
-    // 기존 pendingData와 합치기 (중복 제거 - id 기준)
-    const allPendingWarehouses = [
-      ...pendingWarehouses,
-      ...pendingWarehousesFromUsers,
-      ...storedPendingWarehouses.filter(sw => 
-        !pendingWarehouses.find(pw => pw.id === sw.id) &&
-        !pendingWarehousesFromUsers.find(pw => pw.id === sw.id)
-      )
-    ];
-    
-    const allPendingCustomers = [
-      ...pendingCustomers,
-      ...pendingCustomersFromUsers,
-      ...storedPendingCustomers.filter(sc => 
-        !pendingCustomers.find(pc => pc.id === sc.id) &&
-        !pendingCustomersFromUsers.find(pc => pc.id === sc.id)
-      )
-    ];
-    
-    setPendingWarehouseList(allPendingWarehouses);
-    setPendingCustomerList(allPendingCustomers);
+
+    const fetchData = async () => {
+      const { data: approvedW } = await supabase
+        .from('warehouses')
+        .select('*')
+        .eq('status', 'approved');
+      const { data: approvedC } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('status', 'approved');
+      const { data: pendingW } = await supabase
+        .from('warehouses')
+        .select('*')
+        .eq('status', 'pending');
+      const { data: pendingC } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('status', 'pending');
+
+      setWarehouses((approvedW || []).map(normalizeWarehouse));
+      setCustomers((approvedC || []).map(normalizeCustomer));
+      setPendingWarehouseList((pendingW || []).map(normalizeWarehouse));
+      setPendingCustomerList((pendingC || []).map(normalizeCustomer));
+    };
+
+    fetchData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -114,163 +129,86 @@ const AdminDashboard = () => {
     }
   };
 
-  // 창고 승인
-  const handleApproveWarehouse = (pendingWarehouse) => {
-    if (window.confirm('이 창고를 승인하시겠습니까?')) {
-      // users 배열에서 해당 사용자의 status 업데이트
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const updatedUsers = users.map(user => 
-        user.id === pendingWarehouse.id 
-          ? { ...user, status: 'approved' }
-          : user
-      );
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      
-      // pendingWarehouses에서도 제거
-      const pendingWarehouses = JSON.parse(localStorage.getItem('pendingWarehouses') || '[]');
-      const updatedPending = pendingWarehouses.filter(w => w.id !== pendingWarehouse.id);
-      localStorage.setItem('pendingWarehouses', JSON.stringify(updatedPending));
-      
-      // 승인된 창고 데이터 준비 (창고 찾기에서 사용할 형식으로 변환)
-      // 비밀번호 필드는 제외
-      const { password, ...warehouseWithoutPassword } = pendingWarehouse;
-      const approvedWarehouse = {
-        ...warehouseWithoutPassword,
-        id: `w-${Date.now()}`, // 새로운 ID 생성
-        isPremium: false,
-        premiumLevel: 0,
-        status: 'approved',
-        submittedAt: pendingWarehouse.submittedAt || new Date().toISOString(), // 신청일
-        approvedAt: new Date().toISOString(), // 승인일
-        // 필요한 필드 정규화
-        temperature: Array.isArray(pendingWarehouse.storageTypes) 
-          ? pendingWarehouse.storageTypes.join('/') 
-          : pendingWarehouse.temperature || (typeof pendingWarehouse.storageTypes === 'string' ? pendingWarehouse.storageTypes : '상온'),
-        delivery: Array.isArray(pendingWarehouse.deliveryCompanies) 
-          ? pendingWarehouse.deliveryCompanies 
-          : (Array.isArray(pendingWarehouse.delivery) ? pendingWarehouse.delivery : []),
-        solution: Array.isArray(pendingWarehouse.solutions) 
-          ? pendingWarehouse.solutions.join(', ') 
-          : (pendingWarehouse.solution || ''),
-        experience: typeof pendingWarehouse.experience === 'string' 
-          ? pendingWarehouse.experience 
-          : (pendingWarehouse.experience ? `${pendingWarehouse.experience}년` : ''),
-        products: Array.isArray(pendingWarehouse.products) 
-          ? pendingWarehouse.products 
-          : [],
-        totalArea: parseFloat(pendingWarehouse.totalArea) || 0,
-        availableArea: parseFloat(pendingWarehouse.availableArea) || 0,
-        palletCount: parseFloat(pendingWarehouse.palletCount) || 0,
-        // 기본 필드 보장
-        city: pendingWarehouse.city || '',
-        dong: pendingWarehouse.dong || '',
-        phone: pendingWarehouse.phone || '',
-        email: pendingWarehouse.email || ''
-      };
-      
-      // 승인된 창고를 localStorage에 저장 (창고 찾기에서 사용)
-      const approvedWarehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
-      approvedWarehouses.push(approvedWarehouse);
-      localStorage.setItem('approvedWarehouses', JSON.stringify(approvedWarehouses));
-      
-      setWarehouses(prev => [...prev, approvedWarehouse]);
-      
-      // 대기 목록에서 제거
-      setPendingWarehouseList(prev => prev.filter(w => w.id !== pendingWarehouse.id));
-      
+  const callApproveFunction = async (itemId, table, approve) => {
+    // Edge Function 대신 직접 DB 업데이트 시도
+    // 주의: RLS(Row Level Security) 정책에 따라 권한이 거부될 수 있음.
+    // 현재는 프로토타입 단계이므로 Client-side에서 직접 수행.
+
+    // 승인/거절 상태 Update
+    const updateData = {
+      status: approve ? 'approved' : 'rejected',
+      approved_at: approve ? new Date().toISOString() : null
+    };
+
+    const { error } = await supabase
+      .from(table)
+      .update(updateData)
+      .eq('id', itemId);
+
+    if (error) {
+      console.error('승인/거절 실패:', error);
+      alert('승인/거절 처리 중 오류가 발생했습니다: ' + error.message);
+      return false;
+    }
+    return true;
+  };
+
+  const refreshLists = async () => {
+    const { data: approvedW } = await supabase
+      .from('warehouses')
+      .select('*')
+      .eq('status', 'approved');
+    const { data: approvedC } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('status', 'approved');
+    const { data: pendingW } = await supabase
+      .from('warehouses')
+      .select('*')
+      .eq('status', 'pending');
+    const { data: pendingC } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('status', 'pending');
+
+    setWarehouses((approvedW || []).map(normalizeWarehouse));
+    setCustomers((approvedC || []).map(normalizeCustomer));
+    setPendingWarehouseList((pendingW || []).map(normalizeWarehouse));
+    setPendingCustomerList((pendingC || []).map(normalizeCustomer));
+  };
+
+  const handleApproveWarehouse = async (pendingWarehouse) => {
+    if (!window.confirm('이 창고를 승인하시겠습니까?')) return;
+    const ok = await callApproveFunction(pendingWarehouse.id, 'warehouses', true);
+    if (ok) {
+      await refreshLists();
       alert('창고가 승인되었습니다.');
     }
   };
 
-  // 창고 거부
-  const handleRejectWarehouse = (id) => {
-    if (window.confirm('이 창고 등록을 거부하시겠습니까?')) {
-      // users 배열에서 해당 사용자의 status 업데이트
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const updatedUsers = users.map(user => 
-        user.id === id 
-          ? { ...user, status: 'rejected' }
-          : user
-      );
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      
-      // pendingWarehouses에서도 제거
-      const pendingWarehouses = JSON.parse(localStorage.getItem('pendingWarehouses') || '[]');
-      const updatedPending = pendingWarehouses.filter(w => w.id !== id);
-      localStorage.setItem('pendingWarehouses', JSON.stringify(updatedPending));
-      
-      setPendingWarehouseList(prev => prev.filter(w => w.id !== id));
+  const handleRejectWarehouse = async (pendingWarehouseId) => {
+    if (!window.confirm('이 창고 등록을 거부하시겠습니까?')) return;
+    const ok = await callApproveFunction(pendingWarehouseId, 'warehouses', false);
+    if (ok) {
+      await refreshLists();
       alert('창고 등록이 거부되었습니다.');
     }
   };
 
-  // 고객사 승인
-  const handleApproveCustomer = (pendingCustomer) => {
-    if (window.confirm('이 고객사를 승인하시겠습니까?')) {
-      // users 배열에서 해당 사용자의 status 업데이트
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const updatedUsers = users.map(user => 
-        user.id === pendingCustomer.id 
-          ? { ...user, status: 'approved' }
-          : user
-      );
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      
-      // pendingCustomers에서도 제거
-      const pendingCustomers = JSON.parse(localStorage.getItem('pendingCustomers') || '[]');
-      const updatedPending = pendingCustomers.filter(c => c.id !== pendingCustomer.id);
-      localStorage.setItem('pendingCustomers', JSON.stringify(updatedPending));
-      
-      // 승인된 고객사 데이터 준비 (고객사 찾기에서 사용할 형식으로 변환)
-      // 비밀번호 필드는 제외
-      const { password, ...customerWithoutPassword } = pendingCustomer;
-      const approvedCustomer = {
-        ...customerWithoutPassword,
-        id: `c-${Date.now()}`, // 새로운 ID 생성
-        status: 'approved',
-        submittedAt: pendingCustomer.submittedAt || new Date().toISOString(), // 신청일
-        approvedAt: new Date().toISOString(), // 승인일
-        // 필요한 필드 정규화
-        requiredArea: parseFloat(pendingCustomer.requiredArea) || 0,
-        monthlyVolume: parseFloat(pendingCustomer.monthlyVolume) || 0,
-        palletCount: parseFloat(pendingCustomer.palletCount) || 0,
-        desiredDelivery: Array.isArray(pendingCustomer.desiredDelivery) 
-          ? pendingCustomer.desiredDelivery 
-          : pendingCustomer.delivery || []
-      };
-      
-      // 승인된 고객사를 localStorage에 저장 (고객사 찾기에서 사용)
-      const approvedCustomers = JSON.parse(localStorage.getItem('approvedCustomers') || '[]');
-      approvedCustomers.push(approvedCustomer);
-      localStorage.setItem('approvedCustomers', JSON.stringify(approvedCustomers));
-      
-      setCustomers(prev => [...prev, approvedCustomer]);
-      
-      // 대기 목록에서 제거
-      setPendingCustomerList(prev => prev.filter(c => c.id !== pendingCustomer.id));
-      
+  const handleApproveCustomer = async (pendingCustomer) => {
+    if (!window.confirm('이 고객사를 승인하시겠습니까?')) return;
+    const ok = await callApproveFunction(pendingCustomer.id, 'customers', true);
+    if (ok) {
+      await refreshLists();
       alert('고객사가 승인되었습니다.');
     }
   };
 
-  // 고객사 거부
-  const handleRejectCustomer = (id) => {
-    if (window.confirm('이 고객사 등록을 거부하시겠습니까?')) {
-      // users 배열에서 해당 사용자의 status 업데이트
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const updatedUsers = users.map(user => 
-        user.id === id 
-          ? { ...user, status: 'rejected' }
-          : user
-      );
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      
-      // pendingCustomers에서도 제거
-      const pendingCustomers = JSON.parse(localStorage.getItem('pendingCustomers') || '[]');
-      const updatedPending = pendingCustomers.filter(c => c.id !== id);
-      localStorage.setItem('pendingCustomers', JSON.stringify(updatedPending));
-      
-      setPendingCustomerList(prev => prev.filter(c => c.id !== id));
+  const handleRejectCustomer = async (pendingCustomerId) => {
+    if (!window.confirm('이 고객사 등록을 거부하시겠습니까?')) return;
+    const ok = await callApproveFunction(pendingCustomerId, 'customers', false);
+    if (ok) {
+      await refreshLists();
       alert('고객사 등록이 거부되었습니다.');
     }
   };
@@ -286,9 +224,9 @@ const AdminDashboard = () => {
     totalWarehouses: warehouses.length,
     totalCustomers: customers.length,
     premiumWarehouses: warehouses.filter(w => w.isPremium).length,
-    totalArea: warehouses.reduce((sum, w) => sum + w.totalArea, 0),
-    availableArea: warehouses.reduce((sum, w) => sum + w.availableArea, 0),
-    totalMonthlyVolume: customers.reduce((sum, c) => sum + c.monthlyVolume, 0),
+    totalArea: warehouses.reduce((sum, w) => sum + (w.totalArea || 0), 0),
+    availableArea: warehouses.reduce((sum, w) => sum + (w.availableArea || 0), 0),
+    totalMonthlyVolume: customers.reduce((sum, c) => sum + (c.monthlyVolume || 0), 0),
     pendingWarehouses: pendingWarehouseList.length,
     pendingCustomers: pendingCustomerList.length
   };
@@ -299,7 +237,7 @@ const AdminDashboard = () => {
   }, {});
 
   const topRegions = Object.entries(regionStats)
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
 
   return (
@@ -329,41 +267,37 @@ const AdminDashboard = () => {
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'overview'
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               개요
             </button>
             <button
               onClick={() => setActiveTab('warehouses')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'warehouses'
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'warehouses'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               창고 관리
             </button>
             <button
               onClick={() => setActiveTab('customers')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'customers'
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'customers'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               고객사 관리
             </button>
             <button
               onClick={() => setActiveTab('pending')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'pending'
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'pending'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               검토 중인 항목 ({stats.pendingWarehouses + stats.pendingCustomers})
             </button>
@@ -553,11 +487,15 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {warehouse.availableArea.toLocaleString()}㎡ / {warehouse.totalArea.toLocaleString()}㎡
+                          {(warehouse.availableArea || 0).toLocaleString()}㎡ / {(warehouse.totalArea || 0).toLocaleString()}㎡
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{warehouse.temperature}</div>
+                        <div className="text-sm text-gray-900">
+                          {warehouse.storageTypes && warehouse.storageTypes.length
+                            ? warehouse.storageTypes.join(', ')
+                            : (warehouse.temperature || '-')}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {warehouse.isPremium ? (
@@ -572,14 +510,14 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {warehouse.submittedAt 
+                          {warehouse.submittedAt
                             ? new Date(warehouse.submittedAt).toLocaleDateString('ko-KR')
                             : '-'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {warehouse.approvedAt 
+                          {warehouse.approvedAt
                             ? new Date(warehouse.approvedAt).toLocaleDateString('ko-KR')
                             : '-'}
                         </div>
@@ -592,7 +530,7 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button 
+                          <button
                             onClick={() => handleViewDetails(warehouse, 'warehouse')}
                             className="text-primary-600 hover:text-primary-900"
                             title="자세히 보기"
@@ -602,7 +540,7 @@ const AdminDashboard = () => {
                           <button className="text-indigo-600 hover:text-indigo-900">
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDeleteWarehouse(warehouse.id)}
                             className="text-red-600 hover:text-red-900"
                           >
@@ -681,12 +619,12 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {customer.requiredArea.toLocaleString()}㎡
+                          {(customer.requiredArea || 0).toLocaleString()}㎡
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {customer.monthlyVolume.toLocaleString()}개
+                          {(customer.monthlyVolume || 0).toLocaleString()}개
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -696,14 +634,14 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {customer.submittedAt 
+                          {customer.submittedAt
                             ? new Date(customer.submittedAt).toLocaleDateString('ko-KR')
                             : '-'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {customer.approvedAt 
+                          {customer.approvedAt
                             ? new Date(customer.approvedAt).toLocaleDateString('ko-KR')
                             : '-'}
                         </div>
@@ -716,7 +654,7 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button 
+                          <button
                             onClick={() => handleViewDetails(customer, 'customer')}
                             className="text-primary-600 hover:text-primary-900"
                             title="자세히 보기"
@@ -726,7 +664,7 @@ const AdminDashboard = () => {
                           <button className="text-indigo-600 hover:text-indigo-900">
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDeleteCustomer(customer.id)}
                             className="text-red-600 hover:text-red-900"
                           >
@@ -814,14 +752,14 @@ const AdminDashboard = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {warehouse.submittedAt 
+                              {warehouse.submittedAt
                                 ? new Date(warehouse.submittedAt).toLocaleDateString('ko-KR')
                                 : '-'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
-                              <button 
+                              <button
                                 onClick={() => handleApproveWarehouse(warehouse)}
                                 className="text-green-600 hover:text-green-900 flex items-center"
                                 title="승인"
@@ -829,7 +767,7 @@ const AdminDashboard = () => {
                                 <CheckCircle className="w-4 h-4 mr-1" />
                                 승인
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleRejectWarehouse(warehouse.id)}
                                 className="text-red-600 hover:text-red-900 flex items-center"
                                 title="거부"
@@ -926,14 +864,14 @@ const AdminDashboard = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {customer.submittedAt 
+                              {customer.submittedAt
                                 ? new Date(customer.submittedAt).toLocaleDateString('ko-KR')
                                 : '-'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
-                              <button 
+                              <button
                                 onClick={() => handleApproveCustomer(customer)}
                                 className="text-green-600 hover:text-green-900 flex items-center"
                                 title="승인"
@@ -941,7 +879,7 @@ const AdminDashboard = () => {
                                 <CheckCircle className="w-4 h-4 mr-1" />
                                 승인
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleRejectCustomer(customer.id)}
                                 className="text-red-600 hover:text-red-900 flex items-center"
                                 title="거부"

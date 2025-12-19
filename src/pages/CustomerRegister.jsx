@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Users, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { regions, detailedRegions, dongData, productTypes, deliveryCompanies } from '../data/sampleData';
-import { hashPassword } from '../utils/passwordHash';
+import { supabase } from '../utils/supabaseClient';
 
 const CustomerRegister = () => {
   const navigate = useNavigate();
@@ -26,6 +26,7 @@ const CustomerRegister = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [privacyError, setPrivacyError] = useState('');
 
@@ -76,8 +77,10 @@ const CustomerRegister = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmitting) return;
 
     // 개인정보 처리방침 동의 확인
     if (!privacyAgreed) {
@@ -86,30 +89,85 @@ const CustomerRegister = () => {
       return;
     }
 
-    // 비밀번호 해싱
-    const hashedPassword = hashPassword(formData.password);
+    setIsSubmitting(true);
 
-    // 사용자 데이터를 localStorage에 저장 (비밀번호는 해싱된 값으로 저장)
-    const userData = {
-      id: `customer-${Date.now()}`,
-      userType: 'customer',
-      status: 'pending', // 승인 대기 상태 추가
-      submittedAt: new Date().toISOString(),
-      ...formData,
-      password: hashedPassword // 해싱된 비밀번호로 저장
-    };
+    const submittedAt = new Date().toISOString();
 
-    // 기존 사용자 데이터 가져오기
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    existingUsers.push(userData);
-    localStorage.setItem('users', JSON.stringify(existingUsers));
+    // Supabase Auth 회원가입 (메타데이터에 입력값 저장)
+    const { password, ...metadataPayload } = formData;
 
-    // 관리자 대시보드용 대기 목록에도 저장
-    const pendingCustomers = JSON.parse(localStorage.getItem('pendingCustomers') || '[]');
-    pendingCustomers.push(userData);
-    localStorage.setItem('pendingCustomers', JSON.stringify(pendingCustomers));
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            userType: 'customer',
+            status: 'pending',
+            submittedAt,
+            ...metadataPayload
+          }
+        }
+      });
 
-    setIsSubmitted(true);
+      if (error) {
+        console.error('Supabase 회원가입 오류:', error);
+        alert(`회원가입 중 오류가 발생했습니다: ${error.message}`);
+        return;
+      }
+
+      const supaUser = data?.user;
+      const ownerId = supaUser?.id || `customer-${Date.now()}`;
+
+      // 프로필 upsert
+      await supabase.from('profiles').upsert({
+        id: ownerId,
+        email: supaUser?.email || formData.email,
+        user_type: 'customer',
+        status: 'pending'
+      });
+
+      // 고객사 데이터 저장 (password 제외, snake_case 변환)
+      // 주의: DB에 phone, representative 등의 컬럼이 존재해야 에러 없이 저장됩니다.
+      const { error: insertError } = await supabase.from('customers').insert({
+        owner_id: ownerId,
+        status: 'pending',
+        submitted_at: submittedAt,
+        company_name: formData.companyName,
+        location: formData.location,
+        city: formData.city,
+        dong: formData.dong,
+        representative: formData.representative,
+        phone: formData.phone,
+        contact_person: formData.contactPerson,
+        contact_phone: formData.contactPhone,
+        email: formData.email,
+        required_area: Number(formData.requiredArea) || 0,
+        monthly_volume: Number(formData.monthlyVolume) || 0,
+        pallet_count: Number(formData.palletCount) || 0,
+        desired_delivery: formData.desiredDelivery,
+        products: formData.products
+      });
+
+      if (insertError) throw insertError;
+
+      // 현재 사용자 세션 캐싱 (민감정보 제외)
+      const sanitizedUser = {
+        id: ownerId,
+        email: supaUser?.email || formData.email,
+        userType: 'customer',
+        status: 'pending',
+        submittedAt
+      };
+      localStorage.setItem('currentUser', JSON.stringify(sanitizedUser));
+
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error('회원가입 처리 오류:', err);
+      alert('회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -463,13 +521,13 @@ const CustomerRegister = () => {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={!privacyAgreed}
-                className={`w-full py-3 px-4 rounded-lg transition-colors text-lg font-semibold ${privacyAgreed
-                    ? 'bg-primary-600 text-white hover:bg-primary-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                disabled={!privacyAgreed || isSubmitting}
+                className={`w-full py-3 px-4 rounded-lg transition-colors text-lg font-semibold ${privacyAgreed && !isSubmitting
+                  ? 'bg-primary-600 text-white hover:bg-primary-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
               >
-                고객사 등록하기
+                {isSubmitting ? '등록 처리 중...' : '고객사 등록하기'}
               </button>
             </div>
           </form>

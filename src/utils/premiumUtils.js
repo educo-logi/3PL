@@ -2,8 +2,7 @@
  * 프리미엄 신청 관리 유틸리티 함수
  */
 
-const PREMIUM_APPLICATIONS_KEY = 'premiumApplications';
-const PREMIUM_ITEMS_KEY = 'premiumItems';
+import { supabase } from './supabaseClient';
 
 /**
  * 프리미엄 신청 패키지 정보
@@ -17,189 +16,217 @@ export const premiumPackages = {
 /**
  * 프리미엄 신청 생성
  */
-export const createPremiumApplication = (userId, userType, itemId, itemType, packageType) => {
-  const applications = JSON.parse(localStorage.getItem(PREMIUM_APPLICATIONS_KEY) || '[]');
-  
+export const createPremiumApplication = async (itemId, itemType, packageType, appliedBy) => {
   const startDate = new Date();
   const endDate = new Date();
   endDate.setMonth(endDate.getMonth() + premiumPackages[packageType].months);
-  
-  const application = {
-    id: `premium-${userId}-${Date.now()}`,
-    userId,
-    userType,
-    itemId,
-    itemType,
-    packageType,
-    amount: premiumPackages[packageType].price,
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-    status: 'active',
-    createdAt: new Date().toISOString(),
-    paymentDate: new Date().toISOString()
-  };
-  
-  applications.push(application);
-  localStorage.setItem(PREMIUM_APPLICATIONS_KEY, JSON.stringify(applications));
-  
-  // 프리미엄 아이템 업데이트
-  updatePremiumItem(itemId, itemType, endDate.toISOString());
-  
-  return application;
+
+  const { data, error } = await supabase
+    .from('premium_applications')
+    .insert({
+      item_id: itemId,
+      item_type: itemType,
+      applied_by: appliedBy,
+      status: 'pending',
+      start_at: startDate.toISOString(),
+      end_at: endDate.toISOString(),
+      created_at: new Date().toISOString(),
+      package_type: packageType,
+      amount: premiumPackages[packageType].price
+    })
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error('프리미엄 신청 실패:', error);
+    return null;
+  }
+  return data;
 };
 
 /**
  * 프리미엄 아이템 업데이트
  */
-const updatePremiumItem = (itemId, itemType, endDate) => {
-  const premiumItems = JSON.parse(localStorage.getItem(PREMIUM_ITEMS_KEY) || '[]');
-  
-  // 기존 항목 찾기
-  const existingIndex = premiumItems.findIndex(
-    item => item.itemId === itemId && item.itemType === itemType
-  );
-  
-  const premiumItem = {
-    itemId,
-    itemType,
-    endDate,
-    isPremium: true,
-    updatedAt: new Date().toISOString()
-  };
-  
-  if (existingIndex >= 0) {
-    // 기존 항목 업데이트 (만료일 연장)
-    premiumItems[existingIndex] = premiumItem;
-  } else {
-    // 새 항목 추가
-    premiumItems.push(premiumItem);
+const updatePremiumItem = async (itemId, itemType, endDate) => {
+  if (itemType === 'warehouse') {
+    await supabase
+      .from('warehouses')
+      .update({ is_premium: true, premium_end_at: endDate })
+      .eq('id', itemId);
+  } else if (itemType === 'customer') {
+    await supabase
+      .from('customers')
+      .update({ is_premium: true, premium_end_at: endDate })
+      .eq('id', itemId);
   }
-  
-  localStorage.setItem(PREMIUM_ITEMS_KEY, JSON.stringify(premiumItems));
-  
-  // 실제 데이터도 업데이트
-  updateItemPremiumStatus(itemId, itemType, true, endDate);
 };
 
 /**
  * 실제 아이템 데이터의 프리미엄 상태 업데이트
  */
-const updateItemPremiumStatus = (itemId, itemType, isPremium, endDate) => {
+const updateItemPremiumStatus = async (itemId, itemType, isPremium, endDate) => {
   if (itemType === 'warehouse') {
-    const warehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
-    const warehouse = warehouses.find(w => w.id === itemId);
-    if (warehouse) {
-      warehouse.isPremium = isPremium;
-      warehouse.premiumEndDate = endDate;
-      localStorage.setItem('approvedWarehouses', JSON.stringify(warehouses));
-    }
+    await supabase
+      .from('warehouses')
+      .update({ is_premium: isPremium, premium_end_at: endDate })
+      .eq('id', itemId);
   } else if (itemType === 'customer') {
-    const customers = JSON.parse(localStorage.getItem('approvedCustomers') || '[]');
-    const customer = customers.find(c => c.id === itemId);
-    if (customer) {
-      customer.isPremium = isPremium;
-      customer.premiumEndDate = endDate;
-      localStorage.setItem('approvedCustomers', JSON.stringify(customers));
-    }
+    await supabase
+      .from('customers')
+      .update({ is_premium: isPremium, premium_end_at: endDate })
+      .eq('id', itemId);
   }
 };
 
 /**
  * 프리미엄 상태 확인
  */
-export const isPremiumActive = (itemId, itemType) => {
-  const premiumItems = JSON.parse(localStorage.getItem(PREMIUM_ITEMS_KEY) || '[]');
-  const premiumItem = premiumItems.find(
-    item => item.itemId === itemId && item.itemType === itemType
-  );
-  
-  if (!premiumItem) return false;
-  
-  // 만료일 확인
-  const endDate = new Date(premiumItem.endDate);
-  const now = new Date();
-  
-  if (endDate < now) {
-    // 만료된 경우 상태 업데이트
-    updateItemPremiumStatus(itemId, itemType, false, null);
+export const isPremiumActive = async (itemId, itemType) => {
+  const { data, error } = await supabase
+    .from('premium_applications')
+    .select('end_at, status')
+    .eq('item_id', itemId)
+    .eq('item_type', itemType)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error('프리미엄 상태 조회 오류:', error);
     return false;
   }
-  
+  if (!data) return false;
+  if (data.status !== 'approved' && data.status !== 'active') return false;
+  const now = new Date();
+  const end = data.end_at ? new Date(data.end_at) : now;
+  if (end < now) {
+    await updateItemPremiumStatus(itemId, itemType, false, null);
+    return false;
+  }
   return true;
 };
 
 /**
  * 사용자의 프리미엄 신청 내역 조회
  */
-export const getUserPremiumApplications = (userId) => {
-  const applications = JSON.parse(localStorage.getItem(PREMIUM_APPLICATIONS_KEY) || '[]');
-  return applications.filter(app => app.userId === userId);
+export const getUserPremiumApplications = async (userId) => {
+  const { data, error } = await supabase
+    .from('premium_applications')
+    .select('*')
+    .eq('applied_by', userId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('프리미엄 신청 조회 오류:', error);
+    return [];
+  }
+  return data;
 };
 
 /**
  * 사용자가 해당 아이템의 프리미엄 소유자인지 확인
  */
-export const isPremiumOwner = (userId, itemId, itemType) => {
-  const applications = JSON.parse(localStorage.getItem(PREMIUM_APPLICATIONS_KEY) || '[]');
-  return applications.some(app => 
-    app.userId === userId && 
-    app.itemId === itemId && 
-    app.itemType === itemType &&
-    app.status === 'active'
-  );
+export const isPremiumOwner = async (userId, itemId, itemType) => {
+  const { data, error } = await supabase
+    .from('premium_applications')
+    .select('id, status')
+    .eq('applied_by', userId)
+    .eq('item_id', itemId)
+    .eq('item_type', itemType)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error('프리미엄 소유자 조회 오류:', error);
+    return false;
+  }
+  if (!data) return false;
+  return data.status === 'active' || data.status === 'approved';
 };
 
 /**
  * 아이템의 프리미엄 신청 내역 조회
  */
-export const getItemPremiumApplications = (itemId, itemType) => {
-  const applications = JSON.parse(localStorage.getItem(PREMIUM_APPLICATIONS_KEY) || '[]');
-  return applications.filter(
-    app => app.itemId === itemId && app.itemType === itemType
-  ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+export const getItemPremiumApplications = async (itemId, itemType) => {
+  const { data, error } = await supabase
+    .from('premium_applications')
+    .select('*')
+    .eq('item_id', itemId)
+    .eq('item_type', itemType)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('프리미엄 신청 목록 조회 오류:', error);
+    return [];
+  }
+  return data;
 };
 
 /**
  * 프리미엄 만료 체크 및 업데이트
  */
-export const checkAndUpdateExpiredPremiums = () => {
-  const premiumItems = JSON.parse(localStorage.getItem(PREMIUM_ITEMS_KEY) || '[]');
+export const checkAndUpdateExpiredPremiums = async () => {
   const now = new Date();
-  
-  premiumItems.forEach(item => {
-    const endDate = new Date(item.endDate);
-    if (endDate < now && item.isPremium) {
-      updateItemPremiumStatus(item.itemId, item.itemType, false, null);
+  const { data, error } = await supabase
+    .from('premium_applications')
+    .select('item_id, item_type, end_at, status');
+  if (error) {
+    console.error('프리미엄 만료 체크 오류:', error);
+    return;
+  }
+  for (const app of data || []) {
+    if (!app.end_at) continue;
+    const end = new Date(app.end_at);
+    if (end < now && (app.status === 'active' || app.status === 'approved')) {
+      await updateItemPremiumStatus(app.item_id, app.item_type, false, null);
     }
-  });
+  }
 };
 
 /**
  * 프리미엄 아이템 정렬 (최근 신청 순)
  */
-export const sortPremiumItems = (items) => {
-  const premiumItems = JSON.parse(localStorage.getItem(PREMIUM_ITEMS_KEY) || '[]');
-  
-  return items.sort((a, b) => {
-    const aIsPremium = isPremiumActive(a.id, 'warehouse') || isPremiumActive(a.id, 'customer');
-    const bIsPremium = isPremiumActive(b.id, 'warehouse') || isPremiumActive(b.id, 'customer');
-    
-    // 프리미엄 우선
-    if (aIsPremium && !bIsPremium) return -1;
-    if (!aIsPremium && bIsPremium) return 1;
-    
-    // 둘 다 프리미엄이면 최근 신청 순
-    if (aIsPremium && bIsPremium) {
-      const aApp = getItemPremiumApplications(a.id, a.userType || 'warehouse')[0];
-      const bApp = getItemPremiumApplications(b.id, b.userType || 'warehouse')[0];
-      
-      if (aApp && bApp) {
-        return new Date(bApp.createdAt) - new Date(aApp.createdAt);
-      }
-      if (aApp) return -1;
-      if (bApp) return 1;
+export const sortPremiumItems = async (items, itemType) => {
+  // 사전 조회로 신청 정보를 캐싱
+  const ids = items.map(i => i.id);
+  const { data, error } = await supabase
+    .from('premium_applications')
+    .select('item_id, item_type, created_at, status, end_at')
+    .in('item_id', ids)
+    .eq('item_type', itemType)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('프리미엄 정렬 조회 오류:', error);
+    return items;
+  }
+
+  const appsById = new Map();
+  (data || []).forEach(app => {
+    if (!appsById.has(app.item_id)) {
+      appsById.set(app.item_id, []);
     }
-    
+    appsById.get(app.item_id).push(app);
+  });
+
+  const isActive = (app) => {
+    if (!app) return false;
+    if (app.status !== 'approved' && app.status !== 'active') return false;
+    if (!app.end_at) return false;
+    return new Date(app.end_at) > new Date();
+  };
+
+  return [...items].sort((a, b) => {
+    const aApps = appsById.get(a.id) || [];
+    const bApps = appsById.get(b.id) || [];
+    const aLatest = aApps[0];
+    const bLatest = bApps[0];
+
+    const aPremium = isActive(aLatest);
+    const bPremium = isActive(bLatest);
+
+    if (aPremium && !bPremium) return -1;
+    if (!aPremium && bPremium) return 1;
+
+    if (aPremium && bPremium && aLatest && bLatest) {
+      return new Date(bLatest.created_at) - new Date(aLatest.created_at);
+    }
     return 0;
   });
 };

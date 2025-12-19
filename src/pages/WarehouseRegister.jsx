@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Building2, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { regions, detailedRegions, dongData, productTypes, storageTypes, deliveryCompanies, solutions } from '../data/sampleData';
-import { hashPassword } from '../utils/passwordHash';
+import { supabase } from '../utils/supabaseClient';
 
 const WarehouseRegister = () => {
   const navigate = useNavigate();
@@ -36,6 +36,7 @@ const WarehouseRegister = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [privacyError, setPrivacyError] = useState('');
 
@@ -79,6 +80,41 @@ const WarehouseRegister = () => {
     }));
   };
 
+  const handlePrefillSample = () => {
+    const region = regions[0] || '';
+    const city = region && detailedRegions[region]?.[0] ? detailedRegions[region][0] : '';
+    const dong = region && city && dongData[region]?.[city]?.[0] ? dongData[region][city][0] : '';
+    setFormData(prev => ({
+      ...prev,
+      companyName: '샘플 창고',
+      businessNumber: '123-45-67890',
+      representative: '홍길동',
+      phone: '010-1234-5678',
+      contactPerson: '김담당',
+      contactPhone: '010-1111-2222',
+      email: '',
+      password: '',
+      location: region,
+      city,
+      dong,
+      totalArea: '1000',
+      totalAreaUnit: 'sqm',
+      warehouseCount: '2',
+      warehouseArea: '800',
+      warehouseAreaUnit: 'sqm',
+      availableArea: '600',
+      availableAreaUnit: 'sqm',
+      palletCount: '200',
+      experience: '3',
+      storageTypes: storageTypes.slice(0, 2),
+      deliveryCompanies: deliveryCompanies.slice(0, 2),
+      otherDeliveryCompany: '',
+      solutions: solutions.slice(0, 2),
+      otherSolution: '',
+      products: productTypes.slice(0, 3)
+    }));
+  };
+
   // 면적 검증 함수
   const validateAreas = () => {
     const totalArea = parseFloat(formData.totalArea);
@@ -100,8 +136,10 @@ const WarehouseRegister = () => {
     return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmitting) return;
 
     // 개인정보 처리방침 동의 확인
     if (!privacyAgreed) {
@@ -115,30 +153,99 @@ const WarehouseRegister = () => {
       return;
     }
 
-    // 비밀번호 해싱
-    const hashedPassword = hashPassword(formData.password);
+    setIsSubmitting(true);
 
-    // 사용자 데이터를 localStorage에 저장 (비밀번호는 해싱된 값으로 저장)
-    const userData = {
-      id: `warehouse-${Date.now()}`,
-      userType: 'warehouse',
-      status: 'pending', // 승인 대기 상태 추가
-      submittedAt: new Date().toISOString(),
-      ...formData,
-      password: hashedPassword // 해싱된 비밀번호로 저장
-    };
+    const submittedAt = new Date().toISOString();
 
-    // 기존 사용자 데이터 가져오기
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    existingUsers.push(userData);
-    localStorage.setItem('users', JSON.stringify(existingUsers));
+    // Supabase Auth 회원가입 (메타데이터에 입력값 저장)
+    const { password, ...metadataPayload } = formData;
 
-    // 관리자 대시보드용 대기 목록에도 저장
-    const pendingWarehouses = JSON.parse(localStorage.getItem('pendingWarehouses') || '[]');
-    pendingWarehouses.push(userData);
-    localStorage.setItem('pendingWarehouses', JSON.stringify(pendingWarehouses));
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            userType: 'warehouse',
+            status: 'pending',
+            submittedAt,
+            ...metadataPayload
+          }
+        }
+      });
 
-    setIsSubmitted(true);
+      if (error) {
+        console.error('Supabase 회원가입 오류:', error);
+        alert(`회원가입 중 오류가 발생했습니다: ${error.message}`);
+        return;
+      }
+
+      const supaUser = data?.user;
+      const ownerId = supaUser?.id || `warehouse-${Date.now()}`;
+
+      // 프로필 upsert
+      await supabase.from('profiles').upsert({
+        id: ownerId,
+        email: supaUser?.email || formData.email,
+        user_type: 'warehouse',
+        status: 'pending'
+      });
+
+      // 창고 데이터 저장 (password 제외, snake_case 변환)
+      // 주의: DB에 phone, representative 등의 컬럼이 존재해야 에러 없이 저장됩니다.
+      const formattedStorageTypes = formData.storageTypes;
+      const formattedDelivery = formData.deliveryCompanies.includes('기타')
+        ? [...formData.deliveryCompanies.filter(d => d !== '기타'), formData.otherDeliveryCompany]
+        : formData.deliveryCompanies;
+      const formattedSolutions = formData.solutions.includes('기타')
+        ? [...formData.solutions.filter(s => s !== '기타'), formData.otherSolution]
+        : formData.solutions;
+
+      const { error: insertError } = await supabase.from('warehouses').insert({
+        owner_id: ownerId,
+        status: 'pending',
+        submitted_at: submittedAt,
+        company_name: formData.companyName,
+        business_number: formData.businessNumber,
+        representative: formData.representative,
+        phone: formData.phone,
+        contact_person: formData.contactPerson,
+        contact_phone: formData.contactPhone,
+        email: formData.email,
+        location: formData.location,
+        city: formData.city,
+        dong: formData.dong,
+        total_area: Number(formData.totalArea) || 0,
+        warehouse_count: Number(formData.warehouseCount) || 0,
+        warehouse_area: Number(formData.warehouseArea) || 0,
+        available_area: Number(formData.availableArea) || 0,
+        pallet_count: Number(formData.palletCount) || 0,
+        experience: formData.experience,
+        storage_types: formattedStorageTypes,
+        delivery_companies: formattedDelivery,
+        solutions: formattedSolutions,
+        products: formData.products
+      });
+
+      if (insertError) throw insertError;
+
+      // 현재 사용자 세션 캐싱 (민감정보 제외)
+      const sanitizedUser = {
+        id: ownerId,
+        email: supaUser?.email || formData.email,
+        userType: 'warehouse',
+        status: 'pending',
+        submittedAt
+      };
+      localStorage.setItem('currentUser', JSON.stringify(sanitizedUser));
+
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error('회원가입 처리 오류:', err);
+      alert('회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -172,6 +279,13 @@ const WarehouseRegister = () => {
           <div className="flex items-center mb-8">
             <Building2 className="w-8 h-8 text-primary-600 mr-3" />
             <h1 className="text-3xl font-bold text-gray-900">창고 등록</h1>
+            <button
+              type="button"
+              onClick={handlePrefillSample}
+              className="ml-auto text-sm px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              임시 데이터 채우기
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -682,13 +796,13 @@ const WarehouseRegister = () => {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={!privacyAgreed}
-                className={`w-full py-3 px-4 rounded-lg transition-colors text-lg font-semibold ${privacyAgreed
-                    ? 'bg-primary-600 text-white hover:bg-primary-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                disabled={!privacyAgreed || isSubmitting}
+                className={`w-full py-3 px-4 rounded-lg transition-colors text-lg font-semibold ${privacyAgreed && !isSubmitting
+                  ? 'bg-primary-600 text-white hover:bg-primary-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
               >
-                창고 등록하기
+                {isSubmitting ? '등록 처리 중...' : '창고 등록하기'}
               </button>
             </div>
           </form>

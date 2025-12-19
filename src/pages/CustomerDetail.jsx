@@ -1,30 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Square, Package, Users, Phone, Mail, ArrowLeft } from 'lucide-react';
-import { customerData } from '../data/sampleData';
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Square, Package, Users, Phone, Mail, ArrowLeft } from 'lucide-react';
 import ContactModal from '../components/ContactModal';
 import { formatArea } from '../utils/areaConverter';
-import { getDisplayName, isAlreadyViewed } from '../utils/viewingPassUtils';
+import { useDetailData } from '../hooks/useDetailData';
+import { useAccessCheck } from '../hooks/useAccessCheck';
+import { useViewedStatus } from '../hooks/useViewedStatus';
 
 const CustomerDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [showContactModal, setShowContactModal] = useState(false);
 
-  const customer = customerData.find(c => c.id === parseInt(id));
+  // Custom Hooks Usage
+  const { data: customer, loading, error } = useDetailData(id, 'customers');
+  useAccessCheck(customer, 'customer');
+  const { displayName, loading: viewedLoading } = useViewedStatus(customer, 'customer');
 
-  useEffect(() => {
-    // 접근 권한 확인
-    const isAdmin = localStorage.getItem('adminAuth') === 'true';
-    const isViewed = customer && isAlreadyViewed(customer.id, 'customer');
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600">불러오는 중...</p>
+      </div>
+    );
+  }
 
-    if (!isAdmin && !isViewed) {
-      alert('접근 권한이 없습니다. 먼저 열람권을 사용하여 잠금을 해제해주세요.');
-      navigate('/customer-search');
-    }
-  }, [customer, navigate]);
-
-  if (!customer) {
+  if (error || !customer) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -60,7 +60,9 @@ const CustomerDetail = () => {
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-8">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-3xl font-bold">{getDisplayName(customer, 'customer')}</h1>
+                <h1 className="text-3xl font-bold">
+                  {viewedLoading ? '로딩중...' : displayName}
+                </h1>
                 <p className="text-blue-100 text-lg">{customer.location}</p>
               </div>
             </div>
@@ -81,7 +83,7 @@ const CustomerDetail = () => {
                       필요 면적
                     </h3>
                     <p className="text-2xl font-bold text-primary-600">
-                      {formatArea(customer.requiredArea)}
+                      {formatArea(customer.requiredArea || customer.required_area)}
                     </p>
                   </div>
 
@@ -92,7 +94,7 @@ const CustomerDetail = () => {
                       월 평균 출고량
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      {customer.monthlyVolume.toLocaleString()}개
+                      {(customer.monthlyVolume || customer.monthly_volume || 0).toLocaleString()}개
                     </p>
                   </div>
 
@@ -103,7 +105,7 @@ const CustomerDetail = () => {
                       취급 물품
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {customer.products.map(product => (
+                      {(customer.products || []).map(product => (
                         <span
                           key={product}
                           className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-medium"
@@ -118,7 +120,7 @@ const CustomerDetail = () => {
                   <div className="bg-gray-50 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">원하는 배송사</h3>
                     <div className="flex flex-wrap gap-2">
-                      {customer.desiredDelivery.map(company => (
+                      {(customer.desiredDelivery || customer.desired_delivery || []).map(company => (
                         <span
                           key={company}
                           className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm"
@@ -132,7 +134,7 @@ const CustomerDetail = () => {
                   {/* 설명 */}
                   <div className="bg-gray-50 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">고객사 소개</h3>
-                    <p className="text-gray-700 leading-relaxed">{customer.description}</p>
+                    <p className="text-gray-700 leading-relaxed">{customer.description || '소개글이 없습니다.'}</p>
                   </div>
                 </div>
               </div>

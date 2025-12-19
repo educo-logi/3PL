@@ -13,6 +13,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.86.2",
     "crypto-js": "^4.2.0",
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",

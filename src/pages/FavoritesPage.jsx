@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, ArrowLeft, Building2, Users, Eye, Trash2 } from 'lucide-react';
-import { getFavorites, toggleFavorite, getDisplayName } from '../utils/viewingPassUtils';
-import { warehouseData, customerData } from '../data/sampleData';
+import { Star, ArrowLeft, Building2, Users, Eye } from 'lucide-react';
+import { getFavorites, toggleFavorite } from '../utils/viewingPassUtils';
+import { supabase } from '../utils/supabaseClient';
+import { useViewedStatus } from '../hooks/useViewedStatus';
 import DetailModal from '../components/DetailModal';
 
 const FavoritesPage = () => {
@@ -23,34 +24,38 @@ const FavoritesPage = () => {
     loadFavorites();
   }, [navigate]);
 
-  const loadFavorites = () => {
-    const favs = getFavorites();
+  const loadFavorites = async () => {
+    const favs = await getFavorites();
     setFavorites(favs);
 
-    // 모든 데이터에서 즐겨찾기 항목 찾기
-    const allWarehouses = [
-      ...warehouseData,
-      ...JSON.parse(localStorage.getItem('approvedWarehouses') || '[]')
-    ];
-    const allCustomers = [
-      ...customerData,
-      ...JSON.parse(localStorage.getItem('approvedCustomers') || '[]')
-    ];
+    const warehouseIds = favs.filter(f => f.item_type === 'warehouse').map(f => f.item_id);
+    const customerIds = favs.filter(f => f.item_type === 'customer').map(f => f.item_id);
 
-    const favoriteItems = favs.map(fav => {
-      if (fav.itemType === 'warehouse') {
-        return allWarehouses.find(w => w.id === fav.itemId);
-      } else {
-        return allCustomers.find(c => c.id === fav.itemId);
-      }
-    }).filter(Boolean);
+    const [warehousesRes, customersRes] = await Promise.all([
+      warehouseIds.length
+        ? supabase.from('warehouses').select('*').in('id', warehouseIds)
+        : { data: [] },
+      customerIds.length
+        ? supabase.from('customers').select('*').in('id', customerIds)
+        : { data: [] }
+    ]);
+
+    const warehouseMap = new Map((warehousesRes.data || []).map(w => [w.id, w]));
+    const customerMap = new Map((customersRes.data || []).map(c => [c.id, c]));
+
+    const favoriteItems = favs
+      .map(fav => {
+        if (fav.item_type === 'warehouse') return warehouseMap.get(fav.item_id);
+        return customerMap.get(fav.item_id);
+      })
+      .filter(Boolean);
 
     setItems(favoriteItems);
   };
 
-  const handleRemoveFavorite = (itemId, itemType) => {
-    toggleFavorite(itemId, itemType);
-    loadFavorites();
+  const handleRemoveFavorite = async (itemId, itemType) => {
+    await toggleFavorite(itemId, itemType);
+    await loadFavorites();
   };
 
   const handleViewDetail = (item, type) => {
@@ -90,7 +95,8 @@ const FavoritesPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item, index) => {
               const favorite = favorites[index];
-              const type = favorite?.itemType || 'warehouse';
+              const type = favorite?.item_type || 'warehouse';
+              const { displayName, viewed, loading } = useViewedStatus(item, type);
               return (
                 <div key={item.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between mb-4">
@@ -100,7 +106,9 @@ const FavoritesPage = () => {
                       ) : (
                         <Users className="w-5 h-5 text-green-600 mr-2" />
                       )}
-                      <h3 className="text-lg font-bold text-gray-900">{getDisplayName(item, type)}</h3>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {loading ? '로딩중...' : displayName}
+                      </h3>
                     </div>
                     <button
                       onClick={() => handleRemoveFavorite(item.id, type)}
@@ -110,6 +118,12 @@ const FavoritesPage = () => {
                       <Star className="w-5 h-5 fill-current" />
                     </button>
                   </div>
+                  {viewed && (
+                    <span className="inline-flex items-center text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full mb-2">
+                      <Eye className="w-3 h-3 mr-1" />
+                      열람
+                    </span>
+                  )}
                   
                   <p className="text-gray-600 mb-4 text-sm">
                     {item.location} {item.city} {item.dong}

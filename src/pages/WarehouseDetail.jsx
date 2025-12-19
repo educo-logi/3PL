@@ -1,30 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Square, Thermometer, Truck, Star, Phone, Mail, ArrowLeft } from 'lucide-react';
-import { warehouseData } from '../data/sampleData';
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Square, Thermometer, Truck, Star, Phone, Mail, ArrowLeft } from 'lucide-react';
 import ContactModal from '../components/ContactModal';
 import { formatArea } from '../utils/areaConverter';
-import { getDisplayName, isAlreadyViewed } from '../utils/viewingPassUtils';
+import { useDetailData } from '../hooks/useDetailData';
+import { useAccessCheck } from '../hooks/useAccessCheck';
+import { useViewedStatus } from '../hooks/useViewedStatus';
 
 const WarehouseDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [showContactModal, setShowContactModal] = useState(false);
 
-  const warehouse = warehouseData.find(w => w.id === parseInt(id));
+  // Custom Hooks Usage
+  const { data: warehouse, loading, error } = useDetailData(id, 'warehouses');
+  useAccessCheck(warehouse, 'warehouse');
+  const { displayName, loading: viewedLoading } = useViewedStatus(warehouse, 'warehouse');
 
-  useEffect(() => {
-    // 접근 권한 확인
-    const isAdmin = localStorage.getItem('adminAuth') === 'true';
-    const isViewed = warehouse && isAlreadyViewed(warehouse.id, 'warehouse');
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600">불러오는 중...</p>
+      </div>
+    );
+  }
 
-    if (!isAdmin && !isViewed) {
-      alert('접근 권한이 없습니다. 먼저 열람권을 사용하여 잠금을 해제해주세요.');
-      navigate('/warehouse-search');
-    }
-  }, [warehouse, navigate]);
-
-  if (!warehouse) {
+  if (error || !warehouse) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -61,8 +61,10 @@ const WarehouseDetail = () => {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center mb-2">
-                  <h1 className="text-3xl font-bold">{getDisplayName(warehouse, 'warehouse')}</h1>
-                  {warehouse.isPremium && (
+                  <h1 className="text-3xl font-bold">
+                    {viewedLoading ? '로딩중...' : displayName}
+                  </h1>
+                  {(warehouse.isPremium || warehouse.is_premium) && (
                     <div className="ml-4 bg-secondary-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center">
                       <Star className="w-4 h-4 mr-1" />
                       프리미엄
@@ -92,13 +94,13 @@ const WarehouseDetail = () => {
                       <div>
                         <p className="text-sm text-gray-600">총 면적</p>
                         <p className="text-xl font-bold text-gray-900">
-                          {formatArea(warehouse.totalArea)}
+                          {formatArea(warehouse.totalArea || warehouse.total_area)}
                         </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">이용가능면적</p>
                         <p className="text-xl font-bold text-primary-600">
-                          {formatArea(warehouse.availableArea)}
+                          {formatArea(warehouse.availableArea || warehouse.available_area)}
                         </p>
                       </div>
                     </div>
@@ -120,7 +122,7 @@ const WarehouseDetail = () => {
                       사용 배송사
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {warehouse.delivery.map(company => (
+                      {(warehouse.delivery || []).map(company => (
                         <span
                           key={company}
                           className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-medium"
@@ -132,7 +134,7 @@ const WarehouseDetail = () => {
                   </div>
 
                   {/* 추가 정보 (프리미엄 창고만) */}
-                  {warehouse.isPremium && (
+                  {(warehouse.isPremium || warehouse.is_premium) && (
                     <>
                       <div className="bg-gray-50 rounded-lg p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">경력</h3>
@@ -142,7 +144,7 @@ const WarehouseDetail = () => {
                       <div className="bg-gray-50 rounded-lg p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">취급 물품</h3>
                         <div className="flex flex-wrap gap-2">
-                          {warehouse.products.map(product => (
+                          {(warehouse.products || []).map(product => (
                             <span
                               key={product}
                               className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm"
@@ -163,7 +165,7 @@ const WarehouseDetail = () => {
                   {/* 설명 */}
                   <div className="bg-gray-50 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">창고 소개</h3>
-                    <p className="text-gray-700 leading-relaxed">{warehouse.description}</p>
+                    <p className="text-gray-700 leading-relaxed">{warehouse.description || '소개글이 없습니다.'}</p>
                   </div>
                 </div>
               </div>

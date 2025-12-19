@@ -4,12 +4,14 @@ import { CreditCard, CheckCircle, AlertCircle, Star } from 'lucide-react';
 import { paymentConfig } from '../config/paymentConfig';
 import { purchaseViewingPass, getViewingPassInfo, extendViewingPass } from '../utils/viewingPassUtils';
 import { createNotification } from '../utils/notificationUtils';
+import { supabase } from '../utils/supabaseClient';
 
 const PaymentPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const action = searchParams.get('action'); // 'extend' 또는 null
   const [currentUser, setCurrentUser] = useState(null);
+  const [profileStatus, setProfileStatus] = useState('pending');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState('basic');
@@ -23,31 +25,63 @@ const PaymentPage = () => {
   };
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (!user) {
-      navigate('/login');
-      return;
-    }
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const supaUser = data?.user;
 
-    // users 배열에서 최신 상태 확인
-    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const latestUser = allUsers.find(u => u.id === user.id) || user;
-    setCurrentUser(latestUser);
+      // 비로그인 시 로컬 스토리지 백업 (참고용)
+      const localUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
-    if (isExtending) {
-      const passInfo = getViewingPassInfo();
-      setCurrentPass(passInfo);
-    }
+      // 사용자 ID 및 타입 식별
+      let userId = supaUser?.id || localUser?.id;
+      let userType = supaUser?.user_metadata?.userType || localUser?.userType;
+
+      if (!userId) {
+        navigate('/login');
+        return;
+      }
+
+      // 1. DB에서 최신 상태 조회 (SSOT)
+      let dbStatus = 'pending';
+      try {
+        const table = userType === 'warehouse' ? 'warehouses' : 'customers';
+        const { data: row } = await supabase
+          .from(table)
+          .select('status')
+          .eq('owner_id', userId)
+          .maybeSingle();
+
+        if (row) {
+          dbStatus = row.status;
+        }
+      } catch (err) {
+        console.warn('결제 페이지 상태 조회 오류:', err);
+      }
+
+      // 상태 업데이트
+      setCurrentUser({
+        id: userId,
+        email: supaUser?.email || localUser?.email,
+        userType: userType,
+        status: dbStatus // DB 값 사용
+      });
+
+      setProfileStatus(dbStatus);
+
+      if (isExtending) {
+        const passInfo = await getViewingPassInfo();
+        setCurrentPass(passInfo);
+      }
+    };
+
+    loadUser();
   }, [navigate, isExtending]);
 
   const handlePayment = async () => {
     if (!currentUser) return;
 
     // 승인 상태 확인
-    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const latestUser = allUsers.find(u => u.id === currentUser.id) || currentUser;
-
-    if (latestUser.status === 'pending' || !latestUser.status) {
+    if (profileStatus === 'pending' || !profileStatus) {
       alert('결제를 진행하려면 먼저 관리자의 승인이 필요합니다.\n관리자 승인 후 다시 시도해주세요.');
       setIsProcessing(false);
       return;
@@ -55,37 +89,48 @@ const PaymentPage = () => {
 
     setIsProcessing(true);
 
-    // 테스트 모드: 실제 결제 없이 시뮬레이션
+    // 테스트 모드: 실제 결제 없이 DB에 반영
     if (paymentConfig.isTestMode) {
-      setTimeout(() => {
+      try {
         if (isExtending) {
-          // 연장 처리
-          const extended = extendViewingPass(currentPass?.id, 3);
+          const extended = await extendViewingPass(currentPass?.id, 3);
           if (extended) {
             createNotification(
               currentUser.id,
               'purchase',
               '열람권 연장 완료',
-              `열람권이 ${extended.expiryDate ? new Date(extended.expiryDate).toLocaleDateString('ko-KR') : '3개월'}까지 연장되었습니다.`
+              `열람권이 ${extended.expires_at ? new Date(extended.expires_at).toLocaleDateString('ko-KR') : '3개월'}까지 연장되었습니다.`
             );
+            setIsSuccess(true);
+          } else {
+            throw new Error('연장 처리에 실패했습니다. (DB 응답 없음)');
           }
         } else {
-          // 구매 처리
-          const newPass = purchaseViewingPass(currentUser.id, selectedPackage);
-          createNotification(
-            currentUser.id,
-            'purchase',
-            '열람권 구매 완료',
-            `${packages[selectedPackage].name} 구매가 완료되었습니다. (${packages[selectedPackage].count}회)`
-          );
+          const newPass = await purchaseViewingPass(currentUser.id, selectedPackage);
+          if (newPass) {
+            createNotification(
+              currentUser.id,
+              'purchase',
+              '열람권 구매 완료',
+              `${packages[selectedPackage].name} 구매가 완료되었습니다. (${packages[selectedPackage].count}회)`
+            );
+            setIsSuccess(true);
+          } else {
+            // throw new Error(...) is redundant if purchaseViewingPass throws, but safety net
+            throw new Error('구매 처리에 실패했습니다. (DB 응답 없음)');
+          }
         }
-        setIsProcessing(false);
-        setIsSuccess(true);
-      }, 1000);
-    } else {
-      // 실제 PG사 연동 (나중에 구현)
-      alert('실제 결제는 추후 PG사 연동을 통해 제공될 예정입니다.');
+      } catch (err) {
+        console.error('결제 처리 오류:', err);
+        alert(`결제 처리 중 오류가 발생했습니다: ${err.message || err.details || '알 수 없는 오류'}`);
+      }
+      setIsProcessing(false);
+      return;
     }
+
+    // 실제 PG사 연동 (미구현)
+    alert('실제 결제는 추후 PG사 연동을 통해 제공될 예정입니다.');
+    setIsProcessing(false);
   };
 
   if (isSuccess) {
@@ -131,10 +176,8 @@ const PaymentPage = () => {
   }
 
   // 승인 상태 확인
-  const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-  const latestUser = allUsers.find(u => u.id === currentUser.id) || currentUser;
-  const isApproved = latestUser.status === 'approved';
-  const isPending = latestUser.status === 'pending' || !latestUser.status;
+  const isApproved = profileStatus === 'approved';
+  const isPending = profileStatus === 'pending' || !profileStatus;
 
   const selectedPackageInfo = packages[selectedPackage];
 
@@ -148,15 +191,15 @@ const PaymentPage = () => {
               <h1 className="text-2xl font-bold">열람권 연장</h1>
             </div>
             <div className="p-6 space-y-6">
-              {(currentPass || getViewingPassInfo()) ? (
+              {(currentPass) ? (
                 <>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-sm text-gray-600 mb-2">현재 열람권 정보</p>
                     <p className="font-semibold text-gray-900">
-                      만료일: {new Date((currentPass || getViewingPassInfo()).expiryDate).toLocaleDateString('ko-KR')}
+                      만료일: {new Date(currentPass.expires_at || currentPass.expiryDate).toLocaleDateString('ko-KR')}
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
-                      남은 횟수: {(currentPass || getViewingPassInfo()).remainingCount}회
+                      남은 횟수: {currentPass.remaining_count ?? currentPass.remainingCount}회
                     </p>
                   </div>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -172,8 +215,8 @@ const PaymentPage = () => {
                       onClick={handlePayment}
                       disabled={isProcessing}
                       className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center ${isProcessing
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-primary-600 text-white hover:bg-primary-700'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary-600 text-white hover:bg-primary-700'
                         }`}
                     >
                       {isProcessing ? (
@@ -220,8 +263,8 @@ const PaymentPage = () => {
                       key={key}
                       onClick={() => setSelectedPackage(key)}
                       className={`p-4 rounded-lg border-2 transition-all ${selectedPackage === key
-                          ? 'border-primary-600 bg-primary-50'
-                          : 'border-gray-200 hover:border-primary-300'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-primary-300'
                         }`}
                     >
                       <div className="text-left">
@@ -326,8 +369,8 @@ const PaymentPage = () => {
                   onClick={handlePayment}
                   disabled={isProcessing || isPending}
                   className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center ${isProcessing || isPending
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-primary-600 text-white hover:bg-primary-700'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-primary-600 text-white hover:bg-primary-700'
                     }`}
                 >
                   {isProcessing ? (
