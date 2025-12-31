@@ -23,29 +23,10 @@ const AdminLogin = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // 관리자 로그인 체크 (환경 변수가 없거나 빈 문자열이면 기본값 사용)
-    const envAdminId = import.meta.env.VITE_ADMIN_ID;
-    const envAdminPw = import.meta.env.VITE_ADMIN_PASSWORD;
-    
-    const adminId = (envAdminId && envAdminId.trim() ? envAdminId : 'admin').toLowerCase().trim();
-    const adminPw = (envAdminPw && envAdminPw.trim() ? envAdminPw : '1231').trim();
+    const adminId = import.meta.env.VITE_ADMIN_ID;
+    const adminPw = import.meta.env.VITE_ADMIN_PASSWORD;
 
-    const inputId = formData.username.toLowerCase().trim();
-    const inputPw = formData.password.trim();
-
-    // 디버깅용 (개발 환경에서만)
-    if (import.meta.env.DEV) {
-      console.log('Admin Login Check:', {
-        inputId,
-        adminId,
-        idMatch: inputId === adminId,
-        inputPw,
-        adminPw,
-        passwordMatch: inputPw === adminPw
-      });
-    }
-
-    if (inputId === adminId && inputPw === adminPw) {
+    if (formData.username === adminId && formData.password === adminPw) {
       localStorage.removeItem('currentUser'); // 일반 사용자 권한 제거 (관리자 로그인 시)
       localStorage.setItem('adminAuth', 'true');
       navigate('/admin/dashboard');
