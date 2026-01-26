@@ -3,15 +3,12 @@
 @tailwind utilities;
 
 .hero-bg-force {
-  background-color: #1e3a8a !important;
-  background: linear-gradient(to right, #1e3a8a, #1e40af, #1e3a8a) !important;
+  background-image:
+    linear-gradient(rgba(30, 58, 138, 0.8), rgba(30, 58, 138, 0.8)),
+    url('/images/warehouse-bg.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
 
 /* 추가 커스텀 스타일이 필요하면 여기에 작성하세요 */
-
-
-
-
-
-
-
