@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
 import SignupModal from '../components/SignupModal';
+import { comparePassword } from '../utils/passwordHash';
 import { supabase } from '../utils/supabaseClient';
 
 const Login = () => {
@@ -12,7 +13,6 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -27,93 +27,57 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+
+    // 관리자 로그인 체크
+    const adminId = import.meta.env.VITE_ADMIN_ID;
+    const adminPw = import.meta.env.VITE_ADMIN_PASSWORD;
+
+    if (formData.email.toLowerCase() === adminId && formData.password === adminPw) {
+      localStorage.setItem('adminAuth', 'true');
+      navigate('/admin/dashboard');
+      return;
+    }
 
     try {
-      // 관리자 로그인 체크 (환경 변수가 없거나 빈 문자열이면 기본값 사용)
-      const envAdminId = import.meta.env.VITE_ADMIN_ID;
-      const envAdminPw = import.meta.env.VITE_ADMIN_PASSWORD;
-      
-      const adminId = (envAdminId && envAdminId.trim() ? envAdminId : 'admin').toLowerCase().trim();
-      const adminPw = (envAdminPw && envAdminPw.trim() ? envAdminPw : '1231').trim();
+      // Supabase에서 사용자 조회
+      const table = formData.userType === 'warehouse' ? 'warehouses' : 'customers';
 
-      const inputEmail = formData.email.toLowerCase().trim();
-      const inputPassword = formData.password.trim();
+      const { data: user, error } = await supabase
+        .from(table)
+        .select('*')
+        .eq('email', formData.email)
+        .single();
 
-      // 디버깅용 (개발 환경에서만)
-      if (import.meta.env.DEV) {
-        console.log('Admin Login Check:', {
-          inputEmail,
-          adminId,
-          emailMatch: inputEmail === adminId,
-          inputPassword,
-          adminPw,
-          passwordMatch: inputPassword === adminPw
-        });
-      }
-
-      if (inputEmail === adminId && inputPassword === adminPw) {
-        localStorage.setItem('adminAuth', 'true');
-        navigate('/admin/dashboard');
-        setIsLoading(false);
-        return;
-      }
-
-      // Supabase 이메일/비밀번호 로그인
-      const { data, error: supaError } = await supabase.auth.signInWithPassword({
-        email: formData.email.trim(),
-        password: formData.password
-      });
-
-      if (supaError) {
+      if (error || !user) {
         setError('아이디 또는 비밀번호가 올바르지 않습니다.');
         return;
       }
 
-      const supaUser = data?.user;
-      const metadata = supaUser?.user_metadata || {};
-      const userType = metadata.userType || formData.userType;
+      // 비밀번호 검증
+      const isMatch = comparePassword(formData.password, user.password);
 
-      let dbStatus = metadata.status || 'pending';
+      if (isMatch) {
+        // 로그인 성공
+        localStorage.removeItem('adminAuth'); // 관리자 권한 제거
 
-      // DB에서 최신 상태 조회
-      try {
-        const table = userType === 'warehouse' ? 'warehouses' : 'customers';
-        const { data: dbData } = await supabase
-          .from(table)
-          .select('status')
-          .eq('owner_id', supaUser.id)
-          .maybeSingle();
+        // 세션 유지를 위해 localStorage 사용 (실제 앱에서는 Supabase Auth 사용 권장)
+        // 여기서는 기존 로직 호환성을 위해 user 객체를 localStorage에 저장
+        // CamelCase 변환 필요할 수 있으나, currentUser를 사용하는 곳이 많지 않다면 일단 저장
+        // Home.jsx 등에서 currentUser를 어떻게 쓰는지 확인 필요. 
+        // 일단 저장.
+        localStorage.setItem('currentUser', JSON.stringify(user));
 
-        if (dbData) {
-          dbStatus = dbData.status;
-        }
-      } catch (dbErr) {
-        console.warn('DB 상태 조회 실패, 메타데이터 사용:', dbErr);
+        // 커스텀 이벤트 발생시켜 Header에 알림
+        window.dispatchEvent(new CustomEvent('userLogin'));
+
+        // 로그인 성공 시 메인페이지로 이동
+        navigate('/');
+      } else {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
       }
-
-      const mergedUser = {
-        id: supaUser?.id || metadata.id || `${formData.userType}-${Date.now()}`,
-        email: supaUser?.email || formData.email,
-        userType: userType,
-        status: dbStatus, // DB 상태 우선
-        ...metadata
-      };
-
-      localStorage.removeItem('adminAuth'); // 관리자 권한 제거 (일반 사용자 로그인 시)
-      localStorage.setItem('currentUser', JSON.stringify(mergedUser));
-
-      // 커스텀 이벤트 발생시켜 Header에 알림
-      window.dispatchEvent(new CustomEvent('userLogin'));
-
-      // 로그인 성공 시 메인페이지로 이동
-      navigate('/');
     } catch (err) {
-      console.error('Supabase 로그인 오류:', err);
-      setError('로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-    } finally {
-      setIsLoading(false);
+      console.error('Login error:', err);
+      setError('로그인 중 오류가 발생했습니다.');
     }
   };
 
@@ -236,9 +200,8 @@ const Login = () => {
               <button
                 type="submit"
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                disabled={isLoading}
               >
-                {isLoading ? '로그인 중...' : '로그인'}
+                로그인
               </button>
             </div>
           </form>
@@ -276,3 +239,5 @@ const Login = () => {
 };
 
 export default Login;
+
+

@@ -12,11 +12,11 @@ import { useNavigate } from 'react-router-dom';
 import { 
   checkViewingPass, 
   isExpired, 
+  isAlreadyViewed, 
   useViewingPass,
   getViewingPassInfo,
-  isAlreadyViewed
+  getDisplayName
 } from '../utils/viewingPassUtils';
-import { useViewedStatus } from '../hooks/useViewedStatus';
 import { isPremiumActive } from '../utils/premiumUtils';
 
 const CustomerCard = ({ customer }) => {
@@ -27,18 +27,13 @@ const CustomerCard = ({ customer }) => {
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
   const [isNoPassModalOpen, setIsNoPassModalOpen] = useState(false);
   const [isFav, setIsFav] = useState(false);
-  const [currentPassCount, setCurrentPassCount] = useState(0);
   const navigate = useNavigate();
 
-  const { viewed: isViewed, displayName, loading: viewedLoading } = useViewedStatus(customer, 'customer');
-
   useEffect(() => {
-    (async () => {
-      setIsFav(await isFavorite(customer.id, 'customer'));
-    })();
+    setIsFav(isFavorite(customer.id, 'customer'));
   }, [customer.id]);
 
-  const handleDetailClick = async () => {
+  const handleDetailClick = () => {
     // 관리자 체크
     const isAdmin = localStorage.getItem('adminAuth') === 'true';
     if (isAdmin) {
@@ -59,46 +54,32 @@ const CustomerCard = ({ customer }) => {
     // 이 부분은 제거 (프리미엄 신청만으로는 열람 불가)
 
     // 유효기간 확인
-    const passInfo = await getViewingPassInfo();
+    const passInfo = getViewingPassInfo();
     if (passInfo && isExpired(passInfo)) {
       setIsExpiredModalOpen(true);
       return;
     }
 
-    // 이미 본 항목인지 확인 (DB에서 실제 확인)
-    const alreadyViewed = await isAlreadyViewed(customer.id, 'customer');
-    if (alreadyViewed || isViewed) {
+    // 이미 본 항목인지 확인
+    if (isAlreadyViewed(customer.id, 'customer')) {
       // 이미 본 항목이면 열람권 소진 없이 바로 표시
       setIsDetailModalOpen(true);
       return;
     }
 
     // 열람권 보유 확인
-    if (!(await checkViewingPass())) {
+    if (!checkViewingPass()) {
       // 열람권이 없으면 모달 표시
       setIsNoPassModalOpen(true);
       return;
     }
 
     // 열람권이 있으면 확인 모달 표시
-    // 현재 보유 열람권 수를 state에 저장
-    if (passInfo) {
-      setCurrentPassCount(passInfo.remaining_count ?? 0);
-    }
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmView = async () => {
-    // 확인 버튼을 누를 때 다시 한 번 이미 본 항목인지 확인
-    const alreadyViewed = await isAlreadyViewed(customer.id, 'customer');
-    if (alreadyViewed) {
-      // 이미 본 항목이면 열람권 소진 없이 바로 표시
-      setIsConfirmModalOpen(false);
-      setIsDetailModalOpen(true);
-      return;
-    }
-
-    const result = await useViewingPass(
+  const handleConfirmView = () => {
+    const result = useViewingPass(
       customer.id,
       'customer',
       customer.companyName
@@ -107,11 +88,6 @@ const CustomerCard = ({ customer }) => {
     if (result.success) {
       setIsConfirmModalOpen(false);
       setIsDetailModalOpen(true);
-      // 이미 본 항목이었는지 확인하여 사용자에게 알림 (선택사항)
-      if (result.alreadyViewed) {
-        // 이미 본 항목이었으면 열람권이 소진되지 않았음을 알림
-        console.log('이미 본 항목이므로 열람권이 소진되지 않았습니다.');
-      }
     } else {
       alert(result.message);
       if (result.expired) {
@@ -135,6 +111,7 @@ const CustomerCard = ({ customer }) => {
     navigate('/customer-register');
   };
 
+  const isViewed = isAlreadyViewed(customer.id, 'customer');
   const isPremium = isPremiumActive(customer.id, 'customer') || customer.isPremium;
 
   return (
@@ -166,9 +143,7 @@ const CustomerCard = ({ customer }) => {
       )}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-gray-900">
-              {viewedLoading ? '로딩중...' : displayName}
-            </h3>
+            <h3 className="text-lg font-bold text-gray-900">{getDisplayName(customer, 'customer')}</h3>
             {isViewed && (
               <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
                 <Eye className="w-3 h-3" />
@@ -183,10 +158,8 @@ const CustomerCard = ({ customer }) => {
                 setIsLoginModalOpen(true);
                 return;
               }
-              (async () => {
-                const added = await toggleFavorite(customer.id, 'customer');
-                setIsFav(added);
-              })();
+              toggleFavorite(customer.id, 'customer');
+              setIsFav(!isFav);
             }}
             className="text-yellow-500 hover:text-yellow-600 transition-colors"
             title={isFav ? '즐겨찾기 제거' : '즐겨찾기 추가'}
@@ -253,7 +226,7 @@ const CustomerCard = ({ customer }) => {
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={handleConfirmView}
-        currentCount={currentPassCount}
+        currentCount={getViewingPassInfo()?.remainingCount || 0}
         itemName={customer.companyName}
         itemType="customer"
       />

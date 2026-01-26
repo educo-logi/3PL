@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+.hero-bg-force {
+  background-color: #1e3a8a !important;
+  background: linear-gradient(to right, #1e3a8a, #1e40af, #1e3a8a) !important;
+}
+
 /* 추가 커스텀 스타일이 필요하면 여기에 작성하세요 */
 
 

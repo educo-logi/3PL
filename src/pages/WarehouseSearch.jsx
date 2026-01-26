@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Building2, Star as StarIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { warehouseData } from '../data/sampleData';
 import FilterSidebar from '../components/FilterSidebar';
 import WarehouseCard from '../components/WarehouseCard';
+import { isPremiumActive, getItemPremiumApplications, sortPremiumItems } from '../utils/premiumUtils';
 import { supabase } from '../utils/supabaseClient';
 
 const WarehouseSearch = () => {
@@ -16,187 +18,63 @@ const WarehouseSearch = () => {
     areaRange: '',
     palletRange: ''
   });
-  const [allWarehouses, setAllWarehouses] = useState([]);
-  const [filteredWarehouses, setFilteredWarehouses] = useState([]);
-  const [premiumApps, setPremiumApps] = useState([]);
+  const [allWarehouses, setAllWarehouses] = useState(warehouseData);
+  const [filteredWarehouses, setFilteredWarehouses] = useState(warehouseData);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-  const [loading, setLoading] = useState(true);
 
-  const [favSet, setFavSet] = useState(new Set());
-  const [viewedSet, setViewedSet] = useState(new Set());
-
+  // Supabase에서 승인된 창고 가져오기
   useEffect(() => {
     const fetchWarehouses = async () => {
-      console.log('🔄 [창고 찾기] 데이터 로딩 시작...');
-      
-      // 환경 변수 확인
-      console.log('🔍 [ENV CHECK]', {
-        url: import.meta.env.VITE_SUPABASE_URL ? '설정됨' : '❌ 없음',
-        hasKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY
-      });
-      
-      setLoading(true);
       try {
-        const { data: auth } = await supabase.auth.getUser();
-        const user = auth?.user;
-        console.log('👤 [USER]', user ? `로그인됨: ${user.email}` : '비로그인');
-
-        const nowIso = new Date().toISOString();
-
-        // 쿼리 최적화: 필요한 컬럼만 선택
-        const warehouseQuery = supabase
+        const { data, error } = await supabase
           .from('warehouses')
-          .select(`
-            id, location, city, dong, 
-            available_area, pallet_count, 
-            products, delivery_companies, storage_types, 
-            experience, solutions, 
-            company_name, status, 
-            approved_at, submitted_at
-          `)
+          .select('*')
           .eq('status', 'approved');
 
-        const promises = [
-          warehouseQuery,
-          supabase
-            .from('premium_applications')
-            .select('item_id,item_type,created_at,end_at,status')
-            .eq('item_type', 'warehouse')
-            .eq('status', 'approved')
-            .gt('end_at', nowIso)
-            .order('created_at', { ascending: false }),
-        ];
+        if (error) throw error;
 
-        // 로그인한 경우 즐겨찾기 및 열람 목록 함께 조회 (N+1 문제 해결)
-        if (user) {
-          promises.push(
-            supabase.from('favorites').select('item_id').eq('user_id', user.id).eq('item_type', 'warehouse'),
-            supabase.from('views').select('item_id').eq('user_id', user.id).eq('item_type', 'warehouse')
-          );
-        }
-
-        // 에러 처리 개선: 각 쿼리별로 에러 처리
-        const results = await Promise.all(promises.map(async (query, index) => {
-          try {
-            const result = await query;
-            return result;
-          } catch (err) {
-            console.error(`❌ [QUERY ${index}] 에러:`, err);
-            return { data: null, error: err };
-          }
+        // DB 데이터를 프론트엔드 형식으로 매핑
+        const mappedWarehouses = data.map(w => ({
+          ...w,
+          // snake_case -> camelCase 변환 및 필요한 가공
+          companyName: w.company_name,
+          businessNumber: w.business_number,
+          contactNumber: w.contact_number,
+          addressDetail: w.address_detail,
+          storageTypes: w.storage_types || (w.temperature ? w.temperature.split('/') : []),
+          deliveryCompanies: w.delivery_companies || (Array.isArray(w.delivery) ? w.delivery : []),
+          totalArea: w.total_area,
+          availableArea: w.available_area,
+          palletCount: w.pallet_count,
+          submittedAt: w.submitted_at,
+          approvedAt: w.approved_at,
+          // 호환성 필드
+          name: w.company_name,
+          location: w.location,
+          delivery: w.delivery_companies || w.delivery || [],
+          solutions: w.solutions || (w.solution ? w.solution.split(',').map(s => s.trim()) : [])
         }));
 
-        // 쿼리 결과 확인
-        console.log('📊 [QUERY RESULTS]', {
-          warehouses: {
-            data: results[0].data?.length || 0,
-            error: results[0].error ? '에러 발생' : '성공',
-            errorDetails: results[0].error
-          },
-          premiumApps: {
-            data: results[1].data?.length || 0,
-            error: results[1].error ? '에러 발생' : '성공'
-          }
-        });
+        // sampleData와 Supabase 데이터 합치기 (중복 제거)
+        const existingIds = warehouseData.map(w => w.id);
+        const newWarehouses = mappedWarehouses.filter(w => !existingIds.includes(w.id));
 
-        // 창고 쿼리 에러 확인
-        if (results[0].error) {
-          console.error('❌ [창고 쿼리 실패]', results[0].error);
-          throw results[0].error;
-        }
-
-        const w = results[0].data;
-        const p = results[1].data;
-        const favs = results[2]?.data;
-        const views = results[3]?.data;
-
-        console.log('📦 [RAW DATA]', {
-          warehousesCount: w?.length || 0,
-          firstWarehouse: w?.[0] ? {
-            id: w[0].id,
-            location: w[0].location,
-            company_name: w[0].company_name,
-            status: w[0].status
-          } : null
-        });
-
-        if (favs) {
-          setFavSet(new Set(favs.map(f => f.item_id)));
-          console.log('⭐ [FAVORITES]', favs.length, '개');
-        }
-        if (views) {
-          setViewedSet(new Set(views.map(v => v.item_id)));
-          console.log('👁️ [VIEWS]', views.length, '개');
-        }
-
-        const normalized = (w || []).map((item) => ({
-          ...item,
-          availableArea: Number(item.available_area ?? item.availableArea ?? 0),
-          totalArea: Number(item.total_area ?? item.totalArea ?? 0),
-          palletCount: Number(item.pallet_count ?? item.palletCount ?? 0),
-          products: Array.isArray(item.products) ? item.products : [],
-          delivery: Array.isArray(item.delivery_companies)
-            ? item.delivery_companies
-            : item.delivery || [],
-          storageTypes: Array.isArray(item.storage_types) 
-            ? item.storage_types 
-            : (item.storage_types ? [item.storage_types] : []),
-          temperature: Array.isArray(item.storage_types) && item.storage_types.length > 0
-            ? item.storage_types.join('/')
-            : '',
-          experience: item.experience || '',
-          companyName: item.company_name, // company_name을 companyName으로 매핑
-        }));
-        
-        console.log('✨ [NORMALIZED]', {
-          count: normalized.length,
-          sample: normalized[0] ? {
-            id: normalized[0].id,
-            companyName: normalized[0].companyName,
-            location: normalized[0].location,
-            availableArea: normalized[0].availableArea,
-            storageTypes: normalized[0].storageTypes
-          } : null
-        });
-        
-        console.log('✅ [SUCCESS]', normalized.length, '개 창고 로드 완료');
-        setAllWarehouses(normalized);
-        setFilteredWarehouses(normalized);
-        setPremiumApps(p || []);
-      } catch (err) {
-        console.error('❌ [ERROR] 창고 리스트 로딩 실패:', err);
-        console.error('❌ [ERROR DETAILS]', {
-          message: err.message,
-          code: err.code,
-          details: err.details,
-          hint: err.hint
-        });
-        alert(`창고 정보를 불러오는 중 오류가 발생했습니다.\n\n에러: ${err.message || '알 수 없는 오류'}\n\n페이지를 새로고침해주세요.`);
-        setAllWarehouses([]);
-        setFilteredWarehouses([]);
-      } finally {
-        setLoading(false);
-        console.log('🏁 [LOADING] 완료');
+        setAllWarehouses([...warehouseData, ...newWarehouses]);
+      } catch (error) {
+        console.error('Error fetching warehouses:', error);
       }
     };
+
     fetchWarehouses();
   }, []);
 
-  // 필터링 로직 (Supabase 로드 이후 클라이언트 필터)
+  // 필터링 로직
   useEffect(() => {
-    console.log('🔍 [FILTER] 필터링 시작', {
-      allWarehousesCount: allWarehouses.length,
-      searchTerm,
-      filters
-    });
-
     let filtered = allWarehouses;
-    const initialCount = filtered.length;
 
     // 검색어 필터 (업체명 검색 제거 - 열람권 사용 후에만 업체명 표시)
     if (searchTerm) {
-      const beforeSearch = filtered.length;
       filtered = filtered.filter(warehouse => {
         // 업체명으로 검색하지 않음 (열람권 사용 후에만 업체명 표시)
         const hasLocation = warehouse.location && warehouse.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -207,56 +85,36 @@ const WarehouseSearch = () => {
         );
         return hasLocation || hasCity || hasDong || hasProduct;
       });
-      console.log('🔍 [FILTER] 검색어 적용:', filtered.length, '(was', beforeSearch + ')');
     }
 
     // 지역 필터
     if (filters.regions.length > 0) {
-      const beforeRegion = filtered.length;
       filtered = filtered.filter(warehouse =>
         filters.regions.includes(warehouse.location)
       );
-      console.log('🔍 [FILTER] 지역 필터 적용:', filtered.length, '(was', beforeRegion + ')');
     }
 
     // 상품 유형 필터
     if (filters.productTypes.length > 0) {
-      const beforeProduct = filtered.length;
       filtered = filtered.filter(warehouse =>
         Array.isArray(warehouse.products) && warehouse.products.some(product =>
           filters.productTypes.includes(product)
         )
       );
-      console.log('🔍 [FILTER] 상품 유형 필터 적용:', filtered.length, '(was', beforeProduct + ')');
     }
 
     // 보관 방식 필터
     if (filters.storageTypes.length > 0) {
-      const beforeStorage = filtered.length;
-      filtered = filtered.filter(warehouse => {
-        // storage_types 배열이 있으면 배열로 확인, 없으면 temperature 문자열로 확인
-        const storageTypes = warehouse.storageTypes || [];
-        const temperatureStr = warehouse.temperature || '';
-        
-        if (Array.isArray(storageTypes) && storageTypes.length > 0) {
-          // 배열로 확인
-          return filters.storageTypes.some(type =>
-            storageTypes.includes(type)
-          );
-        } else if (temperatureStr && typeof temperatureStr === 'string') {
-          // 문자열로 확인
-          return filters.storageTypes.some(type =>
-            temperatureStr.includes(type)
-          );
-        }
-        return false;
-      });
-      console.log('🔍 [FILTER] 보관 방식 필터 적용:', filtered.length, '(was', beforeStorage + ')');
+      filtered = filtered.filter(warehouse =>
+        warehouse.temperature && typeof warehouse.temperature === 'string' &&
+        filters.storageTypes.some(type =>
+          warehouse.temperature.includes(type)
+        )
+      );
     }
 
     // 면적 필터
     if (filters.areaRange) {
-      const beforeArea = filtered.length;
       filtered = filtered.filter(warehouse => {
         const area = warehouse.availableArea;
         switch (filters.areaRange) {
@@ -274,12 +132,10 @@ const WarehouseSearch = () => {
             return true;
         }
       });
-      console.log('🔍 [FILTER] 면적 필터 적용:', filtered.length, '(was', beforeArea + ')');
     }
 
     // 팔레트 수 필터
     if (filters.palletRange) {
-      const beforePallet = filtered.length;
       filtered = filtered.filter(warehouse => {
         const pallets = warehouse.palletCount;
         switch (filters.palletRange) {
@@ -297,40 +153,46 @@ const WarehouseSearch = () => {
             return true;
         }
       });
-      console.log('🔍 [FILTER] 팔레트 수 필터 적용:', filtered.length, '(was', beforePallet + ')');
     }
 
-    console.log('🔍 [FILTER] 최종 결과:', filtered.length, '(시작:', initialCount + ')');
     setFilteredWarehouses(filtered);
     setCurrentPage(1);
   }, [searchTerm, filters, allWarehouses]);
 
-  const getSortDate = (item) =>
-    new Date(item.approved_at || item.submitted_at || item.created_at || 0).getTime();
+  // 프리미엄 창고와 일반 창고 분리 및 최신순 정렬
+  const getSortDate = (item) => {
+    if (item.approvedAt) return new Date(item.approvedAt).getTime();
+    if (item.submittedAt) return new Date(item.submittedAt).getTime();
+    if (typeof item.id === 'string' && item.id.includes('-')) {
+      const timestamp = item.id.split('-').pop();
+      return parseInt(timestamp) || 0;
+    }
+    return typeof item.id === 'number' ? item.id : 0;
+  };
 
-  const premiumMap = premiumApps.reduce((set, app) => {
-    set.add(app.item_id);
-    return set;
-  }, new Set());
+  // 프리미엄 상태 업데이트
+  const warehousesWithPremium = filteredWarehouses.map(w => ({
+    ...w,
+    isPremium: isPremiumActive(w.id, 'warehouse') || w.isPremium
+  }));
 
-  const latestById = new Map();
-  premiumApps.forEach((app) => {
-    if (!latestById.has(app.item_id)) latestById.set(app.item_id, app);
-  });
-
-  const premiumWarehouses = [...filteredWarehouses]
-    .filter((w) => premiumMap.has(w.id))
+  // 프리미엄 창고 (활성 프리미엄만, 최근 신청 순)
+  const premiumWarehouses = warehousesWithPremium
+    .filter(w => w.isPremium && isPremiumActive(w.id, 'warehouse'))
     .sort((a, b) => {
-      const la = latestById.get(a.id);
-      const lb = latestById.get(b.id);
-      if (la && lb) return new Date(lb.created_at) - new Date(la.created_at);
-      if (la) return -1;
-      if (lb) return 1;
-      return 0;
+      const aApps = getItemPremiumApplications(a.id, 'warehouse');
+      const bApps = getItemPremiumApplications(b.id, 'warehouse');
+      if (aApps.length > 0 && bApps.length > 0) {
+        return new Date(bApps[0].createdAt) - new Date(aApps[0].createdAt);
+      }
+      if (aApps.length > 0) return -1;
+      if (bApps.length > 0) return 1;
+      return getSortDate(b) - getSortDate(a);
     });
 
-  const regularWarehouses = [...filteredWarehouses]
-    .filter((w) => !premiumMap.has(w.id))
+  // 일반 창고
+  const regularWarehouses = warehousesWithPremium
+    .filter(w => !w.isPremium || !isPremiumActive(w.id, 'warehouse'))
     .sort((a, b) => getSortDate(b) - getSortDate(a));
 
   // 페이지네이션
@@ -338,20 +200,6 @@ const WarehouseSearch = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentWarehouses = regularWarehouses.slice(startIndex, endIndex);
-
-  // 렌더링 로직 디버깅
-  useEffect(() => {
-    console.log('🎨 [RENDER] State 변경:', {
-      allWarehouses: allWarehouses.length,
-      filteredWarehouses: filteredWarehouses.length,
-      premiumWarehouses: premiumWarehouses.length,
-      regularWarehouses: regularWarehouses.length,
-      currentWarehouses: currentWarehouses.length,
-      currentPage,
-      totalPages,
-      loading
-    });
-  }, [allWarehouses, filteredWarehouses, premiumWarehouses.length, regularWarehouses.length, currentWarehouses.length, currentPage, totalPages, loading]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -399,82 +247,46 @@ const WarehouseSearch = () => {
 
           {/* 메인 콘텐츠 */}
           <div className="flex-1">
-            {/* 로딩 상태 */}
-            {loading && (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
-                <p className="text-gray-600">창고 정보를 불러오는 중...</p>
-              </div>
-            )}
-
             {/* 결과 통계 */}
-            {!loading && (
-              <div className="mb-6">
-                <p className="text-gray-600">
-                  총 <span className="font-semibold text-primary-600">{filteredWarehouses.length}</span>개의 창고를 찾았습니다
-                  {process.env.NODE_ENV === 'development' && (
-                    <span className="ml-4 text-xs text-gray-400">
-                      (전체: {allWarehouses.length}, 프리미엄: {premiumWarehouses.length}, 일반: {regularWarehouses.length})
-                    </span>
-                  )}
-                </p>
-              </div>
-            )}
+            <div className="mb-6">
+              <p className="text-gray-600">
+                총 <span className="font-semibold text-primary-600">{filteredWarehouses.length}</span>개의 창고를 찾았습니다
+              </p>
+            </div>
 
             {/* 프리미엄 창고 섹션 - 첫 페이지에 모두 표시 */}
-            {!loading && premiumWarehouses.length > 0 && (
+            {premiumWarehouses.length > 0 && (
               <div className="mb-12">
                 <div className="flex items-center mb-6">
                   <StarIcon className="w-6 h-6 text-yellow-500 mr-2" />
                   <h2 className="text-2xl font-bold text-gray-900">프리미엄 창고</h2>
-                  {process.env.NODE_ENV === 'development' && (
-                    <span className="ml-2 text-sm text-gray-500">({premiumWarehouses.length}개)</span>
-                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {premiumWarehouses.map(warehouse => {
-                    console.log('🎴 [RENDER] 프리미엄 창고 카드:', warehouse.id, warehouse.companyName || warehouse.location);
-                    return (
-                      <WarehouseCard
-                        key={warehouse.id}
-                        warehouse={warehouse}
-                        isPremium={true}
-                        initialIsFav={favSet.has(warehouse.id)}
-                        initialIsViewed={viewedSet.has(warehouse.id)}
-                      />
-                    );
-                  })}
+                  {premiumWarehouses.map(warehouse => (
+                    <WarehouseCard
+                      key={warehouse.id}
+                      warehouse={warehouse}
+                      isPremium={true}
+                    />
+                  ))}
                 </div>
               </div>
             )}
 
             {/* 일반 창고 섹션 */}
-            {!loading && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  일반 창고
-                  {process.env.NODE_ENV === 'development' && (
-                    <span className="ml-2 text-sm text-gray-500">
-                      ({regularWarehouses.length}개, 현재 페이지: {currentWarehouses.length}개)
-                    </span>
-                  )}
-                </h2>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">일반 창고</h2>
 
-                {currentWarehouses.length > 0 ? (
+              {currentWarehouses.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {currentWarehouses.map(warehouse => {
-                      console.log('🎴 [RENDER] 일반 창고 카드:', warehouse.id, warehouse.companyName || warehouse.location);
-                      return (
-                        <WarehouseCard
-                          key={warehouse.id}
-                          warehouse={warehouse}
-                          isPremium={false}
-                          initialIsFav={favSet.has(warehouse.id)}
-                          initialIsViewed={viewedSet.has(warehouse.id)}
-                        />
-                      );
-                    })}
+                    {currentWarehouses.map(warehouse => (
+                      <WarehouseCard
+                        key={warehouse.id}
+                        warehouse={warehouse}
+                        isPremium={false}
+                      />
+                    ))}
                   </div>
 
                   {/* 페이지네이션 */}
@@ -517,21 +329,10 @@ const WarehouseSearch = () => {
                 <div className="text-center py-12">
                   <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">검색 결과가 없습니다</h3>
-                  <p className="text-gray-500 mb-4">다른 검색어나 필터를 시도해보세요.</p>
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="text-xs text-gray-400 mt-4 p-4 bg-gray-50 rounded">
-                      <p>디버그 정보:</p>
-                      <p>전체 창고: {allWarehouses.length}개</p>
-                      <p>필터링 후: {filteredWarehouses.length}개</p>
-                      <p>프리미엄: {premiumWarehouses.length}개</p>
-                      <p>일반: {regularWarehouses.length}개</p>
-                      <p>현재 페이지: {currentWarehouses.length}개</p>
-                    </div>
-                  )}
+                  <p className="text-gray-500">다른 검색어나 필터를 시도해보세요.</p>
                 </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

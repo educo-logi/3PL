@@ -16,6 +16,8 @@ import {
   Clock,
   AlertCircle
 } from 'lucide-react';
+// import { warehouseData, customerData } from '../data/sampleData';
+// import { pendingWarehouses, pendingCustomers } from '../data/pendingData';
 import DetailModal from '../components/DetailModal';
 import { supabase } from '../utils/supabaseClient';
 
@@ -30,84 +32,90 @@ const AdminDashboard = () => {
   const [selectedItemType, setSelectedItemType] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // Supabase -> UI 데이터 정규화
-  const normalizeWarehouse = (w = {}) => {
-    const num = (v) => {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : 0;
-    };
-    const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
-    return {
-      ...w,
-      companyName: w.companyName ?? w.company_name ?? '',
-      location: w.location ?? '',
-      city: w.city ?? '',
-      dong: w.dong ?? '',
-      totalArea: num(w.totalArea ?? w.total_area),
-      availableArea: num(w.availableArea ?? w.available_area),
-      warehouseCount: num(w.warehouseCount ?? w.warehouse_count),
-      palletCount: num(w.palletCount ?? w.pallet_count),
-      experience: w.experience ?? w.experience_years ?? w.experienceMonths ?? w.experience_months ?? '',
-      storageTypes: arr(w.storageTypes ?? w.storage_types),
-      deliveryCompanies: arr(w.deliveryCompanies ?? w.delivery_companies ?? w.delivery),
-      products: arr(w.products),
-      solutions: arr(w.solutions ?? w.solution_list ?? w.solution),
-      isPremium: w.isPremium ?? w.is_premium ?? false,
-      submittedAt: w.submittedAt ?? w.submitted_at,
-    };
-  };
+  const fetchData = async () => {
+    try {
+      // Fetch warehouses
+      const { data: wData, error: wError } = await supabase
+        .from('warehouses')
+        .select('*');
 
-  const normalizeCustomer = (c = {}) => {
-    const num = (v) => {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : 0;
-    };
-    const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []);
-    return {
-      ...c,
-      companyName: c.companyName ?? c.company_name ?? '',
-      location: c.location ?? '',
-      city: c.city ?? '',
-      dong: c.dong ?? '',
-      requiredArea: num(c.requiredArea ?? c.required_area),
-      monthlyVolume: num(c.monthlyVolume ?? c.monthly_volume),
-      palletCount: num(c.palletCount ?? c.pallet_count),
-      products: arr(c.products),
-      desiredDelivery: arr(c.desiredDelivery ?? c.desired_delivery),
-      submittedAt: c.submittedAt ?? c.submitted_at,
-    };
+      if (wError) throw wError;
+
+      // Transform data if necessary (Supabase returns snake_case, frontend uses camelCase?)
+      // Actually, my register code sent snake_case keys... 
+      // Wait, the front-end code uses camelCase (e.g., warehouse.companyName).
+      // I must ensure the data returned is compatible or mapped.
+      // option 1: Map fields. option 2: Update frontend to use snake_case.
+      // Updating frontend to use snake_case in this huge file is painful.
+      // Mapping is better.
+
+      const mapWarehouse = (w) => ({
+        ...w,
+        companyName: w.company_name,
+        businessNumber: w.business_number,
+        contactPerson: w.contact_person,
+        contactPhone: w.contact_phone,
+        totalArea: w.total_area,
+        totalAreaUnit: w.total_area_unit,
+        warehouseCount: w.warehouse_count,
+        warehouseArea: w.warehouse_area,
+        warehouseAreaUnit: w.warehouse_area_unit,
+        availableArea: w.available_area,
+        availableAreaUnit: w.available_area_unit,
+        palletCount: w.pallet_count,
+        storageTypes: w.storage_types,
+        deliveryCompanies: w.delivery_companies,
+        otherDeliveryCompany: w.other_delivery_company,
+        otherSolution: w.other_solution,
+        submittedAt: w.submitted_at,
+        approvedAt: w.approved_at,
+        isPremium: false, // Default for now
+        temperature: w.storage_types ? w.storage_types.join(', ') : '',
+        delivery: w.delivery_companies || []
+      });
+
+      const mapCustomer = (c) => ({
+        ...c,
+        companyName: c.company_name,
+        contactPerson: c.contact_person,
+        contactPhone: c.contact_phone,
+        requiredArea: c.required_area,
+        requiredAreaUnit: c.required_area_unit,
+        monthlyVolume: c.monthly_volume,
+        palletCount: c.pallet_count,
+        desiredDelivery: c.desired_delivery,
+        submittedAt: c.submitted_at,
+        approvedAt: c.approved_at
+      });
+
+      const processedWarehouses = (wData || []).map(mapWarehouse);
+      setWarehouses(processedWarehouses.filter(w => w.status === 'approved'));
+      setPendingWarehouseList(processedWarehouses.filter(w => w.status === 'pending'));
+
+      // Fetch customers
+      const { data: cData, error: cError } = await supabase
+        .from('customers')
+        .select('*');
+
+      if (cError) throw cError;
+
+      const processedCustomers = (cData || []).map(mapCustomer);
+      setCustomers(processedCustomers.filter(c => c.status === 'approved'));
+      setPendingCustomerList(processedCustomers.filter(c => c.status === 'pending'));
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      alert('데이터를 불러오는 중 오류가 발생했습니다.');
+    }
   };
 
   useEffect(() => {
+    // 관리자 인증 확인
     const isAdmin = localStorage.getItem('adminAuth');
     if (!isAdmin) {
       navigate('/admin/login');
       return;
     }
-
-    const fetchData = async () => {
-      const { data: approvedW } = await supabase
-        .from('warehouses')
-        .select('*')
-        .eq('status', 'approved');
-      const { data: approvedC } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('status', 'approved');
-      const { data: pendingW } = await supabase
-        .from('warehouses')
-        .select('*')
-        .eq('status', 'pending');
-      const { data: pendingC } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('status', 'pending');
-
-      setWarehouses((approvedW || []).map(normalizeWarehouse));
-      setCustomers((approvedC || []).map(normalizeCustomer));
-      setPendingWarehouseList((pendingW || []).map(normalizeWarehouse));
-      setPendingCustomerList((pendingC || []).map(normalizeCustomer));
-    };
 
     fetchData();
   }, [navigate]);
@@ -117,99 +125,123 @@ const AdminDashboard = () => {
     navigate('/admin/login');
   };
 
-  const handleDeleteWarehouse = (id) => {
+  const handleDeleteWarehouse = async (id) => {
     if (window.confirm('정말로 이 창고를 삭제하시겠습니까?')) {
-      setWarehouses(prev => prev.filter(w => w.id !== id));
+      try {
+        const { error } = await supabase
+          .from('warehouses')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        fetchData();
+      } catch (error) {
+        console.error('Error deleting warehouse:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+      }
     }
   };
 
-  const handleDeleteCustomer = (id) => {
+  const handleDeleteCustomer = async (id) => {
     if (window.confirm('정말로 이 고객사를 삭제하시겠습니까?')) {
-      setCustomers(prev => prev.filter(c => c.id !== id));
+      try {
+        const { error } = await supabase
+          .from('customers')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        fetchData();
+      } catch (error) {
+        console.error('Error deleting customer:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+      }
     }
   };
 
-  const callApproveFunction = async (itemId, table, approve) => {
-    // Edge Function 대신 직접 DB 업데이트 시도
-    // 주의: RLS(Row Level Security) 정책에 따라 권한이 거부될 수 있음.
-    // 현재는 프로토타입 단계이므로 Client-side에서 직접 수행.
-
-    // 승인/거절 상태 Update
-    const updateData = {
-      status: approve ? 'approved' : 'rejected',
-      approved_at: approve ? new Date().toISOString() : null
-    };
-
-    const { error } = await supabase
-      .from(table)
-      .update(updateData)
-      .eq('id', itemId);
-
-    if (error) {
-      console.error('승인/거절 실패:', error);
-      alert('승인/거절 처리 중 오류가 발생했습니다: ' + error.message);
-      return false;
-    }
-    return true;
-  };
-
-  const refreshLists = async () => {
-    const { data: approvedW } = await supabase
-      .from('warehouses')
-      .select('*')
-      .eq('status', 'approved');
-    const { data: approvedC } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('status', 'approved');
-    const { data: pendingW } = await supabase
-      .from('warehouses')
-      .select('*')
-      .eq('status', 'pending');
-    const { data: pendingC } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('status', 'pending');
-
-    setWarehouses((approvedW || []).map(normalizeWarehouse));
-    setCustomers((approvedC || []).map(normalizeCustomer));
-    setPendingWarehouseList((pendingW || []).map(normalizeWarehouse));
-    setPendingCustomerList((pendingC || []).map(normalizeCustomer));
-  };
-
+  // 창고 승인
   const handleApproveWarehouse = async (pendingWarehouse) => {
-    if (!window.confirm('이 창고를 승인하시겠습니까?')) return;
-    const ok = await callApproveFunction(pendingWarehouse.id, 'warehouses', true);
-    if (ok) {
-      await refreshLists();
-      alert('창고가 승인되었습니다.');
+    if (window.confirm('이 창고를 승인하시겠습니까?')) {
+      try {
+        const { error } = await supabase
+          .from('warehouses')
+          .update({
+            status: 'approved',
+            approved_at: new Date().toISOString()
+          })
+          .eq('id', pendingWarehouse.id);
+
+        if (error) throw error;
+
+        alert('창고가 승인되었습니다.');
+        fetchData(); // Refresh data
+      } catch (error) {
+        console.error('Error approving warehouse:', error);
+        alert('승인 처리 중 오류가 발생했습니다.');
+      }
     }
   };
 
-  const handleRejectWarehouse = async (pendingWarehouseId) => {
-    if (!window.confirm('이 창고 등록을 거부하시겠습니까?')) return;
-    const ok = await callApproveFunction(pendingWarehouseId, 'warehouses', false);
-    if (ok) {
-      await refreshLists();
-      alert('창고 등록이 거부되었습니다.');
+  // 창고 거부
+  const handleRejectWarehouse = async (id) => {
+    if (window.confirm('이 창고 등록을 거부하시겠습니까?')) {
+      try {
+        const { error } = await supabase
+          .from('warehouses')
+          .update({ status: 'rejected' })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        alert('창고 등록이 거부되었습니다.');
+        fetchData(); // Refresh data
+      } catch (error) {
+        console.error('Error rejecting warehouse:', error);
+        alert('거부 처리 중 오류가 발생했습니다.');
+      }
     }
   };
 
+  // 고객사 승인
   const handleApproveCustomer = async (pendingCustomer) => {
-    if (!window.confirm('이 고객사를 승인하시겠습니까?')) return;
-    const ok = await callApproveFunction(pendingCustomer.id, 'customers', true);
-    if (ok) {
-      await refreshLists();
-      alert('고객사가 승인되었습니다.');
+    if (window.confirm('이 고객사를 승인하시겠습니까?')) {
+      try {
+        const { error } = await supabase
+          .from('customers')
+          .update({
+            status: 'approved',
+            approved_at: new Date().toISOString()
+          })
+          .eq('id', pendingCustomer.id);
+
+        if (error) throw error;
+
+        alert('고객사가 승인되었습니다.');
+        fetchData(); // Refresh data
+      } catch (error) {
+        console.error('Error approving customer:', error);
+        alert('승인 처리 중 오류가 발생했습니다.');
+      }
     }
   };
 
-  const handleRejectCustomer = async (pendingCustomerId) => {
-    if (!window.confirm('이 고객사 등록을 거부하시겠습니까?')) return;
-    const ok = await callApproveFunction(pendingCustomerId, 'customers', false);
-    if (ok) {
-      await refreshLists();
-      alert('고객사 등록이 거부되었습니다.');
+  // 고객사 거부
+  const handleRejectCustomer = async (id) => {
+    if (window.confirm('이 고객사 등록을 거부하시겠습니까?')) {
+      try {
+        const { error } = await supabase
+          .from('customers')
+          .update({ status: 'rejected' })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        alert('고객사 등록이 거부되었습니다.');
+        fetchData(); // Refresh data
+      } catch (error) {
+        console.error('Error rejecting customer:', error);
+        alert('거부 처리 중 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -224,9 +256,9 @@ const AdminDashboard = () => {
     totalWarehouses: warehouses.length,
     totalCustomers: customers.length,
     premiumWarehouses: warehouses.filter(w => w.isPremium).length,
-    totalArea: warehouses.reduce((sum, w) => sum + (w.totalArea || 0), 0),
-    availableArea: warehouses.reduce((sum, w) => sum + (w.availableArea || 0), 0),
-    totalMonthlyVolume: customers.reduce((sum, c) => sum + (c.monthlyVolume || 0), 0),
+    totalArea: warehouses.reduce((sum, w) => sum + w.totalArea, 0),
+    availableArea: warehouses.reduce((sum, w) => sum + w.availableArea, 0),
+    totalMonthlyVolume: customers.reduce((sum, c) => sum + c.monthlyVolume, 0),
     pendingWarehouses: pendingWarehouseList.length,
     pendingCustomers: pendingCustomerList.length
   };
@@ -268,8 +300,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('overview')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               개요
@@ -277,8 +309,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('warehouses')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'warehouses'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               창고 관리
@@ -286,8 +318,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('customers')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'customers'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               고객사 관리
@@ -295,8 +327,8 @@ const AdminDashboard = () => {
             <button
               onClick={() => setActiveTab('pending')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'pending'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               검토 중인 항목 ({stats.pendingWarehouses + stats.pendingCustomers})
@@ -487,15 +519,11 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {(warehouse.availableArea || 0).toLocaleString()}㎡ / {(warehouse.totalArea || 0).toLocaleString()}㎡
+                          {warehouse.availableArea.toLocaleString()}㎡ / {warehouse.totalArea.toLocaleString()}㎡
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {warehouse.storageTypes && warehouse.storageTypes.length
-                            ? warehouse.storageTypes.join(', ')
-                            : (warehouse.temperature || '-')}
-                        </div>
+                        <div className="text-sm text-gray-900">{warehouse.temperature}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {warehouse.isPremium ? (
@@ -619,12 +647,12 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {(customer.requiredArea || 0).toLocaleString()}㎡
+                          {customer.requiredArea.toLocaleString()}㎡
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {(customer.monthlyVolume || 0).toLocaleString()}개
+                          {customer.monthlyVolume.toLocaleString()}개
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -704,6 +732,12 @@ const AdminDashboard = () => {
                           회사명
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          연락처
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          이메일
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           지역
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -738,6 +772,12 @@ const AdminDashboard = () => {
                               {warehouse.companyName}
                             </div>
                             <div className="text-sm text-gray-500">{warehouse.representative}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{warehouse.phone}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{warehouse.email}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{warehouse.location}</div>
@@ -806,10 +846,16 @@ const AdminDashboard = () => {
                           회사명
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          연락처
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          이메일
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           지역
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          필요면적
+                          면적
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           월 출고량
@@ -845,21 +891,27 @@ const AdminDashboard = () => {
                             <div className="text-sm text-gray-500">{customer.representative}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{customer.phone}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{customer.email}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{customer.location}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {customer.requiredArea.toLocaleString()}㎡
+                              {customer.requiredArea ? customer.requiredArea.toLocaleString() : 0}㎡
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {customer.monthlyVolume.toLocaleString()}개
+                              {customer.monthlyVolume ? customer.monthlyVolume.toLocaleString() : 0}개
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {customer.products.join(', ')}
+                              {customer.products ? customer.products.join(', ') : ''}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">

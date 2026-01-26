@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Users, Star as StarIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { customerData, regions, productTypes } from '../data/sampleData';
 import FilterSidebar from '../components/FilterSidebar';
 import CustomerCard from '../components/CustomerCard';
+import { isPremiumActive, getItemPremiumApplications } from '../utils/premiumUtils';
 import { supabase } from '../utils/supabaseClient';
 
 const CustomerSearch = () => {
@@ -16,46 +18,56 @@ const CustomerSearch = () => {
     areaRange: '',
     palletRange: ''
   });
-  const [allCustomers, setAllCustomers] = useState([]);
-  const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [premiumApps, setPremiumApps] = useState([]);
+  const [allCustomers, setAllCustomers] = useState(customerData);
+  const [filteredCustomers, setFilteredCustomers] = useState(customerData);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-  const [loading, setLoading] = useState(true);
 
+  // Supabase에서 승인된 고객사 가져오기
   useEffect(() => {
     const fetchCustomers = async () => {
-      setLoading(true);
-      const nowIso = new Date().toISOString();
-      const [{ data: c }, { data: p }] = await Promise.all([
-        supabase.from('customers').select('*').eq('status', 'approved'),
-        supabase
-          .from('premium_applications')
-          .select('item_id,item_type,created_at,end_at,status')
-          .eq('item_type', 'customer')
-          .eq('status', 'approved')
-          .gt('end_at', nowIso)
-          .order('created_at', { ascending: false }),
-      ]);
-      const normalized = (c || []).map((item) => ({
-        ...item,
-        requiredArea: Number(item.required_area ?? item.requiredArea ?? 0),
-        monthlyVolume: Number(item.monthly_volume ?? item.monthlyVolume ?? 0),
-        palletCount: Number(item.pallet_count ?? item.palletCount ?? 0),
-        products: Array.isArray(item.products) ? item.products : [],
-        desiredDelivery: Array.isArray(item.desired_delivery)
-          ? item.desired_delivery
-          : item.desiredDelivery || [],
-      }));
-      setAllCustomers(normalized);
-      setFilteredCustomers(normalized);
-      setPremiumApps(p || []);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('status', 'approved');
+
+        if (error) throw error;
+
+        // DB 데이터를 프론트엔드 형식으로 매핑
+        const mappedCustomers = data.map(c => ({
+          ...c,
+          // snake_case -> camelCase 변환 및 필요한 가공
+          companyName: c.company_name,
+          businessNumber: c.business_number,
+          contactNumber: c.contact_number,
+          addressDetail: c.address_detail,
+          requiredArea: c.required_area,
+          monthlyVolume: c.monthly_volume,
+          palletCount: c.pallet_count,
+          desiredDelivery: c.desired_delivery,
+          submittedAt: c.submitted_at,
+          approvedAt: c.approved_at,
+          // 호환성 필드
+          name: c.company_name,
+          location: c.location,
+          products: c.products || [],
+          delivery: c.desired_delivery || []
+        }));
+
+        // sampleData와 승인된 고객사 합치기 (중복 제거)
+        const existingIds = customerData.map(c => c.id);
+        const newCustomers = mappedCustomers.filter(c => !existingIds.includes(c.id));
+        setAllCustomers([...customerData, ...newCustomers]);
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+      }
     };
+
     fetchCustomers();
   }, []);
 
-  // 필터링 로직 (Supabase 로드 이후 클라이언트 필터)
+  // 필터링 로직
   useEffect(() => {
     let filtered = allCustomers;
 
@@ -66,7 +78,7 @@ const CustomerSearch = () => {
         customer.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.city && customer.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.dong && customer.dong.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.products.some(product => 
+        customer.products.some(product =>
           product.toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
@@ -116,32 +128,40 @@ const CustomerSearch = () => {
     setCurrentPage(1);
   }, [searchTerm, filters, allCustomers]);
 
-  const getSortDate = (item) =>
-    new Date(item.approved_at || item.submitted_at || item.created_at || 0).getTime();
+  // 최신순 정렬
+  const getSortDate = (item) => {
+    if (item.approvedAt) return new Date(item.approvedAt).getTime();
+    if (item.submittedAt) return new Date(item.submittedAt).getTime();
+    if (typeof item.id === 'string' && item.id.includes('-')) {
+      const timestamp = item.id.split('-').pop();
+      return parseInt(timestamp) || 0;
+    }
+    return typeof item.id === 'number' ? item.id : 0;
+  };
 
-  const premiumMap = premiumApps.reduce((set, app) => {
-    set.add(app.item_id);
-    return set;
-  }, new Set());
+  // 프리미엄 상태 업데이트
+  const customersWithPremium = filteredCustomers.map(c => ({
+    ...c,
+    isPremium: isPremiumActive(c.id, 'customer') || c.isPremium
+  }));
 
-  const latestById = new Map();
-  premiumApps.forEach((app) => {
-    if (!latestById.has(app.item_id)) latestById.set(app.item_id, app);
-  });
-
-  const premiumCustomers = [...filteredCustomers]
-    .filter((c) => premiumMap.has(c.id))
+  // 프리미엄 고객사 (활성 프리미엄만, 최근 신청 순)
+  const premiumCustomers = customersWithPremium
+    .filter(c => c.isPremium && isPremiumActive(c.id, 'customer'))
     .sort((a, b) => {
-      const la = latestById.get(a.id);
-      const lb = latestById.get(b.id);
-      if (la && lb) return new Date(lb.created_at) - new Date(la.created_at);
-      if (la) return -1;
-      if (lb) return 1;
-      return 0;
+      const aApps = getItemPremiumApplications(a.id, 'customer');
+      const bApps = getItemPremiumApplications(b.id, 'customer');
+      if (aApps.length > 0 && bApps.length > 0) {
+        return new Date(bApps[0].createdAt) - new Date(aApps[0].createdAt);
+      }
+      if (aApps.length > 0) return -1;
+      if (bApps.length > 0) return 1;
+      return getSortDate(b) - getSortDate(a);
     });
 
-  const regularCustomers = [...filteredCustomers]
-    .filter((c) => !premiumMap.has(c.id))
+  // 일반 고객사
+  const regularCustomers = customersWithPremium
+    .filter(c => !c.isPremium || !isPremiumActive(c.id, 'customer'))
     .sort((a, b) => getSortDate(b) - getSortDate(a));
 
   // 페이지네이션 (일반 고객사만)
@@ -249,21 +269,20 @@ const CustomerSearch = () => {
                         >
                           이전
                         </button>
-                        
+
                         {[...Array(totalPages)].map((_, index) => (
                           <button
                             key={index + 1}
                             onClick={() => setCurrentPage(index + 1)}
-                            className={`px-3 py-2 text-sm font-medium rounded-md ${
-                              currentPage === index + 1
-                                ? 'bg-primary-600 text-white'
-                                : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                            }`}
+                            className={`px-3 py-2 text-sm font-medium rounded-md ${currentPage === index + 1
+                              ? 'bg-primary-600 text-white'
+                              : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                              }`}
                           >
                             {index + 1}
                           </button>
                         ))}
-                        
+
                         <button
                           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
