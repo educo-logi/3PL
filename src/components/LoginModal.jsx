@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
 import { comparePassword } from '../utils/passwordHash';
+import { supabase } from '../utils/supabaseClient';
 
 const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
   const [formData, setFormData] = useState({
@@ -42,37 +43,55 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // 관리자 로그인 체크 (이메일이 "admin"이고 비밀번호가 "1231"인 경우)
-    if (formData.email.toLowerCase() === 'admin' && formData.password === '1231') {
+
+    // 관리자 로그인 체크
+    const adminId = import.meta.env.VITE_ADMIN_ID || 'admin';
+    const adminPw = import.meta.env.VITE_ADMIN_PASSWORD || '1231';
+
+    if (formData.email.toLowerCase() === adminId && formData.password === adminPw) {
       localStorage.setItem('adminAuth', 'true');
-      onClose(); // 모달 닫기
+      onClose();
       navigate('/admin/dashboard');
       return;
     }
-    
-    // 실제 로그인 로직 (localStorage에서 사용자 데이터 확인)
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => 
-      u.email === formData.email && 
-      u.userType === formData.userType &&
-      comparePassword(formData.password, u.password) // 해싱된 비밀번호와 비교
-    );
 
-    if (user) {
-      // 로그인 성공
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      
-      // 커스텀 이벤트 발생시켜 Header에 알림
-      window.dispatchEvent(new CustomEvent('userLogin'));
-      
-      onClose(); // 모달 닫기
-      // 메인페이지로 이동
-      navigate('/');
-    } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+    try {
+      // Supabase에서 사용자 조회
+      const table = formData.userType === 'warehouse' ? 'warehouses' : 'customers';
+
+      const { data: user, error } = await supabase
+        .from(table)
+        .select('*')
+        .eq('email', formData.email)
+        .single();
+
+      if (error || !user) {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+        return;
+      }
+
+      // 비밀번호 검증
+      const isMatch = comparePassword(formData.password, user.password);
+
+      if (isMatch) {
+        // 로그인 성공
+        localStorage.removeItem('adminAuth'); // 관리자 권한 제거 (일반 유저 로그인 시)
+        localStorage.setItem('currentUser', JSON.stringify(user));
+
+        // 커스텀 이벤트 발생시켜 Header에 알림
+        window.dispatchEvent(new CustomEvent('userLogin'));
+
+        onClose();
+        // 현재 페이지 유지 또는 메인으로 (보통 모달 로그인은 현재 페이지 유지)
+        // navigate('/'); 
+      } else {
+        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('로그인 중 오류가 발생했습니다.');
     }
   };
 
@@ -88,11 +107,11 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -128,11 +147,10 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, userType: 'warehouse' }))}
-                  className={`flex items-center justify-center px-3 py-2 border rounded-lg transition-colors text-sm ${
-                    formData.userType === 'warehouse'
+                  className={`flex items-center justify-center px-3 py-2 border rounded-lg transition-colors text-sm ${formData.userType === 'warehouse'
                       ? 'border-primary-500 bg-primary-50 text-primary-700'
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Building2 className="w-4 h-4 mr-1" />
                   창고업체
@@ -140,11 +158,10 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, userType: 'customer' }))}
-                  className={`flex items-center justify-center px-3 py-2 border rounded-lg transition-colors text-sm ${
-                    formData.userType === 'customer'
+                  className={`flex items-center justify-center px-3 py-2 border rounded-lg transition-colors text-sm ${formData.userType === 'customer'
                       ? 'border-primary-500 bg-primary-50 text-primary-700'
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Users className="w-4 h-4 mr-1" />
                   고객사
@@ -218,7 +235,7 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
               계정이 없으신가요?{' '}
-              <button 
+              <button
                 onClick={handleSignupClick}
                 className="text-primary-600 hover:text-primary-700 font-medium"
               >

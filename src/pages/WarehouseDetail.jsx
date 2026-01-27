@@ -4,24 +4,38 @@ import { MapPin, Square, Thermometer, Truck, Star, Phone, Mail, ArrowLeft } from
 import { warehouseData } from '../data/sampleData';
 import ContactModal from '../components/ContactModal';
 import { formatArea } from '../utils/areaConverter';
-import { getDisplayName, isAlreadyViewed } from '../utils/viewingPassUtils';
+import { getDisplayNameHelper, isAlreadyViewed } from '../utils/viewingPassUtils';
 
 const WarehouseDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showContactModal, setShowContactModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isViewed, setIsViewed] = useState(false);
 
   const warehouse = warehouseData.find(w => w.id === parseInt(id));
 
   useEffect(() => {
-    // 접근 권한 확인
-    const isAdmin = localStorage.getItem('adminAuth') === 'true';
-    const isViewed = warehouse && isAlreadyViewed(warehouse.id, 'warehouse');
+    const checkAccess = async () => {
+      if (!warehouse) {
+        setLoading(false);
+        return;
+      }
 
-    if (!isAdmin && !isViewed) {
-      alert('접근 권한이 없습니다. 먼저 열람권을 사용하여 잠금을 해제해주세요.');
-      navigate('/warehouse-search');
-    }
+      // 접근 권한 확인
+      const isAdmin = localStorage.getItem('adminAuth') === 'true';
+      const viewed = await isAlreadyViewed(warehouse.id, 'warehouse');
+
+      if (!isAdmin && !viewed) {
+        alert('접근 권한이 없습니다. 먼저 열람권을 사용하여 잠금을 해제해주세요.');
+        navigate('/warehouse-search');
+      } else {
+        setIsViewed(viewed);
+        setLoading(false);
+      }
+    };
+
+    checkAccess();
   }, [warehouse, navigate]);
 
   if (!warehouse) {
@@ -36,6 +50,16 @@ const WarehouseDetail = () => {
           >
             창고 목록으로 돌아가기
           </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">권한 확인 중...</p>
         </div>
       </div>
     );
@@ -61,7 +85,7 @@ const WarehouseDetail = () => {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center mb-2">
-                  <h1 className="text-3xl font-bold">{getDisplayName(warehouse, 'warehouse')}</h1>
+                  <h1 className="text-3xl font-bold">{getDisplayNameHelper(warehouse, 'warehouse', isViewed)}</h1>
                   {warehouse.isPremium && (
                     <div className="ml-4 bg-secondary-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center">
                       <Star className="w-4 h-4 mr-1" />

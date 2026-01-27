@@ -2,21 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, Users } from 'lucide-react';
 import { formatArea } from '../utils/areaConverter';
-import { getDisplayName } from '../utils/viewingPassUtils';
+import { getDisplayNameHelper, isAlreadyViewed } from '../utils/viewingPassUtils';
+import { supabase } from '../utils/supabaseClient';
 
 const ComparePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [viewedStatus, setViewedStatus] = useState({});
 
   useEffect(() => {
     if (location.state && location.state.items) {
       setItems(location.state.items);
+      checkViewedStatus(location.state.items);
     } else {
       // URL 파라미터로 전달된 경우 처리
       navigate('/');
     }
   }, [location, navigate]);
+
+  const checkViewedStatus = async (itemsToCheck) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setViewedStatus({});
+      return;
+    }
+
+    const statusMap = {};
+    for (const item of itemsToCheck) {
+      const type = item.userType || item.type || 'warehouse';
+      statusMap[item.id] = await isAlreadyViewed(item.id, type);
+    }
+    setViewedStatus(statusMap);
+  };
 
   if (items.length !== 2) {
     return (
@@ -75,10 +93,10 @@ const ComparePage = () => {
                     항목
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/8">
-                    {getDisplayName(item1, type)}
+                    {getDisplayNameHelper(item1, type, viewedStatus[item1.id])}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/8">
-                    {getDisplayName(item2, type)}
+                    {getDisplayNameHelper(item2, type, viewedStatus[item2.id])}
                   </th>
                 </tr>
               </thead>
@@ -89,10 +107,10 @@ const ComparePage = () => {
                     회사명
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {getDisplayName(item1, type)}
+                    {getDisplayNameHelper(item1, type, viewedStatus[item1.id])}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {getDisplayName(item2, type)}
+                    {getDisplayNameHelper(item2, type, viewedStatus[item2.id])}
                   </td>
                 </tr>
                 <tr>
@@ -181,13 +199,13 @@ const ComparePage = () => {
                         배송사
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {Array.isArray(item1.delivery) 
-                          ? item1.delivery.join(', ') 
+                        {Array.isArray(item1.delivery)
+                          ? item1.delivery.join(', ')
                           : item1.deliveryCompanies?.join(', ') || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {Array.isArray(item2.delivery) 
-                          ? item2.delivery.join(', ') 
+                        {Array.isArray(item2.delivery)
+                          ? item2.delivery.join(', ')
                           : item2.deliveryCompanies?.join(', ') || '-'}
                       </td>
                     </tr>
@@ -196,13 +214,13 @@ const ComparePage = () => {
                         취급 물품
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {Array.isArray(item1.products) 
-                          ? item1.products.join(', ') 
+                        {Array.isArray(item1.products)
+                          ? item1.products.join(', ')
                           : item1.products || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {Array.isArray(item2.products) 
-                          ? item2.products.join(', ') 
+                        {Array.isArray(item2.products)
+                          ? item2.products.join(', ')
                           : item2.products || '-'}
                       </td>
                     </tr>
@@ -236,13 +254,13 @@ const ComparePage = () => {
                         취급 물품
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {Array.isArray(item1.products) 
-                          ? item1.products.join(', ') 
+                        {Array.isArray(item1.products)
+                          ? item1.products.join(', ')
                           : item1.products || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {Array.isArray(item2.products) 
-                          ? item2.products.join(', ') 
+                        {Array.isArray(item2.products)
+                          ? item2.products.join(', ')
                           : item2.products || '-'}
                       </td>
                     </tr>
@@ -251,13 +269,13 @@ const ComparePage = () => {
                         원하는 배송사
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {Array.isArray(item1.desiredDelivery) 
-                          ? item1.desiredDelivery.join(', ') 
+                        {Array.isArray(item1.desiredDelivery)
+                          ? item1.desiredDelivery.join(', ')
                           : item1.desiredDelivery || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {Array.isArray(item2.desiredDelivery) 
-                          ? item2.desiredDelivery.join(', ') 
+                        {Array.isArray(item2.desiredDelivery)
+                          ? item2.desiredDelivery.join(', ')
                           : item2.desiredDelivery || '-'}
                       </td>
                     </tr>

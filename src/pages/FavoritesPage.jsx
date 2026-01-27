@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, ArrowLeft, Building2, Users, Eye, Trash2 } from 'lucide-react';
-import { getFavorites, toggleFavorite, getDisplayName } from '../utils/viewingPassUtils';
+import { Star, ArrowLeft, Building2, Users, Eye } from 'lucide-react';
+import { getFavorites, toggleFavorite, getDisplayNameHelper, isAlreadyViewed } from '../utils/viewingPassUtils';
+import { supabase } from '../utils/supabaseClient';
 import { warehouseData, customerData } from '../data/sampleData';
 import DetailModal from '../components/DetailModal';
 
@@ -12,18 +13,22 @@ const FavoritesPage = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedItemType, setSelectedItemType] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [viewedStatus, setViewedStatus] = useState({});
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-
-    loadFavorites();
+    const checkAuthAndLoad = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+      loadFavorites();
+    };
+    checkAuthAndLoad();
   }, [navigate]);
 
-  const loadFavorites = () => {
+  const loadFavorites = async () => {
+    // getFavorites is still sync (localStorage)
     const favs = getFavorites();
     setFavorites(favs);
 
@@ -39,13 +44,22 @@ const FavoritesPage = () => {
 
     const favoriteItems = favs.map(fav => {
       if (fav.itemType === 'warehouse') {
-        return allWarehouses.find(w => w.id === fav.itemId);
+        const item = allWarehouses.find(w => w.id === fav.itemId);
+        return item ? { ...item, itemType: 'warehouse' } : null;
       } else {
-        return allCustomers.find(c => c.id === fav.itemId);
+        const item = allCustomers.find(c => c.id === fav.itemId);
+        return item ? { ...item, itemType: 'customer' } : null;
       }
     }).filter(Boolean);
 
     setItems(favoriteItems);
+
+    // Check viewed status for all items
+    const statusMap = {};
+    for (const item of favoriteItems) {
+      statusMap[item.id] = await isAlreadyViewed(item.id, item.itemType);
+    }
+    setViewedStatus(statusMap);
   };
 
   const handleRemoveFavorite = (itemId, itemType) => {
@@ -89,8 +103,8 @@ const FavoritesPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item, index) => {
-              const favorite = favorites[index];
-              const type = favorite?.itemType || 'warehouse';
+              const type = item.itemType || 'warehouse';
+              const isViewed = viewedStatus[item.id];
               return (
                 <div key={item.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between mb-4">
@@ -100,7 +114,9 @@ const FavoritesPage = () => {
                       ) : (
                         <Users className="w-5 h-5 text-green-600 mr-2" />
                       )}
-                      <h3 className="text-lg font-bold text-gray-900">{getDisplayName(item, type)}</h3>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {getDisplayNameHelper(item, type, isViewed)}
+                      </h3>
                     </div>
                     <button
                       onClick={() => handleRemoveFavorite(item.id, type)}
@@ -110,9 +126,12 @@ const FavoritesPage = () => {
                       <Star className="w-5 h-5 fill-current" />
                     </button>
                   </div>
-                  
+
                   <p className="text-gray-600 mb-4 text-sm">
-                    {item.location} {item.city} {item.dong}
+                    {isViewed || localStorage.getItem('adminAuth') === 'true'
+                      ? `${item.location} ${item.city} ${item.dong}`
+                      : `${item.location} (상세 지역 비공개)`
+                    }
                   </p>
 
                   <div className="flex gap-2">

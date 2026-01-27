@@ -9,10 +9,10 @@ import ViewingPassExpiredModal from './ViewingPassExpiredModal';
 import NoViewingPassModal from './NoViewingPassModal';
 import DetailModal from './DetailModal';
 import { useNavigate } from 'react-router-dom';
-import { 
-  checkViewingPass, 
-  isExpired, 
-  isAlreadyViewed, 
+import {
+  checkViewingPass,
+  isExpired,
+  isAlreadyViewed,
   useViewingPass,
   getViewingPassInfo,
   getDisplayName
@@ -27,49 +27,64 @@ const CustomerCard = ({ customer }) => {
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
   const [isNoPassModalOpen, setIsNoPassModalOpen] = useState(false);
   const [isFav, setIsFav] = useState(false);
+  const [isViewed, setIsViewed] = useState(false);
+  const [currentPassInfo, setCurrentPassInfo] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     setIsFav(isFavorite(customer.id, 'customer'));
   }, [customer.id]);
 
-  const handleDetailClick = () => {
+  useEffect(() => {
+    const checkViewedStatus = async () => {
+      const viewed = await isAlreadyViewed(customer.id, 'customer');
+      setIsViewed(viewed);
+    };
+    checkViewedStatus();
+  }, [customer.id]);
+
+  useEffect(() => {
+    const fetchPassInfo = async () => {
+      const info = await getViewingPassInfo();
+      setCurrentPassInfo(info);
+    };
+    if (isConfirmModalOpen) {
+      fetchPassInfo();
+    }
+  }, [isConfirmModalOpen]);
+
+  const handleDetailClick = async () => {
     // 관리자 체크
     const isAdmin = localStorage.getItem('adminAuth') === 'true';
     if (isAdmin) {
-      // 관리자는 열람권 없이 바로 표시
       setIsDetailModalOpen(true);
       return;
     }
 
     // 로그인 확인
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (!currentUser) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       setIsNoPassModalOpen(true);
       return;
     }
 
-    // 프리미엄 소유자 체크 (자신의 프리미엄 업체를 볼 때는 열람권 없이 볼 수 없음)
-    // 프리미엄 신청과 열람권은 별개이므로, 프리미엄 소유자라도 열람권이 필요함
-    // 이 부분은 제거 (프리미엄 신청만으로는 열람 불가)
-
     // 유효기간 확인
-    const passInfo = getViewingPassInfo();
+    const passInfo = await getViewingPassInfo();
     if (passInfo && isExpired(passInfo)) {
       setIsExpiredModalOpen(true);
       return;
     }
 
     // 이미 본 항목인지 확인
-    if (isAlreadyViewed(customer.id, 'customer')) {
-      // 이미 본 항목이면 열람권 소진 없이 바로 표시
+    const alreadyViewed = await isAlreadyViewed(customer.id, 'customer');
+    if (alreadyViewed) {
       setIsDetailModalOpen(true);
       return;
     }
 
     // 열람권 보유 확인
-    if (!checkViewingPass()) {
-      // 열람권이 없으면 모달 표시
+    const hasPass = await checkViewingPass();
+    if (!hasPass) {
       setIsNoPassModalOpen(true);
       return;
     }
@@ -78,14 +93,15 @@ const CustomerCard = ({ customer }) => {
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmView = () => {
-    const result = useViewingPass(
+  const handleConfirmView = async () => {
+    const result = await useViewingPass(
       customer.id,
       'customer',
       customer.companyName
     );
 
     if (result.success) {
+      setIsViewed(true);
       setIsConfirmModalOpen(false);
       setIsDetailModalOpen(true);
     } else {
@@ -111,39 +127,38 @@ const CustomerCard = ({ customer }) => {
     navigate('/customer-register');
   };
 
-  const isViewed = isAlreadyViewed(customer.id, 'customer');
   const isPremium = isPremiumActive(customer.id, 'customer') || customer.isPremium;
+  const displayName = getDisplayNameHelper(customer, 'customer', isViewed);
 
   return (
     <>
-      <div className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${
-        isPremium ? 'border-2 border-secondary-500' : ''
-      }`}>
-      {isPremium && (
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-              if (!currentUser) {
-                alert('프리미엄 신청을 하려면 로그인이 필요합니다.');
-                return;
-              }
-              navigate(`/premium-apply?type=customer&itemId=${customer.id}`);
-            }}
-            className="bg-secondary-500 text-white px-3 py-1 rounded-full text-sm font-semibold hover:bg-secondary-600 transition-colors cursor-pointer"
-          >
-            프리미엄
-          </button>
-          <div className="flex items-center text-yellow-500">
-            <StarIcon className="w-4 h-4 fill-current" />
-            <span className="ml-1 text-sm font-semibold">광고</span>
+      <div className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${isPremium ? 'border-2 border-secondary-500' : ''
+        }`}>
+        {isPremium && (
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                  alert('프리미엄 신청을 하려면 로그인이 필요합니다.');
+                  return;
+                }
+                navigate(`/premium-apply?type=customer&itemId=${customer.id}`);
+              }}
+              className="bg-secondary-500 text-white px-3 py-1 rounded-full text-sm font-semibold hover:bg-secondary-600 transition-colors cursor-pointer"
+            >
+              프리미엄
+            </button>
+            <div className="flex items-center text-yellow-500">
+              <StarIcon className="w-4 h-4 fill-current" />
+              <span className="ml-1 text-sm font-semibold">광고</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-gray-900">{getDisplayName(customer, 'customer')}</h3>
+            <h3 className="text-lg font-bold text-gray-900">{displayName}</h3>
             {isViewed && (
               <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
                 <Eye className="w-3 h-3" />
@@ -152,9 +167,9 @@ const CustomerCard = ({ customer }) => {
             )}
           </div>
           <button
-            onClick={() => {
-              const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-              if (!currentUser) {
+            onClick={async () => {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) {
                 setIsLoginModalOpen(true);
                 return;
               }
@@ -167,30 +182,35 @@ const CustomerCard = ({ customer }) => {
             <StarIcon className={`w-5 h-5 ${isFav ? 'fill-current' : ''}`} />
           </button>
         </div>
-        
+
         <div className="space-y-3 mb-4">
-        <div className="flex items-center text-gray-600">
-          <MapPin className="w-4 h-4 mr-2" />
-          <span>{customer.location} {customer.city} {customer.dong}</span>
-        </div>
-          
+          <div className="flex items-center text-gray-600">
+            <MapPin className="w-4 h-4 mr-2" />
+            <span>
+              {isViewed || localStorage.getItem('adminAuth') === 'true'
+                ? `${customer.location} ${customer.city} ${customer.dong}`
+                : `${customer.location} (상세 지역 비공개)`
+              }
+            </span>
+          </div>
+
           <div className="flex items-center text-gray-600">
             <Square className="w-4 h-4 mr-2" />
             <span>필요면적: {formatArea(customer.requiredArea)}</span>
           </div>
-          
+
           <div className="flex items-center text-gray-600">
             <Package className="w-4 h-4 mr-2" />
             <span>월평균출고량: {customer.monthlyVolume.toLocaleString()}개 (택배 송장 기준)</span>
           </div>
-          
+
           <div className="flex items-center text-gray-600">
             <Users className="w-4 h-4 mr-2" />
             <span>취급물품: {customer.products.join(', ')}</span>
           </div>
         </div>
 
-        <button 
+        <button
           onClick={handleDetailClick}
           className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors"
         >
@@ -226,7 +246,7 @@ const CustomerCard = ({ customer }) => {
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={handleConfirmView}
-        currentCount={getViewingPassInfo()?.remainingCount || 0}
+        currentCount={currentPassInfo?.remaining_count || 0}
         itemName={customer.companyName}
         itemType="customer"
       />
@@ -235,7 +255,7 @@ const CustomerCard = ({ customer }) => {
       <ViewingPassExpiredModal
         isOpen={isExpiredModalOpen}
         onClose={() => setIsExpiredModalOpen(false)}
-        expiryDate={getViewingPassInfo()?.expiryDate}
+        expiryDate={currentPassInfo?.expiry_date}
       />
 
       {/* 열람권 없음 안내 모달 */}

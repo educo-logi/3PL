@@ -21,7 +21,7 @@ const MyPage = () => {
       return;
     }
     setCurrentUser(user);
-    
+
     // 열람권 정보 로드
     const passInfo = getViewingPassInfo();
     setViewingPassInfo(passInfo);
@@ -41,10 +41,10 @@ const MyPage = () => {
     localStorage.removeItem('currentUser');
     localStorage.removeItem('adminAuth'); // 관리자 인증 정보도 제거
     setCurrentUser(null);
-    
+
     // 커스텀 이벤트 발생시켜 Header에 알림
     window.dispatchEvent(new CustomEvent('userLogout'));
-    
+
     navigate('/');
   };
 
@@ -71,7 +71,7 @@ const MyPage = () => {
   // 편집 저장
   const saveEdit = () => {
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map(user => 
+    const updatedUsers = users.map(user =>
       user.id === currentUser.id ? { ...user, ...editData } : user
     );
     localStorage.setItem('users', JSON.stringify(updatedUsers));
@@ -85,7 +85,7 @@ const MyPage = () => {
   const handleInputChange = (field, value) => {
     setEditData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       // 지역이 변경되면 세부지역과 동을 초기화
       if (field === 'location') {
         newData.city = '';
@@ -95,7 +95,7 @@ const MyPage = () => {
       else if (field === 'city') {
         newData.dong = '';
       }
-      
+
       return newData;
     });
   };
@@ -104,7 +104,7 @@ const MyPage = () => {
   const handleCheckboxChange = (field, value, checked) => {
     setEditData(prev => ({
       ...prev,
-      [field]: checked 
+      [field]: checked
         ? [...(prev[field] || []), value]
         : (prev[field] || []).filter(item => item !== value)
     }));
@@ -191,13 +191,13 @@ const MyPage = () => {
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-600">보유 중</span>
                       <span className="text-2xl font-bold text-primary-600">
-                        {viewingPassInfo.remainingCount}회
+                        {viewingPassInfo.remaining_count}회
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-600">유효기간</span>
                       <span className="font-semibold text-gray-900">
-                        {new Date(viewingPassInfo.expiryDate).toLocaleDateString('ko-KR')}까지
+                        {new Date(viewingPassInfo.expires_at).toLocaleDateString('ko-KR')}까지
                       </span>
                     </div>
                     {getRemainingDays(viewingPassInfo) > 0 && (
@@ -226,35 +226,35 @@ const MyPage = () => {
                         navigate('/login');
                         return;
                       }
-                      
+
                       // 사용자 타입에 따라 아이템 ID 찾기
                       const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
                       const latestUser = allUsers.find(u => u.id === user.id) || user;
-                      
+
                       if (latestUser.userType === 'warehouse') {
                         // 창고인 경우
                         // 승인된 창고, 대기 중인 창고, 샘플 데이터 모두 확인
                         const approvedWarehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
                         const pendingWarehouses = JSON.parse(localStorage.getItem('pendingWarehouses') || '[]');
                         const warehouseData = JSON.parse(localStorage.getItem('warehouseData') || '[]');
-                        
+
                         const allWarehouses = [
                           ...approvedWarehouses,
                           ...pendingWarehouses,
                           ...warehouseData
                         ];
-                        
+
                         // 이메일 또는 ID로 찾기
-                        let warehouse = allWarehouses.find(w => 
-                          (w.email && w.email === latestUser.email) || 
+                        let warehouse = allWarehouses.find(w =>
+                          (w.email && w.email === latestUser.email) ||
                           (w.id && w.id === latestUser.id)
                         );
-                        
+
                         // 찾지 못한 경우, users 배열에서 직접 사용
                         if (!warehouse) {
                           warehouse = latestUser;
                         }
-                        
+
                         if (warehouse && warehouse.id) {
                           navigate(`/premium-apply?type=warehouse&itemId=${warehouse.id}`);
                         } else {
@@ -266,24 +266,24 @@ const MyPage = () => {
                         const approvedCustomers = JSON.parse(localStorage.getItem('approvedCustomers') || '[]');
                         const pendingCustomers = JSON.parse(localStorage.getItem('pendingCustomers') || '[]');
                         const customerData = JSON.parse(localStorage.getItem('customerData') || '[]');
-                        
+
                         const allCustomers = [
                           ...approvedCustomers,
                           ...pendingCustomers,
                           ...customerData
                         ];
-                        
+
                         // 이메일 또는 ID로 찾기
-                        let customer = allCustomers.find(c => 
-                          (c.email && c.email === latestUser.email) || 
+                        let customer = allCustomers.find(c =>
+                          (c.email && c.email === latestUser.email) ||
                           (c.id && c.id === latestUser.id)
                         );
-                        
+
                         // 찾지 못한 경우, users 배열에서 직접 사용
                         if (!customer) {
                           customer = latestUser;
                         }
-                        
+
                         if (customer && customer.id) {
                           navigate(`/premium-apply?type=customer&itemId=${customer.id}`);
                         } else {
@@ -320,7 +320,7 @@ const MyPage = () => {
                         ))}
                       </div>
                       <div className="mt-2 text-xs text-gray-500 text-center">
-                        총 사용: {usageHistory.reduce((sum, item) => sum + item.countUsed, 0)}회 / 구매: {viewingPassInfo.totalCount}회
+                        총 사용: {usageHistory.reduce((sum, item) => sum + item.countUsed, 0)}회 / 구매: {viewingPassInfo.total_count || viewingPassInfo.remaining_count}회
                       </div>
                     </div>
                   )}
@@ -329,7 +329,7 @@ const MyPage = () => {
                   {usageStatistics && usageStatistics.totalUsed > 0 && (
                     <div className="border-t pt-4 mt-4">
                       <h4 className="text-sm font-semibold text-gray-900 mb-3">사용 통계</h4>
-                      
+
                       {/* 업체 유형별 통계 */}
                       <div className="mb-4">
                         <p className="text-xs text-gray-600 mb-2">업체 유형별 사용량</p>
@@ -448,35 +448,35 @@ const MyPage = () => {
                         navigate('/login');
                         return;
                       }
-                      
+
                       // 사용자 타입에 따라 아이템 ID 찾기
                       const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
                       const latestUser = allUsers.find(u => u.id === user.id) || user;
-                      
+
                       if (latestUser.userType === 'warehouse') {
                         // 창고인 경우
                         // 승인된 창고, 대기 중인 창고, 샘플 데이터 모두 확인
                         const approvedWarehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
                         const pendingWarehouses = JSON.parse(localStorage.getItem('pendingWarehouses') || '[]');
                         const warehouseData = JSON.parse(localStorage.getItem('warehouseData') || '[]');
-                        
+
                         const allWarehouses = [
                           ...approvedWarehouses,
                           ...pendingWarehouses,
                           ...warehouseData
                         ];
-                        
+
                         // 이메일 또는 ID로 찾기
-                        let warehouse = allWarehouses.find(w => 
-                          (w.email && w.email === latestUser.email) || 
+                        let warehouse = allWarehouses.find(w =>
+                          (w.email && w.email === latestUser.email) ||
                           (w.id && w.id === latestUser.id)
                         );
-                        
+
                         // 찾지 못한 경우, users 배열에서 직접 사용
                         if (!warehouse) {
                           warehouse = latestUser;
                         }
-                        
+
                         if (warehouse && warehouse.id) {
                           navigate(`/premium-apply?type=warehouse&itemId=${warehouse.id}`);
                         } else {
@@ -488,24 +488,24 @@ const MyPage = () => {
                         const approvedCustomers = JSON.parse(localStorage.getItem('approvedCustomers') || '[]');
                         const pendingCustomers = JSON.parse(localStorage.getItem('pendingCustomers') || '[]');
                         const customerData = JSON.parse(localStorage.getItem('customerData') || '[]');
-                        
+
                         const allCustomers = [
                           ...approvedCustomers,
                           ...pendingCustomers,
                           ...customerData
                         ];
-                        
+
                         // 이메일 또는 ID로 찾기
-                        let customer = allCustomers.find(c => 
-                          (c.email && c.email === latestUser.email) || 
+                        let customer = allCustomers.find(c =>
+                          (c.email && c.email === latestUser.email) ||
                           (c.id && c.id === latestUser.id)
                         );
-                        
+
                         // 찾지 못한 경우, users 배열에서 직접 사용
                         if (!customer) {
                           customer = latestUser;
                         }
-                        
+
                         if (customer && customer.id) {
                           navigate(`/premium-apply?type=customer&itemId=${customer.id}`);
                         } else {
@@ -529,7 +529,7 @@ const MyPage = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-6">상세 정보</h3>
-              
+
               <div className="space-y-6">
                 {/* 기본 정보 */}
                 <div>
@@ -715,7 +715,7 @@ const MyPage = () => {
                           disabled={!editData.location}
                         >
                           <option value="">세부 지역을 선택하세요</option>
-                          {editData.location && detailedRegions[editData.location] && 
+                          {editData.location && detailedRegions[editData.location] &&
                             detailedRegions[editData.location].map((city) => (
                               <option key={city} value={city}>{city}</option>
                             ))
@@ -737,7 +737,7 @@ const MyPage = () => {
                           disabled={!editData.city}
                         >
                           <option value="">동을 선택하세요</option>
-                          {editData.location && editData.city && dongData[editData.location]?.[editData.city] && 
+                          {editData.location && editData.city && dongData[editData.location]?.[editData.city] &&
                             dongData[editData.location][editData.city].map((dong) => (
                               <option key={dong} value={dong}>{dong}</option>
                             ))

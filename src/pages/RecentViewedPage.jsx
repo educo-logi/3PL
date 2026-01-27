@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, ArrowLeft, Building2, Users, Eye } from 'lucide-react';
-import { getRecentViewedItems, getDisplayName } from '../utils/viewingPassUtils';
+import { getRecentViewedItems, getDisplayNameHelper } from '../utils/viewingPassUtils';
+import { supabase } from '../utils/supabaseClient';
 import { warehouseData, customerData } from '../data/sampleData';
 import DetailModal from '../components/DetailModal';
 
@@ -14,17 +15,19 @@ const RecentViewedPage = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-
-    loadRecentItems();
+    const checkAuthAndLoad = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+      loadRecentItems();
+    };
+    checkAuthAndLoad();
   }, [navigate]);
 
-  const loadRecentItems = () => {
-    const recent = getRecentViewedItems(20);
+  const loadRecentItems = async () => {
+    const recent = await getRecentViewedItems(20);
     setRecentItems(recent);
 
     // 모든 데이터에서 최근 본 항목 찾기
@@ -86,6 +89,7 @@ const RecentViewedPage = () => {
             {items.map((item, index) => {
               const recentItem = recentItems[index];
               const type = recentItem?.itemType || 'warehouse';
+              // 최근 본 항목은 이미 본 것이므로 isViewed=true
               return (
                 <div key={item.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between mb-4">
@@ -95,10 +99,12 @@ const RecentViewedPage = () => {
                       ) : (
                         <Users className="w-5 h-5 text-green-600 mr-2" />
                       )}
-                      <h3 className="text-lg font-bold text-gray-900">{getDisplayName(item, type)}</h3>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {getDisplayNameHelper(item, type, true)}
+                      </h3>
                     </div>
                   </div>
-                  
+
                   <p className="text-gray-600 mb-2 text-sm">
                     {item.location} {item.city} {item.dong}
                   </p>

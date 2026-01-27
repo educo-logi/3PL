@@ -46,8 +46,10 @@ const PaymentPage = () => {
     // 승인 상태 확인
     const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
     const latestUser = allUsers.find(u => u.id === currentUser.id) || currentUser;
+    console.log('[PaymentPage] User Status Check:', { currentUser, latestUser, status: latestUser.status });
 
     if (latestUser.status === 'pending' || !latestUser.status) {
+      console.warn('[PaymentPage] Purchase blocked due to pending status.');
       alert('결제를 진행하려면 먼저 관리자의 승인이 필요합니다.\n관리자 승인 후 다시 시도해주세요.');
       setIsProcessing(false);
       return;
@@ -57,10 +59,10 @@ const PaymentPage = () => {
 
     // 테스트 모드: 실제 결제 없이 시뮬레이션
     if (paymentConfig.isTestMode) {
-      setTimeout(() => {
+      setTimeout(async () => {
         if (isExtending) {
           // 연장 처리
-          const extended = extendViewingPass(currentPass?.id, 3);
+          const extended = await extendViewingPass(currentPass?.id, 3);
           if (extended) {
             createNotification(
               currentUser.id,
@@ -68,19 +70,30 @@ const PaymentPage = () => {
               '열람권 연장 완료',
               `열람권이 ${extended.expiryDate ? new Date(extended.expiryDate).toLocaleDateString('ko-KR') : '3개월'}까지 연장되었습니다.`
             );
+            setIsProcessing(false);
+            setIsSuccess(true);
+          } else {
+            alert('연장 처리에 실패했습니다.');
+            setIsProcessing(false);
           }
         } else {
           // 구매 처리
-          const newPass = purchaseViewingPass(currentUser.id, selectedPackage);
-          createNotification(
-            currentUser.id,
-            'purchase',
-            '열람권 구매 완료',
-            `${packages[selectedPackage].name} 구매가 완료되었습니다. (${packages[selectedPackage].count}회)`
-          );
+          const result = await purchaseViewingPass(selectedPackage);
+          if (result.success) {
+            createNotification(
+              currentUser.id,
+              'purchase',
+              '열람권 구매 완료',
+              `${packages[selectedPackage].name} 구매가 완료되었습니다. (${packages[selectedPackage].count}회)`
+            );
+            setIsProcessing(false);
+            setIsSuccess(true);
+          } else {
+            console.error(result.message);
+            alert('구매 처리에 실패했습니다: ' + result.message);
+            setIsProcessing(false);
+          }
         }
-        setIsProcessing(false);
-        setIsSuccess(true);
       }, 1000);
     } else {
       // 실제 PG사 연동 (나중에 구현)
@@ -172,8 +185,8 @@ const PaymentPage = () => {
                       onClick={handlePayment}
                       disabled={isProcessing}
                       className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center ${isProcessing
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-primary-600 text-white hover:bg-primary-700'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary-600 text-white hover:bg-primary-700'
                         }`}
                     >
                       {isProcessing ? (
@@ -220,8 +233,8 @@ const PaymentPage = () => {
                       key={key}
                       onClick={() => setSelectedPackage(key)}
                       className={`p-4 rounded-lg border-2 transition-all ${selectedPackage === key
-                          ? 'border-primary-600 bg-primary-50'
-                          : 'border-gray-200 hover:border-primary-300'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-primary-300'
                         }`}
                     >
                       <div className="text-left">
@@ -326,8 +339,8 @@ const PaymentPage = () => {
                   onClick={handlePayment}
                   disabled={isProcessing || isPending}
                   className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center ${isProcessing || isPending
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-primary-600 text-white hover:bg-primary-700'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-primary-600 text-white hover:bg-primary-700'
                     }`}
                 >
                   {isProcessing ? (
