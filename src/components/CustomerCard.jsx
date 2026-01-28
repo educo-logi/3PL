@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Square, Package, Users, Star as StarIcon, Eye } from 'lucide-react';
+import { supabase } from '../utils/supabaseClient';
 import { isFavorite, toggleFavorite } from '../utils/viewingPassUtils';
 import { formatArea } from '../utils/areaConverter';
 import LoginModal from './LoginModal';
