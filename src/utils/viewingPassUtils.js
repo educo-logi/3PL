@@ -443,3 +443,23 @@ export const isFavorite = (itemId, itemType) => {
   return favorites.some(f => f.key === favoriteKey && f.userId === currentUser.id);
 };
 
+/**
+ * 아이템 상세 정보 조회 (DB)
+ */
+export const getItemDetail = async (itemId, itemType) => {
+  const table = itemType === 'warehouse' ? 'warehouses' : 'customers';
+
+  const { data, error } = await supabase
+    .from(table)
+    .select('*')
+    .eq('id', itemId)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching ${itemType} detail:`, error);
+    return null;
+  }
+
+  return data;
+};
+
