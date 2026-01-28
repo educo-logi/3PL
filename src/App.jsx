@@ -18,6 +18,8 @@ import ComparePage from './pages/ComparePage';
 import FavoritesPage from './pages/FavoritesPage';
 import RecentViewedPage from './pages/RecentViewedPage';
 import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import RefundPolicy from './pages/RefundPolicy';
 
 function App() {
   return (
@@ -41,6 +43,8 @@ function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/refund" element={<RefundPolicy />} />
           <Route path="*" element={<TermsOfService />} />
         </Routes>
       </Layout>
