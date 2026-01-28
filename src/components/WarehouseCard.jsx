@@ -16,7 +16,7 @@ import {
   useViewingPass,
   getViewingPassInfo,
   canCompare,
-  getDisplayName
+  getDisplayNameHelper
 } from '../utils/viewingPassUtils';
 import CompareNotAvailableModal from './CompareNotAvailableModal';
 

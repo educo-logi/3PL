@@ -66,6 +66,14 @@ export const getRemainingDays = (passInfo) => {
 };
 
 /**
+ * 만료 여부 확인
+ */
+export const isExpired = (passInfo) => {
+  if (!passInfo || !passInfo.expires_at) return true;
+  return new Date(passInfo.expires_at) < new Date();
+};
+
+/**
  * 사용 통계 Mock (실제 DB 연동은 viewing_history 기반으로 집계해야 함)
  */
 export const getUsageStatistics = () => {
@@ -270,6 +278,49 @@ export const purchaseViewingPass = async (packageType = 'basic') => {
   console.log('Purchase successful:', data);
   return { success: true, data: data[0] };
 };
+
+/**
+ * 열람권 연장 (DB)
+ */
+export const extendViewingPass = async (passId, months = 3) => {
+  const user = getCurrentUser();
+  if (!user) return null;
+
+  // 1. Get current pass to calculate new expiry
+  const { data: currentPass, error: fetchError } = await supabase
+    .from('viewing_passes')
+    .select('*')
+    .eq('id', passId)
+    .single();
+
+  if (fetchError || !currentPass) {
+    console.error('Error fetching pass for extension:', fetchError);
+    return null;
+  }
+
+  // 2. Calculate new date
+  const currentExpiry = new Date(currentPass.expires_at);
+  const now = new Date();
+  // If expired, start from now. If active, add to current expiry.
+  const baseDate = currentExpiry > now ? currentExpiry : now;
+  const newExpiry = new Date(baseDate);
+  newExpiry.setMonth(newExpiry.getMonth() + months);
+
+  // 3. Update DB
+  const { data, error } = await supabase
+    .from('viewing_passes')
+    .update({ expires_at: newExpiry.toISOString() })
+    .eq('id', passId)
+    .select();
+
+  if (error) {
+    console.error('Extension failed:', error);
+    return null;
+  }
+
+  return { expiryDate: data[0].expires_at };
+};
+
 export const getUsageHistory = async () => {
   const user = getCurrentUser();
   if (!user) return [];
@@ -291,6 +342,14 @@ export const getUsageHistory = async () => {
     itemName: item.item_name,
     countUsed: 1
   }));
+};
+
+export const getFavorites = () => {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (!currentUser) return [];
+
+  const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+  return favorites.filter(f => f.userId === currentUser.id);
 };
 
 // 즐겨찾기는 LocalStorage 유지 (개인화 설정이므로 중요도 낮음)
@@ -318,6 +377,9 @@ export const toggleFavorite = (itemId, itemType) => {
   localStorage.setItem('favorites', JSON.stringify(favorites));
   return existingIndex === -1;
 };
+
+export const canCompare = () => true; // Placeholder logic
+
 
 export const isFavorite = (itemId, itemType) => {
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');

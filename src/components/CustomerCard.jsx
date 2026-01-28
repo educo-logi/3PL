@@ -15,7 +15,8 @@ import {
   isAlreadyViewed,
   useViewingPass,
   getViewingPassInfo,
-  getDisplayName
+  canCompare,
+  getDisplayNameHelper
 } from '../utils/viewingPassUtils';
 import { isPremiumActive } from '../utils/premiumUtils';
 

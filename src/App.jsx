@@ -17,6 +17,7 @@ import PremiumApplyPage from './pages/PremiumApplyPage';
 import ComparePage from './pages/ComparePage';
 import FavoritesPage from './pages/FavoritesPage';
 import RecentViewedPage from './pages/RecentViewedPage';
+import TermsOfService from './pages/TermsOfService';
 
 function App() {
   return (
@@ -39,6 +40,8 @@ function App() {
           <Route path="/recent-viewed" element={<RecentViewedPage />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="*" element={<TermsOfService />} />
         </Routes>
       </Layout>
     </Router>

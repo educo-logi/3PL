@@ -38,19 +38,8 @@ const UserInfoCard = ({ currentUser, isWarehouse, onUpdate, onLogout }) => {
             setLoading(true);
             const { id, email, userType } = currentUser;
 
-            // 1. Supabase Auth Metadata 업데이트 (기본 정보)
-            const { error: authError } = await supabase.auth.updateUser({
-                data: {
-                    companyName: editData.companyName,
-                    representative: editData.representative,
-                    phone: editData.phone,
-                    location: editData.location,
-                    city: editData.city,
-                    dong: editData.dong
-                }
-            });
-
-            if (authError) throw authError;
+            // 1. Supabase Auth Metadata 업데이트 (기본 정보) -> Custom Auth에서는 무시하거나 에러 처리 안 함
+            // const { error: authError } = await supabase.auth.updateUser({ ... });
 
             // 2. 테이블 데이터 업데이트
             const table = userType === 'warehouse' ? 'warehouses' : 'customers';
@@ -76,32 +65,17 @@ const UserInfoCard = ({ currentUser, isWarehouse, onUpdate, onLogout }) => {
                 updatePayload.land_area = editData.landArea;
                 updatePayload.total_area = editData.totalArea;
                 // ... 필요한 필드 추가
-            } else {
-                // 고객사 필드
             }
 
-            // owner_id 기준으로 업데이트 (혹은 id 컬럼이 일치한다면 id로)
-            // Login 로직을 보면 supaUser.id가 owner_id로 쓰이는 듯 함.
-            // 하지만 기존 데이터 마이그레이션 이슈가 있을 수 있으므로 id가 있으면 id로, 없으면 owner_id로 시도
-
-            // 먼저 해당 레코드가 있는지 확인
-            let matchQuery = {};
-            if (currentUser.id && currentUser.id.length === 36) { // uuid format check roughly
-                matchQuery = { owner_id: id }; // Auth User ID 기준
-            } else {
-                // id가 uuid가 아니면(로컬 임시 id면) 로컬스토리지 업데이트만 수행해야 함 (예외 처리)
-                console.warn('정식 회원이 아닌 경우 DB 업데이트를 건너뜁니다.');
-            }
-
-            const { error: dbError } = await supabase
+            // owner_id가 아닌 id(PK)로 업데이트해야 함 (Custom Auth)
+             const { error: dbError } = await supabase
                 .from(table)
                 .update(updatePayload)
-                .eq('owner_id', id);
+                .eq('id', id);
 
-            // 만약 owner_id로 못찾으면 users 테이블이나 profiles 테이블 이슈일 수 있음
-            // 여기서는 에러 발생 시 로그만 찍고 진행
             if (dbError) {
                 console.error('DB Update Error:', dbError);
+                throw dbError; // 에러 발생 시 진행 중단
             }
 
             // 3. 로컬 스토리지 업데이트 (하위 호환성 및 오프라인 대비)
