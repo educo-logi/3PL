@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Building2, Users, Edit, LogOut, ArrowLeft, Save, X, CreditCard, Calendar, Eye } from 'lucide-react';
 import { regions, detailedRegions, dongData } from '../data/sampleData';
-import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatistics } from '../utils/viewingPassUtils';
+import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatistics, getItemDetail } from '../utils/viewingPassUtils';
+import DetailModal from '../components/DetailModal';
 import { Star, Clock } from 'lucide-react';
 
 const MyPage = () => {
@@ -12,6 +13,11 @@ const MyPage = () => {
   const [viewingPassInfo, setViewingPassInfo] = useState(null);
   const [usageHistory, setUsageHistory] = useState([]);
   const [usageStatistics, setUsageStatistics] = useState(null);
+
+  // 상세 모달 상태
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -113,6 +119,26 @@ const MyPage = () => {
         ? [...(prev[field] || []), value]
         : (prev[field] || []).filter(item => item !== value)
     }));
+  };
+
+  // 사용 내역 아이템 클릭 핸들러
+  const handleHistoryItemClick = async (item) => {
+    try {
+      const detailData = await getItemDetail(item.item_id, item.itemType);
+      if (detailData) {
+        // 모달에서 type 구분을 위해 필드 추가
+        setSelectedHistoryItem({
+          ...detailData,
+          itemTypeForModal: item.itemType
+        });
+        setIsDetailModalOpen(true);
+      } else {
+        alert('업체 정보를 찾을 수 없습니다. (삭제되었거나 정보가 없습니다)');
+      }
+    } catch (error) {
+      console.error('Failed to load item detail:', error);
+      alert('정보를 불러오는 중 오류가 발생했습니다.');
+    }
   };
 
   if (!currentUser) {
@@ -318,7 +344,10 @@ const MyPage = () => {
                               <span>{new Date(item.date).toLocaleDateString('ko-KR')}</span>
                               <span className="text-gray-400">{item.countUsed}회</span>
                             </div>
-                            <div className="text-gray-700 font-medium mt-1">
+                            <div
+                              onClick={() => handleHistoryItemClick(item)}
+                              className="text-gray-700 font-medium mt-1 cursor-pointer hover:text-primary-600 hover:underline transition-colors"
+                            >
                               {item.itemName} ({item.itemType === 'warehouse' ? '창고' : '고객사'})
                             </div>
                           </div>
@@ -1322,8 +1351,23 @@ const MyPage = () => {
           </div>
         </div>
       </div>
+
+      {/* 상세 정보 모달 */}
+      {selectedHistoryItem && (
+        <DetailModal
+          isOpen={isDetailModalOpen}
+          data={selectedHistoryItem} // DB에서 가져온 원본 데이터
+          // 팝업 종류(warehouse/customer)를 정확히 전달해야 함
+          // selectedHistoryItem에 type 필드가 없으면(DB raw data), 
+          // handleHistoryItemClick에서 저장해둔 type을 써야 함.
+          // state를 하나 더 만들거나 selectedHistoryItem에 주입해야 함.
+          type={selectedHistoryItem.itemTypeForModal}
+          onClose={() => setIsDetailModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
 
 export default MyPage;
+
