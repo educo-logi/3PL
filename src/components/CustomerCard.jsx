@@ -64,7 +64,7 @@ const CustomerCard = ({ customer }) => {
     }
 
     // 로그인 확인
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = JSON.parse(localStorage.getItem('currentUser'));
     if (!user) {
       setIsNoPassModalOpen(true);
       return;
@@ -139,9 +139,9 @@ const CustomerCard = ({ customer }) => {
         {isPremium && (
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={async (e) => {
+              onClick={(e) => {
                 e.stopPropagation();
-                const { data: { user } } = await supabase.auth.getUser();
+                const user = JSON.parse(localStorage.getItem('currentUser'));
                 if (!user) {
                   alert('프리미엄 신청을 하려면 로그인이 필요합니다.');
                   return;
@@ -169,8 +169,8 @@ const CustomerCard = ({ customer }) => {
             )}
           </div>
           <button
-            onClick={async () => {
-              const { data: { user } } = await supabase.auth.getUser();
+            onClick={() => {
+              const user = JSON.parse(localStorage.getItem('currentUser'));
               if (!user) {
                 setIsLoginModalOpen(true);
                 return;
