@@ -17,32 +17,53 @@ const getCurrentUser = () => {
  */
 export const getViewingPassInfo = async () => {
   const user = getCurrentUser();
-  if (!user) return null;
+  if (!user) {
+    console.log('No current user found');
+    return null;
+  }
 
-  // 1. 열람권 보유 현황 조회
+  // 1. 열람권 보유 현황 조회 (모두 가져와서 JS에서 필터링 - 디버깅 용이성 및 Timezone 이슈 회피)
   const { data: passes, error: passError } = await supabase
     .from('viewing_passes')
     .select('*')
     .eq('user_id', user.id)
-    .gt('remaining_count', 0) // 남은 횟수가 있는 것만
-    .gt('expires_at', new Date().toISOString()) // 만료되지 않은 것만
-    .order('expires_at', { ascending: true }) // 만료 임박한 것부터 사용
-    .limit(1); // 하나만 가져옴 (여러 개일 경우 유효기간 짧은 것 우선)
+    .order('expires_at', { ascending: true }); // 만료 임박한 순 정렬
 
   if (passError) {
     console.error('Error fetching viewing pass:', passError);
     return null;
   }
 
-  // 2. 이미 본 항목인지 확인을 위해 이력 조회 (클라이언트에서 필요할 때 별도 호출 권장하지만, 호환성을 위해 여기서 일부 처리 가능)
-  // 다만 성능을 위해 여기서는 pass 정보만 리턴하고, history는 별도 함수로 체크 권장.
-  // 기존 코드 호환성을 위해 가공된 객체 반환
+  console.log('[DEBUG] Fetched passes:', passes);
 
-  const activePass = passes && passes.length > 0 ? passes[0] : null;
+  if (!passes || passes.length === 0) return null;
 
-  return activePass;
-  // 기존 구조: { userId, remainingCount, expiryDate, viewedItems... }
-  // DB 구조: { id, user_id, remaining_count, expires_at... }
+  const now = new Date();
+
+  // 유효한 열람권 찾기
+  const activePass = passes.find(p => {
+    const expiry = new Date(p.expires_at);
+    // UTC vs Local 비교 안전하게 (Timestamp 만 비교)
+    const isExpired = expiry.getTime() < now.getTime();
+    const hasCount = p.remaining_count > 0;
+
+    if (isExpired) {
+      console.log(`[DEBUG] Pass ${p.id} expired. Expiry: ${expiry.toLocaleString()}, Now: ${now.toLocaleString()}`);
+    }
+    if (!hasCount) {
+      console.log(`[DEBUG] Pass ${p.id} no count. Remaining: ${p.remaining_count}`);
+    }
+
+    return !isExpired && hasCount;
+  });
+
+  if (activePass) {
+    console.log('[DEBUG] Found active pass:', activePass);
+  } else {
+    console.log('[DEBUG] No active pass found among records.');
+  }
+
+  return activePass || null;
 };
 
 /**
