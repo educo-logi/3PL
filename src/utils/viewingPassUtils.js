@@ -245,38 +245,69 @@ export const purchaseViewingPass = async (packageType = 'basic') => {
 
   const selectedPackage = packages[packageType] || packages.basic;
 
-  const purchaseDate = new Date();
-  const expiryDate = new Date(purchaseDate);
-  expiryDate.setMonth(expiryDate.getMonth() + selectedPackage.validityMonths);
+  try {
+    // 1. Check if user already has a pass (wallet)
+    const { data: existingPass, error: fetchError } = await supabase
+      .from('viewing_passes')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-  console.log('Attempting to purchase pass for user:', user.id);
-  console.log('Payload:', {
-    user_id: user.id,
-    package_type: packageType,
-    remaining_count: selectedPackage.count,
-    total_count: selectedPackage.count,
-    expires_at: expiryDate.toISOString()
-  });
+    if (fetchError) throw fetchError;
 
-  const { data, error } = await supabase
-    .from('viewing_passes')
-    .insert({
-      user_id: user.id,
-      package_type: packageType,
-      remaining_count: selectedPackage.count,
-      total_count: selectedPackage.count,
-      expires_at: expiryDate.toISOString()
-    })
-    .select();
+    let result;
+    const now = new Date();
 
-  if (error) {
+    if (existingPass) {
+      // UPDATE existing pass
+      const currentExpiry = new Date(existingPass.expires_at);
+      // If expired, start valid from now. If active, add to current expiry?
+      // Policy: Usually extends from MAX(now, currentExpiry)
+      const baseDate = currentExpiry > now ? currentExpiry : now;
+      const newExpiry = new Date(baseDate);
+      newExpiry.setMonth(newExpiry.getMonth() + selectedPackage.validityMonths);
+
+      const { data, error: updateError } = await supabase
+        .from('viewing_passes')
+        .update({
+          remaining_count: existingPass.remaining_count + selectedPackage.count,
+          total_count: existingPass.total_count + selectedPackage.count,
+          expires_at: newExpiry.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingPass.id)
+        .select();
+
+      if (updateError) throw updateError;
+      result = data;
+
+    } else {
+      // INSERT new pass
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + selectedPackage.validityMonths);
+
+      const { data, error: insertError } = await supabase
+        .from('viewing_passes')
+        .insert({
+          user_id: user.id,
+          package_type: packageType,
+          remaining_count: selectedPackage.count,
+          total_count: selectedPackage.count,
+          expires_at: expiryDate.toISOString()
+        })
+        .select();
+
+      if (insertError) throw insertError;
+      result = data;
+    }
+
+    console.log('Purchase successful:', result);
+    return { success: true, data: result[0] };
+
+  } catch (error) {
     console.error('Purchase failed - Supabase Error:', error);
-    console.error('Error details:', error.details, error.message, error.hint);
-    return { success: false, message: '구매 처리 중 오류가 발생했습니다: ' + error.message };
+    return { success: false, message: '구매 처리 중 오류가 발생했습니다: ' + (error.message || error.details) };
   }
-
-  console.log('Purchase successful:', data);
-  return { success: true, data: data[0] };
 };
 
 /**
