@@ -390,6 +390,7 @@ export const getUsageHistory = async () => {
 
   return data.map(item => ({
     ...item,
+    itemType: item.item_type, // Map snake_case to camelCase
     date: item.viewed_at, // 기존 코드 호환성
     itemName: item.item_name,
     countUsed: 1
