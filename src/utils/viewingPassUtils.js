@@ -443,23 +443,39 @@ export const isFavorite = (itemId, itemType) => {
   return favorites.some(f => f.key === favoriteKey && f.userId === currentUser.id);
 };
 
+import { warehouseData, customerData } from '../data/sampleData';
+
 /**
- * 아이템 상세 정보 조회 (DB)
+ * 아이템 상세 정보 조회 (DB + Local Sample)
  */
 export const getItemDetail = async (itemId, itemType) => {
+  // 1. 로컬 샘플 데이터에서 먼저 찾기 (ID 호환성)
+  const localList = itemType === 'warehouse' ? warehouseData : customerData;
+  // 문자열/숫자 비교를 위해 == 사용
+  const localItem = localList.find(item => item.id == itemId);
+
+  if (localItem) {
+    return localItem;
+  }
+
+  // 2. DB에서 조회
   const table = itemType === 'warehouse' ? 'warehouses' : 'customers';
 
+  // UUID 형식이 아닌 경우(이미 위에서 못 찾았는데 숫자인 경우) DB 에러 방지
+  // 하지만 일단 요청해봄 (혹시 DB에 그런 ID가 있을 수 있으니)
   const { data, error } = await supabase
     .from(table)
     .select('*')
     .eq('id', itemId)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    console.error(`Error fetching ${itemType} detail:`, error);
+    // 22P02: invalid input syntax for type uuid (숫자가 들어왔을 때 등)
+    if (error.code !== '22P02') {
+      console.error(`Error fetching ${itemType} detail:`, error);
+    }
     return null;
   }
 
   return data;
 };
-
