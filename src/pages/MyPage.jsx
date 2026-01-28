@@ -23,17 +23,22 @@ const MyPage = () => {
     setCurrentUser(user);
 
     // 열람권 정보 로드
-    const passInfo = getViewingPassInfo();
-    setViewingPassInfo(passInfo);
-    setUsageHistory(getUsageHistory());
-    setUsageStatistics(getUsageStatistics());
+    const loadData = async () => {
+      const passInfo = await getViewingPassInfo();
+      setViewingPassInfo(passInfo);
+      const history = await getUsageHistory();
+      setUsageHistory(history);
+      setUsageStatistics(getUsageStatistics());
+    };
+    loadData();
   }, [navigate]);
 
   // 열람권 정보 새로고침
-  const refreshViewingPassInfo = () => {
-    const passInfo = getViewingPassInfo();
+  const refreshViewingPassInfo = async () => {
+    const passInfo = await getViewingPassInfo();
     setViewingPassInfo(passInfo);
-    setUsageHistory(getUsageHistory());
+    const history = await getUsageHistory();
+    setUsageHistory(history);
     setUsageStatistics(getUsageStatistics());
   };
 
