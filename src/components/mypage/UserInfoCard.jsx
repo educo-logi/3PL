@@ -24,13 +24,6 @@ const UserInfoCard = ({ currentUser, isWarehouse, onEdit, onLogout }) => {
 
                 <div className="space-y-3">
                     <button
-                        onClick={onEdit}
-                        className="w-full bg-white border border-secondary-500 text-secondary-600 py-3 px-4 rounded-xl hover:bg-secondary-50 transition-all duration-200 flex items-center justify-center font-semibold shadow-sm hover:shadow-md"
-                    >
-                        <Edit className="w-4 h-4 mr-2" />
-                        정보 수정하기
-                    </button>
-                    <button
                         onClick={onLogout}
                         className="w-full bg-gray-50 text-gray-500 py-3 px-4 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center text-sm"
                     >

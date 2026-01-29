@@ -451,788 +451,127 @@ const MyPage = () => {
               )}
             </div>
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">상세 정보</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">상세 정보</h3>
+                <button
+                  onClick={() => setIsProfileEditModalOpen(true)}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-transparent"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  정보 수정
+                </button>
+              </div>
 
-              <div className="space-y-6">
-                {/* 기본 정보 */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-semibold text-gray-900">기본 정보</h4>
-                    {editingSection !== 'basic' && (
-                      <button
-                        onClick={() => startEdit('basic')}
-                        className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        수정
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-8 divide-y divide-gray-100">
+                {/* 1. 기본 정보 */}
+                <div className="pt-4 first:pt-0">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">기본 정보</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        회사명
-                      </label>
-                      {editingSection === 'basic' ? (
-                        <input
-                          type="text"
-                          value={editData.companyName || ''}
-                          onChange={(e) => handleInputChange('companyName', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{currentUser.companyName}</p>
-                      )}
-                    </div>
-                    {currentUser.businessNumber && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          사업자 등록번호
-                        </label>
-                        {editingSection === 'basic' ? (
-                          <input
-                            type="text"
-                            value={editData.businessNumber || ''}
-                            onChange={(e) => handleInputChange('businessNumber', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                          />
-                        ) : (
-                          <p className="text-gray-900">{currentUser.businessNumber}</p>
-                        )}
-                      </div>
-                    )}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        대표자명
-                      </label>
-                      {editingSection === 'basic' ? (
-                        <input
-                          type="text"
-                          value={editData.representative || ''}
-                          onChange={(e) => handleInputChange('representative', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{currentUser.representative}</p>
-                      )}
+                      <span className="block text-sm text-gray-500 mb-1">회사명</span>
+                      <span className="text-gray-900 font-medium">{currentUser.companyName || currentUser.company_name}</span>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        전화번호
-                      </label>
-                      {editingSection === 'basic' ? (
-                        <input
-                          type="text"
-                          value={editData.phone || ''}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{currentUser.phone}</p>
-                      )}
+                      <span className="block text-sm text-gray-500 mb-1">대표자명</span>
+                      <span className="text-gray-900 font-medium">{currentUser.representative}</span>
                     </div>
-                    {currentUser.contactPerson && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          담당자명
-                        </label>
-                        {editingSection === 'basic' ? (
-                          <input
-                            type="text"
-                            value={editData.contactPerson || ''}
-                            onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                          />
-                        ) : (
-                          <p className="text-gray-900">{currentUser.contactPerson}</p>
-                        )}
-                      </div>
-                    )}
-                    {currentUser.contactPhone && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          담당자 연락처
-                        </label>
-                        {editingSection === 'basic' ? (
-                          <input
-                            type="text"
-                            value={editData.contactPhone || ''}
-                            onChange={(e) => handleInputChange('contactPhone', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                          />
-                        ) : (
-                          <p className="text-gray-900">{currentUser.contactPhone}</p>
-                        )}
-                      </div>
-                    )}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        이메일
-                      </label>
-                      <p className="text-gray-900">{currentUser.email}</p>
+                      <span className="block text-sm text-gray-500 mb-1">대표 전화번호</span>
+                      <span className="text-gray-900 font-medium">{currentUser.phone}</span>
+                    </div>
+                    <div>
+                      <span className="block text-sm text-gray-500 mb-1">이메일</span>
+                      <span className="text-gray-900 font-medium">{currentUser.email}</span>
                     </div>
                   </div>
-                  {editingSection === 'basic' && (
-                    <div className="flex justify-end space-x-2 mt-4">
-                      <button
-                        onClick={cancelEdit}
-                        className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        취소
-                      </button>
-                      <button
-                        onClick={saveEdit}
-                        className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                      >
-                        <Save className="w-4 h-4 mr-1" />
-                        저장
-                      </button>
-                    </div>
-                  )}
                 </div>
 
-                {/* 위치 정보 */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-semibold text-gray-900">위치 정보</h4>
-                    {editingSection !== 'location' && (
-                      <button
-                        onClick={() => startEdit('location')}
-                        className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        수정
-                      </button>
-                    )}
+                {/* 2. 주소 정보 */}
+                <div className="pt-6">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">사업장 주소</h4>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-gray-900">
+                      {currentUser.location} {currentUser.city} {currentUser.dong}
+                    </p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        지역
-                      </label>
-                      {editingSection === 'location' ? (
-                        <select
-                          value={editData.location || ''}
-                          onChange={(e) => handleInputChange('location', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                        >
-                          <option value="">지역을 선택하세요</option>
-                          {regions.map((region) => (
-                            <option key={region} value={region}>{region}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <p className="text-gray-900">{currentUser.location || '-'}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        세부 지역
-                      </label>
-                      {editingSection === 'location' ? (
-                        <select
-                          value={editData.city || ''}
-                          onChange={(e) => handleInputChange('city', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
-                          disabled={!editData.location}
-                        >
-                          <option value="">세부 지역을 선택하세요</option>
-                          {editData.location && detailedRegions[editData.location] &&
-                            detailedRegions[editData.location].map((city) => (
-                              <option key={city} value={city}>{city}</option>
-                            ))
-                          }
-                        </select>
-                      ) : (
-                        <p className="text-gray-900">{currentUser.city || '-'}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        동
-                      </label>
-                      {editingSection === 'location' ? (
-                        <select
-                          value={editData.dong || ''}
-                          onChange={(e) => handleInputChange('dong', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
-                          disabled={!editData.city}
-                        >
-                          <option value="">동을 선택하세요</option>
-                          {editData.location && editData.city && dongData[editData.location]?.[editData.city] &&
-                            dongData[editData.location][editData.city].map((dong) => (
-                              <option key={dong} value={dong}>{dong}</option>
-                            ))
-                          }
-                        </select>
-                      ) : (
-                        <p className="text-gray-900">{currentUser.dong || '-'}</p>
-                      )}
-                    </div>
-                  </div>
-                  {editingSection === 'location' && (
-                    <div className="flex justify-end space-x-2 mt-4">
-                      <button
-                        onClick={cancelEdit}
-                        className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        취소
-                      </button>
-                      <button
-                        onClick={saveEdit}
-                        className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                      >
-                        <Save className="w-4 h-4 mr-1" />
-                        저장
-                      </button>
-                    </div>
-                  )}
                 </div>
 
-                {/* 창고업체 전용 정보 */}
-                {isWarehouse && (
-                  <>
+                {/* 3. 상세 정보 (창고 vs 고객사 구분) */}
+                {isWarehouse ? (
+                  // 창고업체 정보
+                  <div className="pt-6">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-4">시설 및 운영 정보</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 mb-6">
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-1">대지면적</span>
+                        <span className="text-gray-900">{currentUser.landArea ? `${currentUser.landArea} ㎡` : '-'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-1">창고 연면적</span>
+                        <span className="text-gray-900">{currentUser.totalWarehouseArea ? `${currentUser.totalWarehouseArea} ㎡` : '-'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-1">계약 가능 면적</span>
+                        <span className="text-gray-900">{currentUser.availableArea ? `${currentUser.availableArea} ㎡` : '-'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-1">보유 파렛트 수</span>
+                        <span className="text-gray-900">{currentUser.palletCount ? `${currentUser.palletCount} PLT` : '-'}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-2">보관 가능 형태</span>
+                        <div className="flex flex-wrap gap-2">
+                          {currentUser.storageTypes && currentUser.storageTypes.length > 0 ? (
+                            currentUser.storageTypes.map((type, idx) => (
+                              <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm border border-blue-100">{type}</span>
+                            ))
+                          ) : <span className="text-gray-400 text-sm">-</span>}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-2">취급 가능 품목</span>
+                        <div className="flex flex-wrap gap-2">
+                          {currentUser.products && currentUser.products.length > 0 ? (
+                            currentUser.products.map((item, idx) => (
+                              <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">{item}</span>
+                            ))
+                          ) : <span className="text-gray-400 text-sm">-</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // 고객사 정보
+                  <div className="pt-6">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-4">물류 요구 사항</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 mb-6">
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-1">필요 면적</span>
+                        <span className="text-gray-900">{currentUser.requiredArea ? `${currentUser.requiredArea} ㎡` : '-'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-1">월 평균 출고량</span>
+                        <span className="text-gray-900">{currentUser.monthlyVolume ? `${currentUser.monthlyVolume} 건/월` : '-'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-sm text-gray-500 mb-1">보관 파렛트 수</span>
+                        <span className="text-gray-900">{currentUser.palletCount ? `${currentUser.palletCount} PLT` : '-'}</span>
+                      </div>
+                    </div>
+
                     <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-lg font-semibold text-gray-900">창고 정보</h4>
-                        {editingSection !== 'warehouse' && (
-                          <button
-                            onClick={() => startEdit('warehouse')}
-                            className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            수정
-                          </button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {currentUser.experience && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              경력
-                            </label>
-                            {editingSection === 'warehouse' ? (
-                              <input
-                                type="number"
-                                value={editData.experience || ''}
-                                onChange={(e) => handleInputChange('experience', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{currentUser.experience}년</p>
-                            )}
-                          </div>
-                        )}
-                        {currentUser.landArea && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              대지 면적
-                            </label>
-                            {editingSection === 'warehouse' ? (
-                              <input
-                                type="number"
-                                value={editData.landArea || ''}
-                                onChange={(e) => handleInputChange('landArea', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{currentUser.landArea}㎡</p>
-                            )}
-                          </div>
-                        )}
-                        {currentUser.warehouseCount && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              창고 개수
-                            </label>
-                            {editingSection === 'warehouse' ? (
-                              <select
-                                value={editData.warehouseCount || ''}
-                                onChange={(e) => handleInputChange('warehouseCount', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                              >
-                                <option value="">창고 개수를 선택하세요</option>
-                                {Array.from({ length: 20 }, (_, i) => (
-                                  <option key={i + 1} value={i + 1}>{i + 1}개</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <p className="text-gray-900">{currentUser.warehouseCount}개</p>
-                            )}
-                          </div>
-                        )}
-                        {currentUser.totalWarehouseArea && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              창고별 총 면적
-                            </label>
-                            {editingSection === 'warehouse' ? (
-                              <input
-                                type="number"
-                                value={editData.totalWarehouseArea || ''}
-                                onChange={(e) => handleInputChange('totalWarehouseArea', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{currentUser.totalWarehouseArea}㎡</p>
-                            )}
-                          </div>
-                        )}
-                        {currentUser.availableArea && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              계약가능면적
-                            </label>
-                            {editingSection === 'warehouse' ? (
-                              <input
-                                type="number"
-                                value={editData.availableArea || ''}
-                                onChange={(e) => handleInputChange('availableArea', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{currentUser.availableArea}㎡</p>
-                            )}
-                          </div>
-                        )}
-                        {currentUser.palletCount && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              계약가능 팔레트 수
-                            </label>
-                            {editingSection === 'warehouse' ? (
-                              <input
-                                type="number"
-                                value={editData.palletCount || ''}
-                                onChange={(e) => handleInputChange('palletCount', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{currentUser.palletCount}개</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      {editingSection === 'warehouse' && (
-                        <div className="flex justify-end space-x-2 mt-4">
-                          <button
-                            onClick={cancelEdit}
-                            className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            취소
-                          </button>
-                          <button
-                            onClick={saveEdit}
-                            className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                          >
-                            <Save className="w-4 h-4 mr-1" />
-                            저장
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {currentUser.storageTypes && currentUser.storageTypes.length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-lg font-semibold text-gray-900">보관 방식</h4>
-                          {editingSection !== 'storage' && (
-                            <button
-                              onClick={() => startEdit('storage')}
-                              className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              수정
-                            </button>
-                          )}
-                        </div>
-                        {editingSection === 'storage' ? (
-                          <div className="space-y-2">
-                            {['상온', '냉장', '냉동', '항온항습'].map((type) => (
-                              <label key={type} className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={(editData.storageTypes || []).includes(type)}
-                                  onChange={(e) => handleCheckboxChange('storageTypes', type, e.target.checked)}
-                                  className="mr-2"
-                                />
-                                <span className="text-gray-700">{type}</span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.storageTypes.map((type, index) => (
-                              <span
-                                key={index}
-                                className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                              >
-                                {type}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {editingSection === 'storage' && (
-                          <div className="flex justify-end space-x-2 mt-4">
-                            <button
-                              onClick={cancelEdit}
-                              className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              취소
-                            </button>
-                            <button
-                              onClick={saveEdit}
-                              className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                            >
-                              <Save className="w-4 h-4 mr-1" />
-                              저장
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {currentUser.deliveryCompanies && currentUser.deliveryCompanies.length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-lg font-semibold text-gray-900">사용 배송사</h4>
-                          {editingSection !== 'delivery' && (
-                            <button
-                              onClick={() => startEdit('delivery')}
-                              className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              수정
-                            </button>
-                          )}
-                        </div>
-                        {editingSection === 'delivery' ? (
-                          <div className="space-y-2">
-                            {['CJ', '롯데', '쿠팡', '한진', '로젠', '기타'].map((company) => (
-                              <label key={company} className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={(editData.deliveryCompanies || []).includes(company)}
-                                  onChange={(e) => handleCheckboxChange('deliveryCompanies', company, e.target.checked)}
-                                  className="mr-2"
-                                />
-                                <span className="text-gray-700">{company}</span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.deliveryCompanies.map((company, index) => (
-                              <span
-                                key={index}
-                                className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
-                              >
-                                {company}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {editingSection === 'delivery' && (
-                          <div className="flex justify-end space-x-2 mt-4">
-                            <button
-                              onClick={cancelEdit}
-                              className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              취소
-                            </button>
-                            <button
-                              onClick={saveEdit}
-                              className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                            >
-                              <Save className="w-4 h-4 mr-1" />
-                              저장
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {currentUser.solutions && currentUser.solutions.length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-lg font-semibold text-gray-900">사용 솔루션</h4>
-                          {editingSection !== 'solutions' && (
-                            <button
-                              onClick={() => startEdit('solutions')}
-                              className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              수정
-                            </button>
-                          )}
-                        </div>
-                        {editingSection === 'solutions' ? (
-                          <div className="space-y-2">
-                            {['E카운트', '셀메이트', '자체', '수기', '기타'].map((solution) => (
-                              <label key={solution} className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={(editData.solutions || []).includes(solution)}
-                                  onChange={(e) => handleCheckboxChange('solutions', solution, e.target.checked)}
-                                  className="mr-2"
-                                />
-                                <span className="text-gray-700">{solution}</span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.solutions.map((solution, index) => (
-                              <span
-                                key={index}
-                                className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm"
-                              >
-                                {solution}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {editingSection === 'solutions' && (
-                          <div className="flex justify-end space-x-2 mt-4">
-                            <button
-                              onClick={cancelEdit}
-                              className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              취소
-                            </button>
-                            <button
-                              onClick={saveEdit}
-                              className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                            >
-                              <Save className="w-4 h-4 mr-1" />
-                              저장
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* 고객사 전용 정보 */}
-                {!isWarehouse && (
-                  <>
-                    {currentUser.requiredArea && (
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-lg font-semibold text-gray-900">필요 정보</h4>
-                          {editingSection !== 'customer-info' && (
-                            <button
-                              onClick={() => startEdit('customer-info')}
-                              className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              수정
-                            </button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              사용할 총면적
-                            </label>
-                            {editingSection === 'customer-info' ? (
-                              <input
-                                type="number"
-                                value={editData.requiredArea || ''}
-                                onChange={(e) => handleInputChange('requiredArea', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                              />
-                            ) : (
-                              <p className="text-gray-900">{currentUser.requiredArea}㎡</p>
-                            )}
-                          </div>
-                          {currentUser.palletCount && (
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                필요한 팔레트 수
-                              </label>
-                              {editingSection === 'customer-info' ? (
-                                <input
-                                  type="number"
-                                  value={editData.palletCount || ''}
-                                  onChange={(e) => handleInputChange('palletCount', e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                                />
-                              ) : (
-                                <p className="text-gray-900">{currentUser.palletCount}개</p>
-                              )}
-                            </div>
-                          )}
-                          {currentUser.monthlyVolume && (
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                월 평균 출고량
-                              </label>
-                              {editingSection === 'customer-info' ? (
-                                <input
-                                  type="number"
-                                  value={editData.monthlyVolume || ''}
-                                  onChange={(e) => handleInputChange('monthlyVolume', e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                                />
-                              ) : (
-                                <p className="text-gray-900">{currentUser.monthlyVolume}개</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        {editingSection === 'customer-info' && (
-                          <div className="flex justify-end space-x-2 mt-4">
-                            <button
-                              onClick={cancelEdit}
-                              className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              취소
-                            </button>
-                            <button
-                              onClick={saveEdit}
-                              className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                            >
-                              <Save className="w-4 h-4 mr-1" />
-                              저장
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {currentUser.desiredDelivery && currentUser.desiredDelivery.length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-lg font-semibold text-gray-900">원하는 배송사</h4>
-                          {editingSection !== 'desired-delivery' && (
-                            <button
-                              onClick={() => startEdit('desired-delivery')}
-                              className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              수정
-                            </button>
-                          )}
-                        </div>
-                        {editingSection === 'desired-delivery' ? (
-                          <div className="space-y-2">
-                            {['CJ', '롯데', '쿠팡', '한진', '로젠', '기타'].map((delivery) => (
-                              <label key={delivery} className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={(editData.desiredDelivery || []).includes(delivery)}
-                                  onChange={(e) => handleCheckboxChange('desiredDelivery', delivery, e.target.checked)}
-                                  className="mr-2"
-                                />
-                                <span className="text-gray-700">{delivery}</span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.desiredDelivery.map((delivery, index) => (
-                              <span
-                                key={index}
-                                className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
-                              >
-                                {delivery}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {editingSection === 'desired-delivery' && (
-                          <div className="flex justify-end space-x-2 mt-4">
-                            <button
-                              onClick={cancelEdit}
-                              className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              취소
-                            </button>
-                            <button
-                              onClick={saveEdit}
-                              className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                            >
-                              <Save className="w-4 h-4 mr-1" />
-                              저장
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* 취급 물품 */}
-                {currentUser.products && currentUser.products.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-semibold text-gray-900">
-                        {isWarehouse ? '취급 중 및 취급 가능 종류' : '취급 물품 종류'}
-                      </h4>
-                      {editingSection !== 'products' && (
-                        <button
-                          onClick={() => startEdit('products')}
-                          className="flex items-center px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          수정
-                        </button>
-                      )}
-                    </div>
-                    {editingSection === 'products' ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {['공산품', '식품', '의류', '전자제품', '생활용품', '스포츠용품', '화장품', '도서', '완구', '자동차부품', '건강식품', '가구', '반려동물용품', '문구', '사무용품'].map((product) => (
-                          <label key={product} className="flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={(editData.products || []).includes(product)}
-                              onChange={(e) => handleCheckboxChange('products', product, e.target.checked)}
-                              className="mr-2"
-                            />
-                            <span className="text-gray-700 text-sm">{product}</span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
+                      <span className="block text-sm text-gray-500 mb-2">취급 품목</span>
                       <div className="flex flex-wrap gap-2">
-                        {currentUser.products.map((product, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
-                          >
-                            {product}
-                          </span>
-                        ))}
+                        {currentUser.products && currentUser.products.length > 0 ? (
+                          currentUser.products.map((item, idx) => (
+                            <span key={idx} className="px-3 py-1 bg-orange-50 text-orange-700 rounded-full text-sm border border-orange-100">{item}</span>
+                          ))
+                        ) : <span className="text-gray-400 text-sm">-</span>}
                       </div>
-                    )}
-                    {editingSection === 'products' && (
-                      <div className="flex justify-end space-x-2 mt-4">
-                        <button
-                          onClick={cancelEdit}
-                          className="flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          취소
-                        </button>
-                        <button
-                          onClick={saveEdit}
-                          className="flex items-center px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-                        >
-                          <Save className="w-4 h-4 mr-1" />
-                          저장
-                        </button>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>
