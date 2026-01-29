@@ -6,6 +6,7 @@ import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatisti
 
 import DetailModal from '../components/DetailModal';
 import ProfileEditModal from '../components/mypage/ProfileEditModal';
+import UserInfoCard from '../components/mypage/UserInfoCard';
 import { supabase } from '../utils/supabaseClient';
 import { Star, Clock } from 'lucide-react';
 
