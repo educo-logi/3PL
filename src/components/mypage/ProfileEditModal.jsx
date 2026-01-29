@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Building2, User } from 'lucide-react';
-import { supabase } from '../utils/supabaseClient';
-import { regions, detailedRegions, dongData, productTypes, storageTypes, deliveryCompanies, solutions } from '../data/sampleData';
-import { hashPassword } from '../utils/passwordHash';
+import { supabase } from '../../utils/supabaseClient';
+import { regions, detailedRegions, dongData, productTypes, storageTypes, deliveryCompanies, solutions } from '../../data/sampleData';
+import { hashPassword } from '../../utils/passwordHash';
 
 const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
     const [formData, setFormData] = useState({});
