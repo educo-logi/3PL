@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Building2, Users, Edit, LogOut, ArrowLeft, Save, X, CreditCard, Calendar, Eye } from 'lucide-react';
 import { regions, detailedRegions, dongData } from '../data/sampleData';
 import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatistics, getItemDetail } from '../utils/viewingPassUtils';
-import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatistics, getItemDetail } from '../utils/viewingPassUtils';
+
 import DetailModal from '../components/DetailModal';
 import ProfileEditModal from '../components/mypage/ProfileEditModal';
 import { supabase } from '../utils/supabaseClient';
