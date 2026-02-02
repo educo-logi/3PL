@@ -211,6 +211,14 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                                         <label className="block text-sm font-medium text-gray-700 mb-1">대표자명 *</label>
                                         <input name="representative" value={formData.representative || ''} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
                                     </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">담당자명</label>
+                                        <input name="contact_person" value={formData.contact_person || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">담당자 연락처</label>
+                                        <input name="contact_phone" value={formData.contact_phone || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
+                                    </div>
 
                                     {/* 연락처 / 이메일 */}
                                     <div>
@@ -294,10 +302,50 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                                             <label className="text-xs text-gray-500 mb-1 block">보유 파렛트 수</label>
                                             <input type="number" name="pallet_count" value={formData.pallet_count || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" placeholder="PLT" />
                                         </div>
+                                        <div>
+                                            <label className="text-xs text-gray-500 mb-1 block">창고 개수</label>
+                                            <input type="number" name="warehouse_count" value={formData.warehouse_count || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" placeholder="개" />
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* 취급 품목 및 보관 형태 */}
+                                {/* 사용 배송사 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-3">사용 배송사</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {deliveryCompanies.map(company => (
+                                            <label key={company} className={`px-4 py-2 rounded-full text-sm cursor-pointer border transition-colors ${formData.delivery_companies?.includes(company) ? 'bg-primary-50 border-primary-500 text-primary-700 font-semibold' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                                                <input type="checkbox" className="hidden" checked={formData.delivery_companies?.includes(company)} onChange={() => handleCheckboxChange('delivery_companies', company)} />
+                                                {company}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    {formData.delivery_companies?.includes('기타') && (
+                                        <div className="mt-2">
+                                            <input type="text" name="other_delivery_company" value={formData.other_delivery_company || ''} onChange={handleInputChange} placeholder="기타 배송사명 입력" className="w-full px-3 py-2 border rounded-lg" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 사용 솔루션 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-3">사용 솔루션</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {solutions.map(solution => (
+                                            <label key={solution} className={`px-4 py-2 rounded-full text-sm cursor-pointer border transition-colors ${formData.solutions?.includes(solution) ? 'bg-primary-50 border-primary-500 text-primary-700 font-semibold' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                                                <input type="checkbox" className="hidden" checked={formData.solutions?.includes(solution)} onChange={() => handleCheckboxChange('solutions', solution)} />
+                                                {solution}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    {formData.solutions?.includes('기타') && (
+                                        <div className="mt-2">
+                                            <input type="text" name="other_solution" value={formData.other_solution || ''} onChange={handleInputChange} placeholder="기타 솔루션명 입력" className="w-full px-3 py-2 border rounded-lg" />
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-3">보관 가능 형태</label>
                                     <div className="flex flex-wrap gap-2">
@@ -348,6 +396,18 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                                             <label className="text-xs text-gray-500 mb-1 block">보관 파렛트 수</label>
                                             <input type="number" name="pallet_count" value={formData.pallet_count || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" placeholder="PLT" />
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-3">원하는 배송사</label>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {deliveryCompanies.map(item => (
+                                            <label key={item} className="flex items-center space-x-2 text-sm text-gray-700">
+                                                <input type="checkbox" className="rounded text-primary-600 focus:ring-primary-500" checked={formData.desired_delivery?.includes(item)} onChange={() => handleCheckboxChange('desired_delivery', item)} />
+                                                <span>{item}</span>
+                                            </label>
+                                        ))}
                                     </div>
                                 </div>
 
