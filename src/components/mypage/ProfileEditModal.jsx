@@ -79,37 +79,40 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             delete updateData.id;
             delete updateData.created_at;
             delete updateData.viewing_count; // 등등 읽기 전용 필드
-            delete updateData.userType; // 로컬에서만 사용하는 필드 제거
-            delete updateData.business_number; // 사업자등록번호는 보통 수정 불가하거나 컬럼명이 다를 수 있음 (DB 확인 필요하지만 일단 제거)
-            delete updateData.password_hash; // 해시된 비번 필드 제거 (password로 처리)
-            delete updateData.user_type; // DB에 없을 수 있음
+            // [Allow List 전략으로 변경]
+            // DB에 실제로 존재하는 컬럼만 명시적으로 허용하여, 불필요한 필드(count, userType, business_number 등)가 전송되는 것을 원천 차단
 
-            // 사용자 유형에 따라 관련 없는 필드 제거 (Comprehensive Filtering)
-            if (isWarehouse) {
-                // 창고업체에게 필요 없는 고객사 전용 필드들
-                const customerFields = [
-                    'required_area', 'required_area_unit',
-                    'monthly_volume',
-                    'desired_delivery',
-                    // 혹시 모를 다른 고객사 필드
-                    'business_number' // 사업자 번호도 일단 제외
-                ];
-                customerFields.forEach(field => delete updateData[field]);
-            } else {
-                // 고객사에게 필요 없는 창고 전용 필드들
-                const warehouseFields = [
-                    'total_area', 'total_area_unit',
-                    'warehouse_area', 'warehouse_area_unit',
-                    'available_area', 'available_area_unit',
-                    'experience',
-                    'storage_types',
-                    'delivery_companies', 'other_delivery_company', // other_delivery_company 추가
-                    'solutions', 'other_solution', // solution 관련 필드 추가
-                    'land_area', // 대지면적? (코드상엔 total_area로 매핑되는 듯 하지만 혹시 몰라 추가)
-                    'business_number' // 사업자 번호도 일단 제외
-                ];
-                warehouseFields.forEach(field => delete updateData[field]);
-            }
+            // 1. 공통 허용 필드
+            const commonAllowedFields = [
+                'company_name', 'representative', 'phone',
+                'location', 'city', 'dong', 'detail_address',
+                'password' // 비밀번호는 별도 로직으로 처리되지만 일단 허용 목록에 포함
+            ];
+
+            // 2. 창고업체 전용 허용 필드
+            const warehouseAllowedFields = [
+                'total_area', 'warehouse_area', 'available_area', 'pallet_count',
+                'storage_types', 'products', 'delivery_companies', 'solutions',
+                'land_area', 'other_delivery_company', 'other_solution'
+            ];
+
+            // 3. 고객사 전용 허용 필드
+            const customerAllowedFields = [
+                'required_area', 'monthly_volume', 'pallet_count', 'products'
+            ];
+
+            // 4. 최종 허용 필드 목록 구성
+            const allowedFields = [
+                ...commonAllowedFields,
+                ...(isWarehouse ? warehouseAllowedFields : customerAllowedFields)
+            ];
+
+            // 5. updateData 필터링
+            Object.keys(updateData).forEach(key => {
+                if (!allowedFields.includes(key)) {
+                    delete updateData[key];
+                }
+            });
 
             // 단위(unit) 필드 등 UI용 state가 포함될 수 있어 DB에 없는 경우 에러 발생 가능성 차단
             // 만약 DB에 단위 컬럼이 아예 없다면 무조건 삭제해야 함. 
