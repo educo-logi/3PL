@@ -325,32 +325,7 @@ const MyPage = () => {
               )}
             </div>
 
-            {/* 빠른 링크 (Left Column으로 이동) */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-2">빠른 링크</h4>
-              <div className="space-y-2">
-                <button
-                  onClick={() => navigate('/favorites')}
-                  className="w-full flex items-center justify-between p-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Star className="w-4 h-4 mr-2 text-yellow-500" />
-                    즐겨찾기
-                  </div>
-                  <span className="text-gray-400">→</span>
-                </button>
-                <button
-                  onClick={() => navigate('/recent-viewed')}
-                  className="w-full flex items-center justify-between p-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-2 text-primary-600" />
-                    최근 본 업체
-                  </div>
-                  <span className="text-gray-400">→</span>
-                </button>
-              </div>
-            </div>
+
           </div>
           {/* End Left Column Container */}
 
