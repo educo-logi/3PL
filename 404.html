@@ -5,9 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3PL 물류대행 플랫폼</title>
-    <script type="module" crossorigin src="/assets/index-78f238c3.js"></script>
+    <script type="module" crossorigin src="/assets/index-d15e8858.js"></script>
     <link rel="stylesheet" href="/assets/index-9a515365.css">
-  </head>
+  
+<script>
+    const path = window.location.pathname;
+    const search = window.location.search;
+    const hash = window.location.hash;
+    const params = new URLSearchParams(search);
+    if (!params.has('redirect')) {
+        window.location.href = '/?redirect=' + encodeURIComponent(path + search) + hash;
+    }
+</script>
+</head>
   <body>
     <div id="root"></div>
     
