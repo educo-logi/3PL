@@ -173,7 +173,7 @@ const MyPage = () => {
     );
   }
 
-  const isWarehouse = currentUser.userType === 'warehouse';
+  const isWarehouse = currentUser.userType === 'warehouse' || currentUser.user_type === 'warehouse';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -613,31 +613,65 @@ const MyPage = () => {
                   </div>
                 ) : (
                   // 고객사 정보
+                  // 고객사 정보 (Web Graphic Style)
                   <div className="pt-6">
-                    <h4 className="text-lg font-semibold text-gray-800 mb-4">물류 요구 사항</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 mb-6">
-                      <div>
-                        <span className="block text-sm text-gray-500 mb-1">필요 면적</span>
-                        <span className="text-gray-900">{currentUser.requiredArea ? `${currentUser.requiredArea} ㎡` : '-'}</span>
+                    <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                      <Building2 className="w-6 h-6 mr-2 text-primary-600" />
+                      물류 요구 사항
+                    </h4>
+
+                    {/* 1. 시설 스펙 (3 Grid) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50 transition duration-200 group">
+                        <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
+                          <Map className="w-8 h-8 text-gray-400 group-hover:text-blue-600 transition" />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-1">필요 면적</p>
+                        <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition">
+                          {currentUser.requiredArea ? `${Number(currentUser.requiredArea).toLocaleString()} ㎡` : '-'}
+                        </p>
                       </div>
-                      <div>
-                        <span className="block text-sm text-gray-500 mb-1">월 평균 출고량</span>
-                        <span className="text-gray-900">{currentUser.monthlyVolume ? `${currentUser.monthlyVolume} 건/월` : '-'}</span>
+
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-purple-300 hover:bg-purple-50 transition duration-200 group">
+                        <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
+                          <Activity className="w-8 h-8 text-gray-400 group-hover:text-purple-600 transition" />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-1">월 평균 출고량</p>
+                        <p className="text-2xl font-bold text-gray-800 group-hover:text-purple-600 transition">
+                          {currentUser.monthlyVolume ? `${Number(currentUser.monthlyVolume).toLocaleString()} 건` : '-'}
+                        </p>
                       </div>
-                      <div>
-                        <span className="block text-sm text-gray-500 mb-1">보관 파렛트 수</span>
-                        <span className="text-gray-900">{currentUser.palletCount ? `${currentUser.palletCount} PLT` : '-'}</span>
+
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-orange-300 hover:bg-orange-50 transition duration-200 group">
+                        <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
+                          <Layers className="w-8 h-8 text-gray-400 group-hover:text-orange-600 transition" />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-1">보관 파렛트</p>
+                        <p className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition">
+                          {currentUser.palletCount ? `${Number(currentUser.palletCount).toLocaleString()} PLT` : '-'}
+                        </p>
                       </div>
                     </div>
 
+                    {/* 2. 취급 품목 (Graphic Card) */}
                     <div>
-                      <span className="block text-sm text-gray-500 mb-2">취급 품목</span>
-                      <div className="flex flex-wrap gap-2">
-                        {currentUser.products && currentUser.products.length > 0 ? (
-                          currentUser.products.map((item, idx) => (
-                            <span key={idx} className="px-3 py-1 bg-orange-50 text-orange-700 rounded-full text-sm border border-orange-100">{item}</span>
-                          ))
-                        ) : <span className="text-gray-400 text-sm">-</span>}
+                      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 mr-3">
+                            <Package className="w-6 h-6" />
+                          </div>
+                          <h5 className="text-lg font-bold text-gray-800">취급 품목</h5>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {currentUser.products && currentUser.products.length > 0 ? (
+                            currentUser.products.map((item, idx) => (
+                              <span key={idx} className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium border border-orange-100 flex items-center">
+                                <Box className="w-3 h-3 mr-1.5" />
+                                {item}
+                              </span>
+                            ))
+                          ) : <span className="text-gray-400 text-sm">-</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
