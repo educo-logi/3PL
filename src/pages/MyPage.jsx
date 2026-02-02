@@ -706,17 +706,8 @@ const MyPage = () => {
         onClose={() => setIsProfileEditModalOpen(false)}
         currentUser={currentUser}
         onUpdate={() => {
-          // 업데이트 후 데이터 갱신 (리로딩)
-          const fetchFreshUserData = async () => {
-            const table = currentUser.userType === 'warehouse' ? 'warehouses' : 'customers';
-            const { data } = await supabase.from(table).select('*').eq('id', currentUser.id).single();
-            if (data) {
-              const mergedUser = { ...data, userType: currentUser.userType };
-              localStorage.setItem('currentUser', JSON.stringify(mergedUser));
-              setCurrentUser(mergedUser);
-            }
-          };
-          fetchFreshUserData();
+          alert('정보가 성공적으로 수정되었습니다.');
+          window.location.reload();
         }}
       />
     </div >

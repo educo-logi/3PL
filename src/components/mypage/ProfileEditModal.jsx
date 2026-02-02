@@ -39,7 +39,7 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
 
     if (!isOpen) return null;
 
-    const isWarehouse = currentUser?.userType === 'warehouse';
+    const isWarehouse = currentUser?.userType === 'warehouse' || currentUser?.user_type === 'warehouse';
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -142,7 +142,7 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
 
             if (error) throw error;
 
-            alert('정보가 성공적으로 수정되었습니다.');
+            // alert('정보가 성공적으로 수정되었습니다.'); // 부모 컴포넌트에서 처리
             onUpdate(); // 부모 컴포넌트에 알림 (새로고침)
             onClose();
 
