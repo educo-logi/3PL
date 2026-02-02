@@ -21,6 +21,7 @@ import RecentViewedPage from './pages/RecentViewedPage';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import RefundPolicy from './pages/RefundPolicy';
+import DesignMockup from './pages/DesignMockup';
 
 function App() {
   useEffect(() => {
@@ -57,6 +58,7 @@ function App() {
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/refund" element={<RefundPolicy />} />
+          <Route path="/design-mockup" element={<DesignMockup />} />
           <Route path="*" element={<TermsOfService />} />
         </Routes>
       </Layout>
