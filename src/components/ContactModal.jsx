@@ -3,6 +3,7 @@ import { X, Phone, Mail, CreditCard, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { checkViewingPass, useViewingPass } from '../utils/viewingPassUtils';
 import { supabase } from '../utils/supabaseClient';
+import { trackEvent, GA_EVENTS } from '../utils/gtm';
 
 const ContactModal = ({ isOpen, onClose, contactInfo, type }) => {
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ const ContactModal = ({ isOpen, onClose, contactInfo, type }) => {
       const result = await useViewingPass(contactInfo.id, type, companyName);
 
       if (result.success) {
+        trackEvent(GA_EVENTS.CONTACT_SUBMIT, { type: type, company: companyName });
         setIsRevealed(true);
       } else {
         if (result.expired) {
@@ -140,7 +142,10 @@ const ContactModal = ({ isOpen, onClose, contactInfo, type }) => {
                 <div className="text-center">
                   <p className="text-gray-600 mb-4">보유하신 열람권이 없습니다.</p>
                   <button
-                    onClick={() => navigate('/payment')}
+                    onClick={() => {
+                      trackEvent(GA_EVENTS.CTA_CLICK, { label: 'contact_modal_purchase' });
+                      navigate('/payment');
+                    }}
                     className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 transition-colors font-bold"
                   >
                     열람권 구매하러 가기

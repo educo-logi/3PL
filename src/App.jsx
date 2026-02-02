@@ -22,8 +22,19 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import RefundPolicy from './pages/RefundPolicy';
 
 function App() {
+  useEffect(() => {
+    // GitHub Pages 404 Redirect Handling
+    const params = new URLSearchParams(window.location.search);
+    const redirectPath = params.get('redirect');
+
+    if (redirectPath) {
+      window.history.replaceState(null, null, redirectPath);
+    }
+  }, []);
+
   return (
     <Router>
+      <ScrollToTop />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />

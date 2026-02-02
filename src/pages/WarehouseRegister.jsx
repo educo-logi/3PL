@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { regions, detailedRegions, dongData, productTypes, storageTypes, deliveryCompanies, solutions } from '../data/sampleData';
 import { hashPassword } from '../utils/passwordHash';
 import { supabase } from '../utils/supabaseClient';
+import { trackEvent, GA_EVENTS } from '../utils/gtm';
 
 const WarehouseRegister = () => {
   const navigate = useNavigate();
@@ -159,6 +160,7 @@ const WarehouseRegister = () => {
 
       if (error) throw error;
 
+      trackEvent(GA_EVENTS.REGISTER_WAREHOUSE, { company: formData.companyName });
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error submitting warehouse:', error);

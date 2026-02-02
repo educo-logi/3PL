@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import SignupModal from './SignupModal';
 import NotificationCenter from './NotificationCenter';
 import { getUnreadNotificationCount } from '../utils/notificationUtils';
+import { trackEvent, GA_EVENTS } from '../utils/gtm';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -80,6 +81,7 @@ const Header = () => {
     // 커스텀 이벤트 발생시켜 다른 컴포넌트에 알림
     window.dispatchEvent(new CustomEvent('userLogout'));
 
+    trackEvent(GA_EVENTS.LOGOUT_CLICK);
     navigate('/');
   };
 
@@ -89,6 +91,7 @@ const Header = () => {
   };
 
   const handleSignupClick = () => {
+    trackEvent(GA_EVENTS.SIGNUP_CLICK);
     setIsSignupModalOpen(true);
   };
 
@@ -103,6 +106,7 @@ const Header = () => {
   };
 
   const handleLoginClick = () => {
+    trackEvent(GA_EVENTS.LOGIN_CLICK);
     navigate('/login');
   };
 

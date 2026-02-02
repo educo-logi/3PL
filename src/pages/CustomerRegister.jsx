@@ -5,6 +5,7 @@ import { regions, detailedRegions, dongData, productTypes, deliveryCompanies } f
 import { hashPassword } from '../utils/passwordHash';
 
 import { supabase } from '../utils/supabaseClient';
+import { trackEvent, GA_EVENTS } from '../utils/gtm';
 
 const CustomerRegister = () => {
   const navigate = useNavigate();
@@ -121,6 +122,7 @@ const CustomerRegister = () => {
 
       if (error) throw error;
 
+      trackEvent(GA_EVENTS.REGISTER_CUSTOMER, { company: formData.companyName });
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error submitting customer:', error);
