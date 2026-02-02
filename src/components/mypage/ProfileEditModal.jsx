@@ -80,6 +80,9 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             delete updateData.created_at;
             delete updateData.viewing_count; // 등등 읽기 전용 필드
             delete updateData.userType; // 로컬에서만 사용하는 필드 제거
+            delete updateData.business_number; // 사업자등록번호는 보통 수정 불가하거나 컬럼명이 다를 수 있음 (DB 확인 필요하지만 일단 제거)
+            delete updateData.password_hash; // 해시된 비번 필드 제거 (password로 처리)
+            delete updateData.user_type; // DB에 없을 수 있음
 
             // 사용자 유형에 따라 관련 없는 필드 제거
             if (isWarehouse) {
