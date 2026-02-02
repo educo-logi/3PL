@@ -389,338 +389,339 @@ const MyPage = () => {
 
 
             </div>
-            {/* End Left Column Container */}
+          </div>
+          {/* End Left Column Container */}
 
-            {/* Right Column (Usage History, Stats, Details) */}
-            <div className="lg:col-span-2 space-y-6">
+          {/* Right Column (Usage History, Stats, Details) */}
+          <div className="lg:col-span-2 space-y-6">
 
 
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-900">상세 정보</h3>
-                  <button
-                    onClick={() => setIsProfileEditModalOpen(true)}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-transparent"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    정보 수정
-                  </button>
-                </div>
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">상세 정보</h3>
+                <button
+                  onClick={() => setIsProfileEditModalOpen(true)}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-transparent"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  정보 수정
+                </button>
+              </div>
 
-                <div className="space-y-8 divide-y divide-gray-100">
-                  {/* 1. 기본 정보 (Web Graphic Style) */}
-                  <div className="pt-4 first:pt-0">
-                    <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                      <User className="w-6 h-6 mr-2 text-primary-600" />
-                      기본 정보
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* 회사명 */}
-                      <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <Briefcase className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 font-medium mb-0.5">회사명</p>
-                          <p className="text-base font-bold text-gray-900">{currentUser.companyName || currentUser.company_name}</p>
-                        </div>
+              <div className="space-y-8 divide-y divide-gray-100">
+                {/* 1. 기본 정보 (Web Graphic Style) */}
+                <div className="pt-4 first:pt-0">
+                  <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <User className="w-6 h-6 mr-2 text-primary-600" />
+                    기본 정보
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 회사명 */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
+                      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Briefcase className="w-6 h-6" />
                       </div>
-                      {/* 대표자명 */}
-                      <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
-                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <User className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 font-medium mb-0.5">대표자명</p>
-                          <p className="text-base font-bold text-gray-900">{currentUser.representative}</p>
-                        </div>
+                      <div>
+                        <p className="text-sm text-gray-500 font-medium mb-0.5">회사명</p>
+                        <p className="text-base font-bold text-gray-900">{currentUser.companyName || currentUser.company_name}</p>
                       </div>
-                      {/* 대표 전화번호 */}
-                      <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
-                        <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <Phone className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 font-medium mb-0.5">대표 전화번호</p>
-                          <p className="text-base font-bold text-gray-900">{currentUser.phone}</p>
-                        </div>
+                    </div>
+                    {/* 대표자명 */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
+                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <User className="w-6 h-6" />
                       </div>
-                      {/* 이메일 */}
-                      <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
-                        <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <Mail className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 font-medium mb-0.5">이메일</p>
-                          <p className="text-base font-bold text-gray-900 break-all">{currentUser.email}</p>
-                        </div>
+                      <div>
+                        <p className="text-sm text-gray-500 font-medium mb-0.5">대표자명</p>
+                        <p className="text-base font-bold text-gray-900">{currentUser.representative}</p>
+                      </div>
+                    </div>
+                    {/* 대표 전화번호 */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
+                      <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Phone className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 font-medium mb-0.5">대표 전화번호</p>
+                        <p className="text-base font-bold text-gray-900">{currentUser.phone}</p>
+                      </div>
+                    </div>
+                    {/* 이메일 */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
+                      <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Mail className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 font-medium mb-0.5">이메일</p>
+                        <p className="text-base font-bold text-gray-900 break-all">{currentUser.email}</p>
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* 2. 주소 정보 (Web Graphic Style) */}
+                {/* 2. 주소 정보 (Web Graphic Style) */}
+                <div className="pt-6">
+                  <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <MapPin className="w-6 h-6 mr-2 text-primary-600" />
+                    사업장 주소
+                  </h4>
+                  <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200 flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-gray-50 text-gray-600 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                      <Map className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium mb-1">상세 주소</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {currentUser.location} {currentUser.city} {currentUser.dong} {currentUser.detail_address || currentUser.detailAddress}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. 상세 정보 (창고 vs 고객사 구분) */}
+                {isWarehouse ? (
+                  // 창고업체 정보
+                  // 창고업체 정보 (Web Graphic Style)
                   <div className="pt-6">
                     <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                      <MapPin className="w-6 h-6 mr-2 text-primary-600" />
-                      사업장 주소
+                      <Building2 className="w-6 h-6 mr-2 text-primary-600" />
+                      시설 및 운영 정보
                     </h4>
-                    <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200 flex items-start space-x-4">
-                      <div className="w-12 h-12 bg-gray-50 text-gray-600 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
-                        <Map className="w-6 h-6" />
+
+                    {/* 1. 시설 스펙 (4 Grid) */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-primary-300 hover:bg-primary-50 transition duration-200 group">
+                        <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
+                          <Map className="w-6 h-6 text-gray-400 group-hover:text-primary-600 transition" />
+                        </div>
+                        <p className="text-xs text-gray-500 mb-1">대지면적</p>
+                        <p className="text-lg font-bold text-gray-800 group-hover:text-primary-600 transition">
+                          {currentUser.landArea ? `${Number(currentUser.landArea).toLocaleString()} ㎡` : '-'}
+                        </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500 font-medium mb-1">상세 주소</p>
-                        <p className="text-lg font-bold text-gray-900">
-                          {currentUser.location} {currentUser.city} {currentUser.dong} {currentUser.detail_address || currentUser.detailAddress}
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50 transition duration-200 group">
+                        <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
+                          <Archive className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition" />
+                        </div>
+                        <p className="text-xs text-gray-500 mb-1">창고 연면적</p>
+                        <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition">
+                          {currentUser.totalWarehouseArea ? `${Number(currentUser.totalWarehouseArea).toLocaleString()} ㎡` : '-'}
+                        </p>
+                      </div>
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-green-300 hover:bg-green-50 transition duration-200 group">
+                        <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
+                          <CheckCircle2 className="w-6 h-6 text-gray-400 group-hover:text-green-600 transition" />
+                        </div>
+                        <p className="text-xs text-gray-500 mb-1">계약 가능 면적</p>
+                        <p className="text-lg font-bold text-gray-800 group-hover:text-green-600 transition">
+                          {currentUser.availableArea ? `${Number(currentUser.availableArea).toLocaleString()} ㎡` : '-'}
+                        </p>
+                      </div>
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-orange-300 hover:bg-orange-50 transition duration-200 group">
+                        <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
+                          <Layers className="w-6 h-6 text-gray-400 group-hover:text-orange-600 transition" />
+                        </div>
+                        <p className="text-xs text-gray-500 mb-1">보유 파렛트</p>
+                        <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition">
+                          {currentUser.palletCount ? `${Number(currentUser.palletCount).toLocaleString()} PLT` : '-'}
                         </p>
                       </div>
                     </div>
+
+                    {/* 2. 운영 정보 카드 (2 Grid) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* 보관 방식 */}
+                      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+                            <Snowflake className="w-6 h-6" />
+                          </div>
+                          <h5 className="text-lg font-bold text-gray-800">보관 방식</h5>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {currentUser.storageTypes && currentUser.storageTypes.length > 0 ? (
+                            currentUser.storageTypes.map((type, idx) => (
+                              <span key={idx} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium border border-blue-100 flex items-center">
+                                {type === '냉동' || type === '냉장' ? <Snowflake className="w-3 h-3 mr-1" /> : <Thermometer className="w-3 h-3 mr-1" />}
+                                {type}
+                              </span>
+                            ))
+                          ) : <span className="text-gray-400 text-sm">-</span>}
+                        </div>
+                      </div>
+
+                      {/* 사용 배송사 */}
+                      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600 mr-3">
+                            <Truck className="w-6 h-6" />
+                          </div>
+                          <h5 className="text-lg font-bold text-gray-800">사용 배송사</h5>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {currentUser.deliveryCompanies && currentUser.deliveryCompanies.length > 0 ? (
+                            currentUser.deliveryCompanies.map((item, idx) => (
+                              <span key={idx} className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm font-medium border border-green-100">
+                                {item}
+                              </span>
+                            ))
+                          ) : <span className="text-gray-400 text-sm">-</span>}
+                          {currentUser.otherDeliveryCompany && (
+                            <span className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm font-medium border border-green-100">
+                              {currentUser.otherDeliveryCompany}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 사용 솔루션 */}
+                      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
+                            <Monitor className="w-6 h-6" />
+                          </div>
+                          <h5 className="text-lg font-bold text-gray-800">사용 솔루션</h5>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {currentUser.solutions && currentUser.solutions.length > 0 ? (
+                            currentUser.solutions.map((item, idx) => (
+                              <span key={idx} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-100">
+                                {item}
+                              </span>
+                            ))
+                          ) : <span className="text-gray-400 text-sm">-</span>}
+                          {currentUser.otherSolution && (
+                            <span className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-100">
+                              {currentUser.otherSolution}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 취급 품목 */}
+                      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 mr-3">
+                            <Package className="w-6 h-6" />
+                          </div>
+                          <h5 className="text-lg font-bold text-gray-800">취급 품목</h5>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {currentUser.products && currentUser.products.length > 0 ? (
+                            currentUser.products.map((item, idx) => (
+                              <span key={idx} className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium border border-orange-100">
+                                {item}
+                              </span>
+                            ))
+                          ) : <span className="text-gray-400 text-sm">-</span>}
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                ) : (
+                  // 고객사 정보
+                  // 고객사 정보 (Web Graphic Style)
+                  <div className="pt-6">
+                    <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                      <Building2 className="w-6 h-6 mr-2 text-primary-600" />
+                      물류 요구 사항
+                    </h4>
 
-                  {/* 3. 상세 정보 (창고 vs 고객사 구분) */}
-                  {isWarehouse ? (
-                    // 창고업체 정보
-                    // 창고업체 정보 (Web Graphic Style)
-                    <div className="pt-6">
-                      <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                        <Building2 className="w-6 h-6 mr-2 text-primary-600" />
-                        시설 및 운영 정보
-                      </h4>
-
-                      {/* 1. 시설 스펙 (4 Grid) */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-primary-300 hover:bg-primary-50 transition duration-200 group">
-                          <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
-                            <Map className="w-6 h-6 text-gray-400 group-hover:text-primary-600 transition" />
-                          </div>
-                          <p className="text-xs text-gray-500 mb-1">대지면적</p>
-                          <p className="text-lg font-bold text-gray-800 group-hover:text-primary-600 transition">
-                            {currentUser.landArea ? `${Number(currentUser.landArea).toLocaleString()} ㎡` : '-'}
-                          </p>
+                    {/* 1. 시설 스펙 (3 Grid) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50 transition duration-200 group">
+                        <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
+                          <Map className="w-8 h-8 text-gray-400 group-hover:text-blue-600 transition" />
                         </div>
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50 transition duration-200 group">
-                          <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
-                            <Archive className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition" />
-                          </div>
-                          <p className="text-xs text-gray-500 mb-1">창고 연면적</p>
-                          <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition">
-                            {currentUser.totalWarehouseArea ? `${Number(currentUser.totalWarehouseArea).toLocaleString()} ㎡` : '-'}
-                          </p>
-                        </div>
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-green-300 hover:bg-green-50 transition duration-200 group">
-                          <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
-                            <CheckCircle2 className="w-6 h-6 text-gray-400 group-hover:text-green-600 transition" />
-                          </div>
-                          <p className="text-xs text-gray-500 mb-1">계약 가능 면적</p>
-                          <p className="text-lg font-bold text-gray-800 group-hover:text-green-600 transition">
-                            {currentUser.availableArea ? `${Number(currentUser.availableArea).toLocaleString()} ㎡` : '-'}
-                          </p>
-                        </div>
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-orange-300 hover:bg-orange-50 transition duration-200 group">
-                          <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
-                            <Layers className="w-6 h-6 text-gray-400 group-hover:text-orange-600 transition" />
-                          </div>
-                          <p className="text-xs text-gray-500 mb-1">보유 파렛트</p>
-                          <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition">
-                            {currentUser.palletCount ? `${Number(currentUser.palletCount).toLocaleString()} PLT` : '-'}
-                          </p>
-                        </div>
+                        <p className="text-sm text-gray-500 mb-1">필요 면적</p>
+                        <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition">
+                          {currentUser.requiredArea ? `${Number(currentUser.requiredArea).toLocaleString()} ㎡` : '-'}
+                        </p>
                       </div>
 
-                      {/* 2. 운영 정보 카드 (2 Grid) */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* 보관 방식 */}
-                        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
-                          <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
-                              <Snowflake className="w-6 h-6" />
-                            </div>
-                            <h5 className="text-lg font-bold text-gray-800">보관 방식</h5>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.storageTypes && currentUser.storageTypes.length > 0 ? (
-                              currentUser.storageTypes.map((type, idx) => (
-                                <span key={idx} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium border border-blue-100 flex items-center">
-                                  {type === '냉동' || type === '냉장' ? <Snowflake className="w-3 h-3 mr-1" /> : <Thermometer className="w-3 h-3 mr-1" />}
-                                  {type}
-                                </span>
-                              ))
-                            ) : <span className="text-gray-400 text-sm">-</span>}
-                          </div>
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-purple-300 hover:bg-purple-50 transition duration-200 group">
+                        <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
+                          <Activity className="w-8 h-8 text-gray-400 group-hover:text-purple-600 transition" />
                         </div>
+                        <p className="text-sm text-gray-500 mb-1">월 평균 출고량</p>
+                        <p className="text-2xl font-bold text-gray-800 group-hover:text-purple-600 transition">
+                          {currentUser.monthlyVolume ? `${Number(currentUser.monthlyVolume).toLocaleString()} 건` : '-'}
+                        </p>
+                      </div>
 
-                        {/* 사용 배송사 */}
-                        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
-                          <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600 mr-3">
-                              <Truck className="w-6 h-6" />
-                            </div>
-                            <h5 className="text-lg font-bold text-gray-800">사용 배송사</h5>
+                      <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-orange-300 hover:bg-orange-50 transition duration-200 group">
+                        <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
+                          <Layers className="w-8 h-8 text-gray-400 group-hover:text-orange-600 transition" />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-1">보관 파렛트</p>
+                        <p className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition">
+                          {currentUser.palletCount ? `${Number(currentUser.palletCount).toLocaleString()} PLT` : '-'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 2. 취급 품목 (Graphic Card) */}
+                    <div>
+                      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
+                        <div className="flex items-center mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 mr-3">
+                            <Package className="w-6 h-6" />
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.deliveryCompanies && currentUser.deliveryCompanies.length > 0 ? (
-                              currentUser.deliveryCompanies.map((item, idx) => (
-                                <span key={idx} className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm font-medium border border-green-100">
-                                  {item}
-                                </span>
-                              ))
-                            ) : <span className="text-gray-400 text-sm">-</span>}
-                            {currentUser.otherDeliveryCompany && (
-                              <span className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm font-medium border border-green-100">
-                                {currentUser.otherDeliveryCompany}
+                          <h5 className="text-lg font-bold text-gray-800">취급 품목</h5>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {currentUser.products && currentUser.products.length > 0 ? (
+                            currentUser.products.map((item, idx) => (
+                              <span key={idx} className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium border border-orange-100 flex items-center">
+                                <Box className="w-3 h-3 mr-1.5" />
+                                {item}
                               </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 사용 솔루션 */}
-                        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
-                          <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
-                              <Monitor className="w-6 h-6" />
-                            </div>
-                            <h5 className="text-lg font-bold text-gray-800">사용 솔루션</h5>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.solutions && currentUser.solutions.length > 0 ? (
-                              currentUser.solutions.map((item, idx) => (
-                                <span key={idx} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-100">
-                                  {item}
-                                </span>
-                              ))
-                            ) : <span className="text-gray-400 text-sm">-</span>}
-                            {currentUser.otherSolution && (
-                              <span className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-100">
-                                {currentUser.otherSolution}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 취급 품목 */}
-                        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
-                          <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 mr-3">
-                              <Package className="w-6 h-6" />
-                            </div>
-                            <h5 className="text-lg font-bold text-gray-800">취급 품목</h5>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.products && currentUser.products.length > 0 ? (
-                              currentUser.products.map((item, idx) => (
-                                <span key={idx} className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium border border-orange-100">
-                                  {item}
-                                </span>
-                              ))
-                            ) : <span className="text-gray-400 text-sm">-</span>}
-                          </div>
+                            ))
+                          ) : <span className="text-gray-400 text-sm">-</span>}
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    // 고객사 정보
-                    // 고객사 정보 (Web Graphic Style)
-                    <div className="pt-6">
-                      <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                        <Building2 className="w-6 h-6 mr-2 text-primary-600" />
-                        물류 요구 사항
-                      </h4>
-
-                      {/* 1. 시설 스펙 (3 Grid) */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50 transition duration-200 group">
-                          <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
-                            <Map className="w-8 h-8 text-gray-400 group-hover:text-blue-600 transition" />
-                          </div>
-                          <p className="text-sm text-gray-500 mb-1">필요 면적</p>
-                          <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition">
-                            {currentUser.requiredArea ? `${Number(currentUser.requiredArea).toLocaleString()} ㎡` : '-'}
-                          </p>
-                        </div>
-
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-purple-300 hover:bg-purple-50 transition duration-200 group">
-                          <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
-                            <Activity className="w-8 h-8 text-gray-400 group-hover:text-purple-600 transition" />
-                          </div>
-                          <p className="text-sm text-gray-500 mb-1">월 평균 출고량</p>
-                          <p className="text-2xl font-bold text-gray-800 group-hover:text-purple-600 transition">
-                            {currentUser.monthlyVolume ? `${Number(currentUser.monthlyVolume).toLocaleString()} 건` : '-'}
-                          </p>
-                        </div>
-
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-orange-300 hover:bg-orange-50 transition duration-200 group">
-                          <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
-                            <Layers className="w-8 h-8 text-gray-400 group-hover:text-orange-600 transition" />
-                          </div>
-                          <p className="text-sm text-gray-500 mb-1">보관 파렛트</p>
-                          <p className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition">
-                            {currentUser.palletCount ? `${Number(currentUser.palletCount).toLocaleString()} PLT` : '-'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* 2. 취급 품목 (Graphic Card) */}
-                      <div>
-                        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200">
-                          <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 mr-3">
-                              <Package className="w-6 h-6" />
-                            </div>
-                            <h5 className="text-lg font-bold text-gray-800">취급 품목</h5>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {currentUser.products && currentUser.products.length > 0 ? (
-                              currentUser.products.map((item, idx) => (
-                                <span key={idx} className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium border border-orange-100 flex items-center">
-                                  <Box className="w-3 h-3 mr-1.5" />
-                                  {item}
-                                </span>
-                              ))
-                            ) : <span className="text-gray-400 text-sm">-</span>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
-        {/* 상세 정보 모달 */}
-        {
-          selectedHistoryItem && (
-            <DetailModal
-              isOpen={isDetailModalOpen}
-              data={selectedHistoryItem}
-              type={selectedHistoryItem.itemTypeForModal}
-              onClose={() => setIsDetailModalOpen(false)}
-            />
-          )
-        }
+      </div>
+      {/* 상세 정보 모달 */}
+      {
+        selectedHistoryItem && (
+          <DetailModal
+            isOpen={isDetailModalOpen}
+            data={selectedHistoryItem}
+            type={selectedHistoryItem.itemTypeForModal}
+            onClose={() => setIsDetailModalOpen(false)}
+          />
+        )
+      }
 
-        {/* 프로필 수정 모달 */}
-        <ProfileEditModal
-          isOpen={isProfileEditModalOpen}
-          onClose={() => setIsProfileEditModalOpen(false)}
-          currentUser={currentUser}
-          onUpdate={() => {
-            // 업데이트 후 데이터 갱신 (리로딩)
-            const fetchFreshUserData = async () => {
-              const table = currentUser.userType === 'warehouse' ? 'warehouses' : 'customers';
-              const { data } = await supabase.from(table).select('*').eq('id', currentUser.id).single();
-              if (data) {
-                const mergedUser = { ...data, userType: currentUser.userType };
-                localStorage.setItem('currentUser', JSON.stringify(mergedUser));
-                setCurrentUser(mergedUser);
-              }
-            };
-            fetchFreshUserData();
-          }}
-        />
-      </div >
-      );
+      {/* 프로필 수정 모달 */}
+      <ProfileEditModal
+        isOpen={isProfileEditModalOpen}
+        onClose={() => setIsProfileEditModalOpen(false)}
+        currentUser={currentUser}
+        onUpdate={() => {
+          // 업데이트 후 데이터 갱신 (리로딩)
+          const fetchFreshUserData = async () => {
+            const table = currentUser.userType === 'warehouse' ? 'warehouses' : 'customers';
+            const { data } = await supabase.from(table).select('*').eq('id', currentUser.id).single();
+            if (data) {
+              const mergedUser = { ...data, userType: currentUser.userType };
+              localStorage.setItem('currentUser', JSON.stringify(mergedUser));
+              setCurrentUser(mergedUser);
+            }
+          };
+          fetchFreshUserData();
+        }}
+      />
+    </div >
+  );
 };
 
-      export default MyPage;
+export default MyPage;
 
