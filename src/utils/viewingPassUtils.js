@@ -178,16 +178,12 @@ export const getDisplayNameHelper = (item, itemType, isUnlocked) => {
   }
 
   // 열람권을 사용하지 않은 경우 지역 기반 이름 표시
-  const locationParts = [];
-  if (item.location) locationParts.push(item.location);
-  // 시/도까지는 보여주되, 상세 시/군/구는 숨김 요청 반영
-  // 예: "경기도 성남시" -> "경기도 (상세 지역 비공개)"
-  // 다만 기존 로직은 지역 + 시 + 동 다 합침.
-
   const typeStr = itemType === 'warehouse' ? '창고' : '고객사';
 
   if (item.location) {
-    return `${item.location} ${typeStr} (상세 정보 비공개)`;
+    // [지역] [시군구] [유형] 형식으로 변경
+    const locationStr = item.city ? `${item.location} ${item.city}` : item.location;
+    return `${locationStr} ${typeStr}`;
   } else {
     return `${typeStr} (지역 비공개)`;
   }

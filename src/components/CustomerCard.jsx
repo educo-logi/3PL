@@ -192,7 +192,7 @@ const CustomerCard = ({ customer }) => {
             <span>
               {isViewed || localStorage.getItem('adminAuth') === 'true'
                 ? `${customer.location} ${customer.city} ${customer.dong}`
-                : `${customer.location} (상세 지역 비공개)`
+                : `${customer.location} ${customer.city || ''}`
               }
             </span>
           </div>

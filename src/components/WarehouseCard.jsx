@@ -195,7 +195,7 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
             <span>
               {isViewed || localStorage.getItem('adminAuth') === 'true'
                 ? `${warehouse.location} ${warehouse.city} ${warehouse.dong}`
-                : `${warehouse.location} (상세 지역 비공개)`
+                : `${warehouse.location} ${warehouse.city || ''}`
               }
             </span>
           </div>
