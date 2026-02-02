@@ -30,6 +30,11 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                 required_area: currentUser.required_area || '',
                 monthly_volume: currentUser.monthly_volume || '',
                 detail_address: currentUser.detail_address || '', // 상세 주소 추가
+                contact_person: currentUser.contact_person || '',
+                contact_phone: currentUser.contact_phone || '',
+                warehouse_count: currentUser.warehouse_count || '',
+                other_delivery_company: currentUser.other_delivery_company || '',
+                other_solution: currentUser.other_solution || '',
 
                 // 비밀번호 필드는 비워둠
                 password: ''
@@ -86,6 +91,7 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             const commonAllowedFields = [
                 'company_name', 'representative', 'phone',
                 'location', 'city', 'dong', 'detail_address',
+                'contact_person', 'contact_phone', // 담당자 정보 추가
                 'password' // 비밀번호는 별도 로직으로 처리되지만 일단 허용 목록에 포함
             ];
 
@@ -93,12 +99,14 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             const warehouseAllowedFields = [
                 'total_area', 'warehouse_area', 'available_area', 'pallet_count',
                 'storage_types', 'products', 'delivery_companies', 'solutions',
-                'land_area', 'other_delivery_company', 'other_solution'
+                'land_area', 'other_delivery_company', 'other_solution',
+                'warehouse_count', 'total_area_unit', 'warehouse_area_unit', 'available_area_unit' // Unit 및 개수 추가
             ];
 
             // 3. 고객사 전용 허용 필드
             const customerAllowedFields = [
-                'required_area', 'monthly_volume', 'pallet_count', 'products'
+                'required_area', 'monthly_volume', 'pallet_count', 'products',
+                'desired_delivery', 'required_area_unit' // 원하는 배송사 및 Unit 추가
             ];
 
             // 4. 최종 허용 필드 목록 구성
