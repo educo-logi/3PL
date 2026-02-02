@@ -79,6 +79,25 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             delete updateData.id;
             delete updateData.created_at;
             delete updateData.viewing_count; // 등등 읽기 전용 필드
+            delete updateData.userType; // 로컬에서만 사용하는 필드 제거
+
+            // 사용자 유형에 따라 관련 없는 필드 제거
+            if (isWarehouse) {
+                delete updateData.required_area;
+                delete updateData.monthly_volume;
+                delete updateData.desired_delivery;
+            } else {
+                delete updateData.total_area;
+                delete updateData.warehouse_area;
+                delete updateData.available_area;
+                delete updateData.experience;
+                delete updateData.storage_types;
+                delete updateData.delivery_companies;
+                delete updateData.solutions;
+            }
+
+            // 단위(unit) 필드 등 UI용 state가 포함될 수 있으므로 필요한 경우 제거 (DB에 컬럼이 없다면)
+            // 여기서는 일단 명확히 에러가 나는 필드 위주로 처리
 
             // 비밀번호 처리: 입력이 있을 때만 해싱하여 업데이트
             if (updateData.password && updateData.password.trim() !== '') {
