@@ -100,7 +100,8 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
     const result = await useViewingPass(
       warehouse.id,
       'warehouse',
-      warehouse.companyName
+      warehouse.companyName,
+      warehouse.email // 이메일 전달
     );
 
     if (result.success) {

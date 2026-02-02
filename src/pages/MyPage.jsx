@@ -491,7 +491,7 @@ const MyPage = () => {
                   <h4 className="text-lg font-semibold text-gray-800 mb-4">사업장 주소</h4>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-gray-900">
-                      {currentUser.location} {currentUser.city} {currentUser.dong}
+                      {currentUser.location} {currentUser.city} {currentUser.dong} {currentUser.detail_address || currentUser.detailAddress}
                     </p>
                   </div>
                 </div>

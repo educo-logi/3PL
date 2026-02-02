@@ -13,6 +13,7 @@ const CustomerRegister = () => {
     location: '',
     city: '',
     dong: '',
+    detailAddress: '', // 나머지 주소 추가
     representative: '',
     phone: '',
     contactPerson: '',
@@ -101,6 +102,7 @@ const CustomerRegister = () => {
             location: formData.location,
             city: formData.city,
             dong: formData.dong,
+            detail_address: formData.detailAddress, // DB 컬럼 추가 확인 필요
             phone: formData.phone,
             contact_person: formData.contactPerson,
             contact_phone: formData.contactPhone,
@@ -198,7 +200,7 @@ const CustomerRegister = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        세부지역 *
+                        시 군 구 *
                       </label>
                       <select
                         name="city"
@@ -208,7 +210,7 @@ const CustomerRegister = () => {
                         disabled={!formData.location}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
                       >
-                        <option value="">세부지역을 선택하세요</option>
+                        <option value="">시 군 구를 선택하세요</option>
                         {formData.location && detailedRegions[formData.location]?.map(city => (
                           <option key={city} value={city}>{city}</option>
                         ))}
@@ -231,6 +233,19 @@ const CustomerRegister = () => {
                           <option key={dong} value={dong}>{dong}</option>
                         ))}
                       </select>
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        나머지 주소
+                      </label>
+                      <input
+                        type="text"
+                        name="detailAddress"
+                        value={formData.detailAddress}
+                        onChange={handleInputChange}
+                        placeholder="상세 주소를 입력하세요 (선택)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                      />
                     </div>
                   </div>
                 </div>

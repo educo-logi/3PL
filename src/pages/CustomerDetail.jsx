@@ -13,29 +13,72 @@ const CustomerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isViewed, setIsViewed] = useState(false);
 
-  const customer = customerData.find(c => c.id === parseInt(id));
+  const [customer, setCustomer] = useState(null);
+
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      // 1. 샘플 데이터에서 검색
+      let found = customerData.find(c => c.id === parseInt(id));
+
+      // 2. 없으면 Supabase에서 검색
+      if (!found) {
+        try {
+          const { data, error } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+          if (data) {
+            found = {
+              ...data,
+              companyName: data.company_name,
+              contactNumber: data.contact_number || data.phone,
+              location: data.location,
+              city: data.city,
+              dong: data.dong,
+              detailAddress: data.detail_address,
+              products: data.products || [],
+              requiredArea: data.required_area,
+              monthlyVolume: data.monthly_volume,
+              desiredDelivery: data.desired_delivery || [],
+            };
+          }
+        } catch (err) {
+          console.error("Error fetching customer detail:", err);
+        }
+      }
+      setCustomer(found);
+    };
+    fetchCustomer();
+  }, [id]);
 
   useEffect(() => {
     const checkAccess = async () => {
-      if (!customer) {
-        setLoading(false);
-        return;
-      }
+      if (!customer) return;
+
+      setLoading(false);
 
       // 접근 권한 확인
       const isAdmin = localStorage.getItem('adminAuth') === 'true';
+
+      const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      const isSelf = user && (String(user.id) === String(customer.id) || user.company_name === customer.companyName);
+
       const viewed = await isAlreadyViewed(customer.id, 'customer');
 
-      if (!isAdmin && !viewed) {
+      if (!isAdmin && !viewed && !isSelf) {
         alert('접근 권한이 없습니다. 먼저 열람권을 사용하여 잠금을 해제해주세요.');
         navigate('/customer-search');
       } else {
-        setIsViewed(viewed);
+        setIsViewed(viewed || isSelf);
         setLoading(false);
       }
     };
 
-    checkAccess();
+    if (customer) {
+      checkAccess();
+    }
   }, [customer, navigate]);
 
   if (!customer) {
@@ -85,7 +128,9 @@ const CustomerDetail = () => {
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="text-3xl font-bold">{getDisplayNameHelper(customer, 'customer', isViewed)}</h1>
-                <p className="text-blue-100 text-lg">{customer.location}</p>
+                <p className="text-blue-100 text-lg">
+                  {customer.location} {customer.city} {customer.dong} {customer.detail_address || customer.detailAddress || ''}
+                </p>
               </div>
             </div>
           </div>

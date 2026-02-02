@@ -29,6 +29,7 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                 experience: currentUser.experience || '',
                 required_area: currentUser.required_area || '',
                 monthly_volume: currentUser.monthly_volume || '',
+                detail_address: currentUser.detail_address || '', // 상세 주소 추가
 
                 // 비밀번호 필드는 비워둠
                 password: ''
@@ -194,6 +195,9 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                                                 <option value="">읍/면/동 선택</option>
                                                 {formData.location && formData.city && dongData[formData.location]?.[formData.city]?.map(d => <option key={d} value={d}>{d}</option>)}
                                             </select>
+                                        </div>
+                                        <div className="mt-3">
+                                            <input name="detail_address" value={formData.detail_address || ''} onChange={handleInputChange} placeholder="상세 주소를 입력하세요 (선택)" className="w-full px-3 py-2 border rounded-lg" />
                                         </div>
                                     </div>
                                 </div>

@@ -196,10 +196,78 @@ export const getDisplayNameHelper = (item, itemType, isUnlocked) => {
 /**
  * 열람권 사용 (DB Transaction)
  */
-export const useViewingPass = async (itemId, itemType, itemName) => {
+export const useViewingPass = async (itemId, itemType, itemName, targetEmail = null) => {
   const user = getCurrentUser();
   if (!user) {
     return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  // 0. 자기 자신인지 확인 (열람권 차감 X)
+  // [2024-01-30] 강력한 검증을 위해 DB에서 대상을 직접 조회하여 비교
+  let isSelf = false;
+
+  // 1차: ID 단순 비교
+  if (String(user.id) === String(itemId)) {
+    isSelf = true;
+  }
+
+  // 1.5차: 전달받은 이메일 비교 (가장 빠르고 정확함)
+  if (!isSelf && targetEmail && user.email) {
+    const userEmail = user.email.trim().toLowerCase();
+    const tEmail = targetEmail.trim().toLowerCase();
+    if (userEmail === tEmail) {
+      isSelf = true;
+      console.log('[DEBUG] Target Email provided matches User Email! It is self-view.');
+    }
+  }
+
+  // 2차: DB 조회 비교 (ID 불일치 시에도 이메일 등으로 본인 확인)
+  // 2차: DB 조회 비교 (ID 불일치 시에도 이메일 등으로 본인 확인)
+  if (!isSelf && (itemType === 'warehouse' || itemType === 'customer')) {
+    try {
+      const table = itemType === 'warehouse' ? 'warehouses' : 'customers';
+      console.log(`[DEBUG] Checking self-view against DB. Table: ${table}, ItemId: ${itemId}`);
+
+      const { data: targetItem, error: fetchError } = await supabase
+        .from(table)
+        .select('id, email, company_name')
+        .eq('id', itemId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.warn('[DEBUG] Target item not found in DB or error:', fetchError);
+      } else if (targetItem) {
+        // [Request] 로그인한(자신)과 열람할 페이지의 이메일이 같은지 매칭
+        const userEmail = user.email ? user.email.trim().toLowerCase() : '';
+        const targetEmail = targetItem.email ? targetItem.email.trim().toLowerCase() : '';
+
+        // 1) 이메일 비교 (Primary Check)
+        if (userEmail && targetEmail && userEmail === targetEmail) {
+          isSelf = true;
+          console.log('[DEBUG] Email Match! It is self-view.');
+        }
+
+        // 2) ID 재확인 (Fallback)
+        if (!isSelf && String(user.id) === String(targetItem.id)) {
+          isSelf = true;
+          console.log('[DEBUG] ID Match! It is self-view.');
+        }
+
+        console.log('[DEBUG] DB Check Result:', {
+          userEmail,
+          targetEmail,
+          isSelf,
+          itemType
+        });
+      }
+    } catch (dbErr) {
+      console.error('[DEBUG] Unexpected error during self-check:', dbErr);
+    }
+  }
+
+  if (isSelf) {
+    console.log('[DEBUG] Self-viewing detected via DB check. No pass deduction.');
+    return { success: true, alreadyViewed: true, isSelf: true };
   }
 
   // 1. 이미 본 항목인지 확인
@@ -475,6 +543,35 @@ export const getItemDetail = async (itemId, itemType) => {
       console.error(`Error fetching ${itemType} detail:`, error);
     }
     return null;
+  }
+
+  if (data) {
+    // DB 데이터(snake_case)를 UI(camelCase) 포맷으로 변환
+    return {
+      ...data,
+      companyName: data.company_name,
+      contactNumber: data.contact_number || data.phone,
+      totalArea: data.total_area,
+      availableArea: data.available_area,
+      warehouseCount: data.warehouse_count || 1,
+      storageTypes: data.storage_types || (data.temperature ? [data.temperature] : []),
+      deliveryCompanies: data.delivery_companies || data.delivery || [],
+      products: data.products || [],
+      representative: data.representative,
+      phone: data.phone,
+      email: data.email,
+      location: data.location,
+      city: data.city,
+      dong: data.dong,
+      detailAddress: data.detail_address,
+      contactPerson: data.contact_person,
+      contactPhone: data.contact_phone,
+      experience: data.experience,
+      // Customer specific
+      requiredArea: data.required_area,
+      monthlyVolume: data.monthly_volume,
+      desiredDelivery: data.desired_delivery || [],
+    };
   }
 
   return data;

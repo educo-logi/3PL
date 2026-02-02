@@ -99,7 +99,8 @@ const CustomerCard = ({ customer }) => {
     const result = await useViewingPass(
       customer.id,
       'customer',
-      customer.companyName
+      customer.companyName,
+      customer.email // 이메일 전달
     );
 
     if (result.success) {

@@ -13,29 +13,94 @@ const WarehouseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isViewed, setIsViewed] = useState(false);
 
-  const warehouse = warehouseData.find(w => w.id === parseInt(id));
+  const [warehouse, setWarehouse] = useState(null);
+
+  useEffect(() => {
+    const fetchWarehouse = async () => {
+      // 1. 샘플 데이터에서 검색
+      let found = warehouseData.find(w => w.id === parseInt(id));
+
+      // 2. 없으면 Supabase에서 검색 (비동기)
+      if (!found) {
+        try {
+          const { data, error } = await supabase
+            .from('warehouses')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+          if (data) {
+            // DB 데이터를 프론트엔드 포맷으로 변환
+            found = {
+              ...data,
+              companyName: data.company_name,
+              businessNumber: data.business_number,
+              contactNumber: data.contact_number,
+              // 필요하다면 추가 필드 매핑
+              storageTypes: data.storage_types || [],
+              deliveryCompanies: data.delivery_companies || [],
+              delivery: data.delivery_companies || [],
+              location: data.location,
+              city: data.city,
+              dong: data.dong,
+              detailAddress: data.detail_address,
+              totalArea: data.total_area,
+              availableArea: data.available_area,
+              palletCount: data.pallet_count,
+              products: data.products || [],
+              temperature: (data.storage_types || []).join('/'),
+            };
+          }
+        } catch (err) {
+          console.error("Error fetching warehouse detail:", err);
+        }
+      }
+      setWarehouse(found);
+    };
+
+    fetchWarehouse();
+  }, [id]);
 
   useEffect(() => {
     const checkAccess = async () => {
       if (!warehouse) {
-        setLoading(false);
+        // warehouse 로딩이 끝났는데도 없으면 (loading state 처리 필요하지만 일단 null 체크)
+        // 여기서는 warehouse가 set 된 이후에만 실행됨
         return;
       }
 
+      setLoading(false); // warehouse 찾았으면 로딩 끝
+
       // 접근 권한 확인
       const isAdmin = localStorage.getItem('adminAuth') === 'true';
+      // Self viewing check logic is implicit in viewingPassUtils useViewingPass, 
+      // but here we just check if it's already viewed/unlocked.
+      // If WE are the owner, we should be able to see it.
+      // But isAlreadyViewed only checks viewing_history. 
+      // We need to check if 'isSelf' too? 
+      // Actually isAlreadyViewed doesn't check self.
+      // We should check self here to prevent redirect.
+
+      const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      const isSelf = user && (String(user.id) === String(warehouse.id) || user.company_name === warehouse.companyName);
+
       const viewed = await isAlreadyViewed(warehouse.id, 'warehouse');
 
-      if (!isAdmin && !viewed) {
+      if (!isAdmin && !viewed && !isSelf) {
         alert('접근 권한이 없습니다. 먼저 열람권을 사용하여 잠금을 해제해주세요.');
         navigate('/warehouse-search');
       } else {
-        setIsViewed(viewed);
+        setIsViewed(viewed || isSelf);
         setLoading(false);
       }
     };
 
-    checkAccess();
+    if (warehouse) {
+      checkAccess();
+    } else {
+      // 데이터 패칭 중이 아니라고 판단되면 (useEffect 의존성 등)
+      // 타임아웃 등을 줄 수도 있으나 간단히 처리
+    }
   }, [warehouse, navigate]);
 
   if (!warehouse) {
@@ -93,7 +158,9 @@ const WarehouseDetail = () => {
                     </div>
                   )}
                 </div>
-                <p className="text-blue-100 text-lg">{warehouse.location}</p>
+                <p className="text-blue-100 text-lg">
+                  {warehouse.location} {warehouse.city} {warehouse.dong} {warehouse.detail_address || warehouse.detailAddress || ''}
+                </p>
               </div>
             </div>
           </div>
