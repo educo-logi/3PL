@@ -84,23 +84,31 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             delete updateData.password_hash; // 해시된 비번 필드 제거 (password로 처리)
             delete updateData.user_type; // DB에 없을 수 있음
 
-            // 사용자 유형에 따라 관련 없는 필드 제거
+            // 사용자 유형에 따라 관련 없는 필드 제거 (Comprehensive Filtering)
             if (isWarehouse) {
-                delete updateData.required_area;
-                delete updateData.required_area_unit; // Unit 필드 제거
-                delete updateData.monthly_volume;
-                delete updateData.desired_delivery;
+                // 창고업체에게 필요 없는 고객사 전용 필드들
+                const customerFields = [
+                    'required_area', 'required_area_unit',
+                    'monthly_volume',
+                    'desired_delivery',
+                    // 혹시 모를 다른 고객사 필드
+                    'business_number' // 사업자 번호도 일단 제외
+                ];
+                customerFields.forEach(field => delete updateData[field]);
             } else {
-                delete updateData.total_area;
-                delete updateData.total_area_unit; // Unit 필드 제거
-                delete updateData.warehouse_area;
-                delete updateData.warehouse_area_unit; // Unit 필드 제거
-                delete updateData.available_area;
-                delete updateData.available_area_unit; // Unit 필드 제거
-                delete updateData.experience;
-                delete updateData.storage_types;
-                delete updateData.delivery_companies;
-                delete updateData.solutions;
+                // 고객사에게 필요 없는 창고 전용 필드들
+                const warehouseFields = [
+                    'total_area', 'total_area_unit',
+                    'warehouse_area', 'warehouse_area_unit',
+                    'available_area', 'available_area_unit',
+                    'experience',
+                    'storage_types',
+                    'delivery_companies', 'other_delivery_company', // other_delivery_company 추가
+                    'solutions', 'other_solution', // solution 관련 필드 추가
+                    'land_area', // 대지면적? (코드상엔 total_area로 매핑되는 듯 하지만 혹시 몰라 추가)
+                    'business_number' // 사업자 번호도 일단 제외
+                ];
+                warehouseFields.forEach(field => delete updateData[field]);
             }
 
             // 단위(unit) 필드 등 UI용 state가 포함될 수 있어 DB에 없는 경우 에러 발생 가능성 차단
