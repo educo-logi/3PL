@@ -248,10 +248,10 @@ const PaymentPage = () => {
                       onClick={() => !pkg.disabled && setSelectedPackage(key)}
                       disabled={pkg.disabled}
                       className={`p-4 rounded-lg border-2 transition-all relative ${pkg.disabled
-                          ? 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed'
-                          : selectedPackage === key
-                            ? 'border-primary-600 bg-primary-50'
-                            : 'border-gray-200 hover:border-primary-300'
+                        ? 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed'
+                        : selectedPackage === key
+                          ? 'border-primary-600 bg-primary-50'
+                          : 'border-gray-200 hover:border-primary-300'
                         }`}
                     >
                       {pkg.disabled && (
@@ -362,18 +362,7 @@ const PaymentPage = () => {
                 </div>
               )}
 
-              {/* 테스트 모드 안내 */}
-              {paymentConfig.isTestMode && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="flex items-start">
-                    <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
-                    <div className="text-sm text-yellow-800">
-                      <p className="font-semibold mb-1">테스트 모드</p>
-                      <p>현재 테스트 모드로 운영 중입니다. 실제 결제는 진행되지 않습니다.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               {/* 결제 버튼 */}
               <div className="pt-4">
