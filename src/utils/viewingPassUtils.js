@@ -316,6 +316,27 @@ export const useViewingPass = async (itemId, itemType, itemName, targetEmail = n
 };
 
 /**
+ * 이벤트 대상 여부 확인 (DB)
+ */
+export const checkEventEligibility = async (userId) => {
+  // 이미 구매 이력이 있는지 확인
+  const { data, error } = await supabase
+    .from('viewing_passes')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+
+  if (error) {
+    console.error('Eligibility check failed:', error);
+    return false;
+  }
+
+  // 데이터가 없으면(length === 0) 이벤트 대상임
+  return data.length === 0;
+};
+
+
+/**
  * 열람권 구매 처리 (DB)
  */
 export const purchaseViewingPass = async (packageType = 'basic') => {
@@ -324,6 +345,7 @@ export const purchaseViewingPass = async (packageType = 'basic') => {
 
   const packages = {
     basic: { count: 10, price: 50000, validityMonths: 3 },
+    basic_event: { count: 10, price: 0, validityMonths: 3 }, // 이벤트 패키지 추가
     premium: { count: 20, price: 90000, validityMonths: 3 },
     deluxe: { count: 30, price: 130000, validityMonths: 3 }
   };
