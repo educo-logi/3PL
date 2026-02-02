@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Building2, Users, Edit, LogOut, ArrowLeft, Save, X, CreditCard, Calendar, Eye, Map, Phone, Mail, Package, Truck, Monitor, Box, Snowflake, Thermometer, CheckCircle2, Layers, Archive, Activity } from 'lucide-react';
+import { User, Building2, Users, Edit, LogOut, ArrowLeft, Save, X, CreditCard, Calendar, Eye, Map, Phone, Mail, Package, Truck, Monitor, Box, Snowflake, Thermometer, CheckCircle2, Layers, Archive, Activity, Briefcase, MapPin } from 'lucide-react';
 import { regions, detailedRegions, dongData } from '../data/sampleData';
 import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatistics, getItemDetail } from '../utils/viewingPassUtils';
 
@@ -438,36 +438,72 @@ const MyPage = () => {
               </div>
 
               <div className="space-y-8 divide-y divide-gray-100">
-                {/* 1. 기본 정보 */}
+                {/* 1. 기본 정보 (Web Graphic Style) */}
                 <div className="pt-4 first:pt-0">
-                  <h4 className="text-lg font-semibold text-gray-800 mb-4">기본 정보</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-                    <div>
-                      <span className="block text-sm text-gray-500 mb-1">회사명</span>
-                      <span className="text-gray-900 font-medium">{currentUser.companyName || currentUser.company_name}</span>
+                  <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <User className="w-6 h-6 mr-2 text-primary-600" />
+                    기본 정보
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 회사명 */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
+                      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Briefcase className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 font-medium mb-0.5">회사명</p>
+                        <p className="text-base font-bold text-gray-900">{currentUser.companyName || currentUser.company_name}</p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="block text-sm text-gray-500 mb-1">대표자명</span>
-                      <span className="text-gray-900 font-medium">{currentUser.representative}</span>
+                    {/* 대표자명 */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
+                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <User className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 font-medium mb-0.5">대표자명</p>
+                        <p className="text-base font-bold text-gray-900">{currentUser.representative}</p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="block text-sm text-gray-500 mb-1">대표 전화번호</span>
-                      <span className="text-gray-900 font-medium">{currentUser.phone}</span>
+                    {/* 대표 전화번호 */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
+                      <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Phone className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 font-medium mb-0.5">대표 전화번호</p>
+                        <p className="text-base font-bold text-gray-900">{currentUser.phone}</p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="block text-sm text-gray-500 mb-1">이메일</span>
-                      <span className="text-gray-900 font-medium">{currentUser.email}</span>
+                    {/* 이메일 */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center space-x-4 hover:shadow-md transition duration-200">
+                      <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Mail className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 font-medium mb-0.5">이메일</p>
+                        <p className="text-base font-bold text-gray-900 break-all">{currentUser.email}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. 주소 정보 */}
+                {/* 2. 주소 정보 (Web Graphic Style) */}
                 <div className="pt-6">
-                  <h4 className="text-lg font-semibold text-gray-800 mb-4">사업장 주소</h4>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-gray-900">
-                      {currentUser.location} {currentUser.city} {currentUser.dong} {currentUser.detail_address || currentUser.detailAddress}
-                    </p>
+                  <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <MapPin className="w-6 h-6 mr-2 text-primary-600" />
+                    사업장 주소
+                  </h4>
+                  <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200 flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-gray-50 text-gray-600 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
+                      <Map className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium mb-1">상세 주소</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {currentUser.location} {currentUser.city} {currentUser.dong} {currentUser.detail_address || currentUser.detailAddress}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
