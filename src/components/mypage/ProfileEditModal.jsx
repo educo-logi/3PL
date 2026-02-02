@@ -84,20 +84,28 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             // 사용자 유형에 따라 관련 없는 필드 제거
             if (isWarehouse) {
                 delete updateData.required_area;
+                delete updateData.required_area_unit; // Unit 필드 제거
                 delete updateData.monthly_volume;
                 delete updateData.desired_delivery;
             } else {
                 delete updateData.total_area;
+                delete updateData.total_area_unit; // Unit 필드 제거
                 delete updateData.warehouse_area;
+                delete updateData.warehouse_area_unit; // Unit 필드 제거
                 delete updateData.available_area;
+                delete updateData.available_area_unit; // Unit 필드 제거
                 delete updateData.experience;
                 delete updateData.storage_types;
                 delete updateData.delivery_companies;
                 delete updateData.solutions;
             }
 
-            // 단위(unit) 필드 등 UI용 state가 포함될 수 있으므로 필요한 경우 제거 (DB에 컬럼이 없다면)
-            // 여기서는 일단 명확히 에러가 나는 필드 위주로 처리
+            // 단위(unit) 필드 등 UI용 state가 포함될 수 있어 DB에 없는 경우 에러 발생 가능성 차단
+            // 만약 DB에 단위 컬럼이 아예 없다면 무조건 삭제해야 함. 
+            // 현재 에러가 'customers' 테이블에 'available_area_unit'이 없다는 것이므로, 
+            // 위에서 타입별로 소거하면 해결될 것으로 보임.
+            // 혹시 모르니 DB에 없을 확률이 높은 임시 필드들은 한 번 더 확인해서 삭제
+            // (여기서는 타입별 필터링으로 충분할 것으로 판단됨)
 
             // 비밀번호 처리: 입력이 있을 때만 해싱하여 업데이트
             if (updateData.password && updateData.password.trim() !== '') {
