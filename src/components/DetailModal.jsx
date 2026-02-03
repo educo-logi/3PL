@@ -1,3 +1,6 @@
+import React from 'react';
+import { X, Building2, Users, MapPin, Phone, Mail, Square, Package, Calendar } from 'lucide-react';
+
 // Reusable Info Item Component
 const InfoItem = ({ icon: Icon, label, value }) => (
   <div className="flex items-start p-3 rounded-lg hover:bg-gray-50 transition-colors">
@@ -124,7 +127,3 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
 };
 
 export default DetailModal;
-
-
-
-
