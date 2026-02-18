@@ -12,11 +12,10 @@ const Footer = () => {
               화주사와 물류 창고업체를 연결하는 물류대행 매칭 플랫폼입니다.
             </p>
             <div className="text-gray-300">
-              <p>대표: 홍길동</p>
-              <p>사업자등록번호: 123-45-67890</p>
-              <p>주소: 서울특별시 강남구 테헤란로 123</p>
-              <p>전화: 02-1234-5678</p>
-              <p>이메일: info@3plplatform.com</p>
+              <p>대표 : 김영철</p>
+              <p>사업자등록번호 : 201-81-27348</p>
+              <p>주소 : 서울시 동대문구 왕산로 25</p>
+              <p>전화 : 02-3668-0541</p>
             </div>
           </div>
 
@@ -52,6 +51,9 @@ const Footer = () => {
             <div className="text-gray-300 text-sm mt-4 md:mt-0">
               © 2024 3PL Platform. All rights reserved.
             </div>
+          </div>
+          <div className="mt-8 text-gray-500 text-xs text-center leading-relaxed">
+            3PL은 통신판매중개자로서 통신판매의 당사자가 아니며 개별 판매자가 제공하는 서비스에 대한 이행, 계약사항 등과 관련한 의무와 책임은 거래당사자에게 있습니다.
           </div>
         </div>
       </div>

@@ -1,10 +1,140 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building2, Users } from 'lucide-react';
+import { Search, Building2, Users, ArrowRight } from 'lucide-react';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
+import { supabase } from '../utils/supabaseClient';
+import { warehouseData, customerData } from '../data/sampleData';
+import WarehouseCard from '../components/WarehouseCard';
+import CustomerCard from '../components/CustomerCard';
+import { isPremiumActive, getItemPremiumApplications } from '../utils/premiumUtils';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [recentWarehouses, setRecentWarehouses] = useState([]);
+  const [recentCustomers, setRecentCustomers] = useState([]);
+
+  useEffect(() => {
+    const fetchRecentData = async () => {
+      // 1. Fetch Warehouses
+      try {
+        const { data: wData, error: wError } = await supabase
+          .from('warehouses')
+          .select('*')
+          .eq('status', 'approved');
+
+        let allWarehouses = [...warehouseData];
+        if (!wError && wData) {
+          const mappedWarehouses = wData.map(w => ({
+            ...w,
+            companyName: w.company_name,
+            businessNumber: w.business_number,
+            contactNumber: w.contact_number,
+            addressDetail: w.address_detail,
+            storageTypes: w.storage_types || (w.temperature ? w.temperature.split('/') : []),
+            deliveryCompanies: w.delivery_companies || (Array.isArray(w.delivery) ? w.delivery : []),
+            totalArea: w.total_area,
+            availableArea: w.available_area,
+            palletCount: w.pallet_count,
+            submittedAt: w.submitted_at,
+            approvedAt: w.approved_at,
+            name: w.company_name,
+            location: w.location,
+            delivery: w.delivery_companies || w.delivery || [],
+            solutions: w.solutions || (w.solution ? w.solution.split(',').map(s => s.trim()) : [])
+          }));
+          const existingIds = warehouseData.map(w => w.id);
+          const newWarehouses = mappedWarehouses.filter(w => !existingIds.includes(w.id));
+          allWarehouses = [...newWarehouses, ...warehouseData]; // Show Supabase data first (usually newer)
+        }
+
+        // Sort by date (newest first)
+        const sortedWarehouses = allWarehouses.sort((a, b) => {
+          const getSortDate = (item) => {
+            if (item.approvedAt) return new Date(item.approvedAt).getTime();
+            if (item.submittedAt) return new Date(item.submittedAt).getTime();
+            if (typeof item.id === 'string' && item.id.includes('-')) {
+              const timestamp = item.id.split('-').pop();
+              return parseInt(timestamp) || 0;
+            }
+            return typeof item.id === 'number' ? item.id : 0;
+          };
+          return getSortDate(b) - getSortDate(a);
+        });
+
+        // Add premium details
+        const warehousesWithPremium = sortedWarehouses.map(w => ({
+          ...w,
+          isPremium: isPremiumActive(w.id, 'warehouse') || w.isPremium
+        }));
+
+        setRecentWarehouses(warehousesWithPremium.slice(0, 4));
+
+      } catch (error) {
+        console.error('Error fetching warehouses:', error);
+        setRecentWarehouses(warehouseData.slice(0, 4));
+      }
+
+      // 2. Fetch Customers
+      try {
+        const { data: cData, error: cError } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('status', 'approved');
+
+        let allCustomers = [...customerData];
+        if (!cError && cData) {
+          const mappedCustomers = cData.map(c => ({
+            ...c,
+            companyName: c.company_name,
+            businessNumber: c.business_number,
+            contactNumber: c.contact_number,
+            addressDetail: c.address_detail,
+            requiredArea: c.required_area,
+            monthlyVolume: c.monthly_volume,
+            palletCount: c.pallet_count,
+            desiredDelivery: c.desired_delivery,
+            submittedAt: c.submitted_at,
+            approvedAt: c.approved_at,
+            name: c.company_name,
+            location: c.location,
+            products: c.products || [],
+            delivery: c.desired_delivery || []
+          }));
+          const existingIds = customerData.map(c => c.id);
+          const newCustomers = mappedCustomers.filter(c => !existingIds.includes(c.id));
+          allCustomers = [...newCustomers, ...customerData];
+        }
+
+        // Sort by date (newest first)
+        const sortedCustomers = allCustomers.sort((a, b) => {
+          const getSortDate = (item) => {
+            if (item.approvedAt) return new Date(item.approvedAt).getTime();
+            if (item.submittedAt) return new Date(item.submittedAt).getTime();
+            if (typeof item.id === 'string' && item.id.includes('-')) {
+              const timestamp = item.id.split('-').pop();
+              return parseInt(timestamp) || 0;
+            }
+            return typeof item.id === 'number' ? item.id : 0;
+          };
+          return getSortDate(b) - getSortDate(a);
+        });
+
+        // Add premium details
+        const customersWithPremium = sortedCustomers.map(c => ({
+          ...c,
+          isPremium: isPremiumActive(c.id, 'customer') || c.isPremium
+        }));
+
+        setRecentCustomers(customersWithPremium.slice(0, 4));
+
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+        setRecentCustomers(customerData.slice(0, 4));
+      }
+    };
+
+    fetchRecentData();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-64px)]">
@@ -51,40 +181,99 @@ const Home = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-white">
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-6 bg-gray-50 rounded-lg border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
-                <Search className="w-6 h-6 text-primary-600" />
+            {/* Feature 1 */}
+            <div className="group p-8 bg-gray-50 rounded-3xl border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="flex items-center mb-6">
+                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:bg-primary-600 transition-colors duration-300">
+                  <Search className="w-7 h-7 text-primary-600 group-hover:text-white transition-colors duration-300" />
+                </div>
+                <h3 className="ml-5 text-2xl font-bold text-gray-900">간편한 검색</h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">간편한 검색</h3>
-              <p className="text-gray-600">
-                지역, 평수, 취급 품목 등 다양한 조건으로
+              <p className="text-lg text-gray-600 leading-relaxed">
+                지역, 평수, 취급 품목 등 다양한 조건으로<br className="hidden xl:block" />
                 원하는 물류센터를 쉽고 빠르게 찾을 수 있습니다.
               </p>
             </div>
 
-            <div className="p-6 bg-gray-50 rounded-lg border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
-                <Building2 className="w-6 h-6 text-primary-600" />
+            {/* Feature 2 */}
+            <div className="group p-8 bg-gray-50 rounded-3xl border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="flex items-center mb-6">
+                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:bg-primary-600 transition-colors duration-300">
+                  <Building2 className="w-7 h-7 text-primary-600 group-hover:text-white transition-colors duration-300" />
+                </div>
+                <h3 className="ml-5 text-2xl font-bold text-gray-900">검증된 창고</h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">검증된 창고</h3>
-              <p className="text-gray-600">
-                엄격한 심사를 통과한 신뢰할 수 있는
+              <p className="text-lg text-gray-600 leading-relaxed">
+                엄격한 심사를 통과한 신뢰할 수 있는<br className="hidden xl:block" />
                 물류 파트너들이 여러분을 기다리고 있습니다.
               </p>
             </div>
 
-            <div className="p-6 bg-gray-50 rounded-lg border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-primary-600" />
+            {/* Feature 3 */}
+            <div className="group p-8 bg-gray-50 rounded-3xl border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="flex items-center mb-6">
+                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:bg-primary-600 transition-colors duration-300">
+                  <Users className="w-7 h-7 text-primary-600 group-hover:text-white transition-colors duration-300" />
+                </div>
+                <h3 className="ml-5 text-2xl font-bold text-gray-900">합리적 선택</h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">맞춤 견적</h3>
-              <p className="text-gray-600">
-                비즈니스 규모와 요구사항에 맞는
-                합리적인 견적을 받아보세요.
+              <p className="text-lg text-gray-600 leading-relaxed">
+                다양한 파트너의 조건을 비교해보고<br className="hidden xl:block" />
+                우리 비즈니스에 꼭 맞는 곳을 찾으세요.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Recent Registrations Section */}
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+
+          {/* Recent Warehouses */}
+          <div className="mb-20">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                <Building2 className="w-6 h-6 mr-3 text-primary-600" />
+                최근 등록 창고
+              </h3>
+              <button
+                onClick={() => navigate('/warehouse-search')}
+                className="flex items-center text-primary-600 font-medium hover:text-primary-700 transition-colors"
+              >
+                더보기 <ArrowRight className="w-4 h-4 ml-1" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {recentWarehouses.map(warehouse => (
+                <WarehouseCard key={warehouse.id} warehouse={warehouse} />
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Customers */}
+          <div>
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                <Users className="w-6 h-6 mr-3 text-primary-600" />
+                최근 등록 고객사
+              </h3>
+              <button
+                onClick={() => navigate('/customer-search')}
+                className="flex items-center text-primary-600 font-medium hover:text-primary-700 transition-colors"
+              >
+                더보기 <ArrowRight className="w-4 h-4 ml-1" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {recentCustomers.map(customer => (
+                <CustomerCard key={customer.id} customer={customer} />
+              ))}
             </div>
           </div>
         </div>

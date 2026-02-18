@@ -100,7 +100,8 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                 'total_area', 'warehouse_area', 'available_area', 'pallet_count',
                 'storage_types', 'products', 'delivery_companies', 'solutions',
                 'land_area', 'other_delivery_company', 'other_solution',
-                'warehouse_count', 'total_area_unit', 'warehouse_area_unit', 'available_area_unit' // Unit 및 개수 추가
+                'warehouse_count', 'total_area_unit', 'warehouse_area_unit', 'available_area_unit', // Unit 및 개수 추가
+                'experience' // 경력(업력) 추가
             ];
 
             // 3. 고객사 전용 허용 필드
@@ -136,19 +137,35 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                 delete updateData.password;
             }
 
+            // '기타' 옵션 체크 해제 시 관련 텍스트 필드 초기화
+            if (updateData.delivery_companies && !updateData.delivery_companies.includes('기타')) {
+                updateData.other_delivery_company = null;
+            }
+            if (updateData.solutions && !updateData.solutions.includes('기타')) {
+                updateData.other_solution = null;
+            }
+
             // 숫자형 필드 변환
-            const numFields = ['total_area', 'warehouse_area', 'available_area', 'pallet_count', 'experience', 'required_area', 'monthly_volume'];
+            const numFields = ['total_area', 'warehouse_area', 'available_area', 'pallet_count', 'experience', 'required_area', 'monthly_volume', 'warehouse_count'];
             numFields.forEach(field => {
                 if (updateData[field]) updateData[field] = parseFloat(updateData[field]);
             });
 
+            console.log('Sending Update Data:', updateData); // 디버깅용 로그
+
             // Supabase 업데이트 (owner_id가 아닌 id로)
-            const { error } = await supabase
+            // count: 'exact' 옵션을 사용하여 실제로 업데이트된 행의 수를 확인
+            const { error, count } = await supabase
                 .from(table)
-                .update(updateData)
+                .update(updateData, { count: 'exact' })
                 .eq('id', currentUser.id);
 
             if (error) throw error;
+
+            // 업데이트된 행이 0개라면 (잘못된 테이블이거나 ID 불일치)
+            if (count === 0) {
+                throw new Error('업데이트된 정보가 없습니다. 사용자 유형(table)이나 ID를 확인해주세요.');
+            }
 
             // alert('정보가 성공적으로 수정되었습니다.'); // 부모 컴포넌트에서 처리
             onUpdate(); // 부모 컴포넌트에 알림 (새로고침)
@@ -303,8 +320,14 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                                             <input type="number" name="pallet_count" value={formData.pallet_count || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" placeholder="PLT" />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-gray-500 mb-1 block">창고 개수</label>
                                             <input type="number" name="warehouse_count" value={formData.warehouse_count || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" placeholder="개" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-500 mb-1 block">업력 (경력)</label>
+                                            <div className="relative">
+                                                <input type="number" name="experience" value={formData.experience || ''} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" placeholder="년" />
+                                                <span className="absolute right-3 top-2 text-gray-400 text-sm">년</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
