@@ -22,6 +22,10 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import RefundPolicy from './pages/RefundPolicy';
 import DesignMockup from './pages/DesignMockup';
+import FAQ from './pages/FAQ';
+import Contact from './pages/Contact';
+import Support from './pages/Support';
+import PageTracker from './components/PageTracker';
 
 function App() {
   useEffect(() => {
@@ -37,6 +41,7 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
+      <PageTracker />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -58,6 +63,9 @@ function App() {
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/refund" element={<RefundPolicy />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/support" element={<Support />} />
           <Route path="/design-mockup" element={<DesignMockup />} />
           <Route path="*" element={<TermsOfService />} />
         </Routes>

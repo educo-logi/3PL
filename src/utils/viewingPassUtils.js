@@ -408,6 +408,19 @@ export const purchaseViewingPass = async (packageType = 'basic') => {
       result = data;
     }
 
+    // [New] Payment History 저장
+    try {
+      await supabase.from('payment_history').insert({
+        user_id: user.id,
+        amount: selectedPackage.price,
+        package_type: packageType,
+        status: 'success'
+      });
+    } catch (historyError) {
+      console.error('Failed to save payment history:', historyError);
+      // 결제는 성공했으므로 메인 플로우 중단하지 않음
+    }
+
     console.log('Purchase successful:', result);
     return { success: true, data: result[0] };
 

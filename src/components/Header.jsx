@@ -11,6 +11,7 @@ const Header = () => {
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
 
@@ -18,7 +19,9 @@ const Header = () => {
   useEffect(() => {
     const checkUserStatus = () => {
       const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      const admin = localStorage.getItem('adminAuth');
       setCurrentUser(user);
+      setIsAdmin(!!admin);
     };
 
     // 초기 로드 시 확인
@@ -153,9 +156,34 @@ const Header = () => {
             })}
           </nav>
 
-          {/* 로그인/회원가입 또는 마이페이지 버튼 */}
+
+          {/* Admin Indicator & Logout */}
+          {isAdmin && (
+            <div className="hidden md:flex items-center space-x-3">
+              <div className="bg-red-600 text-white px-3 py-1 rounded-md text-sm font-bold shadow-sm flex items-center">
+                <UserCheck className="w-4 h-4 mr-1" />
+                관리자 모드
+              </div>
+              <button
+                onClick={() => navigate('/admin/dashboard')}
+                className="group flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+              >
+                <Building2 className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                대시보드
+              </button>
+              <button
+                onClick={handleLogout}
+                className="group flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
+              >
+                <LogOut className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                관리자 로그아웃
+              </button>
+            </div>
+          )}
+
+          {/* 로그인/회원가입 또는 마이페이지 버튼 (일반 사용자용) */}
           <div className="hidden md:flex items-center space-x-3">
-            {currentUser ? (
+            {!isAdmin && (currentUser ? (
               <>
                 <button
                   onClick={() => setIsNotificationCenterOpen(true)}
@@ -201,7 +229,7 @@ const Header = () => {
                   회원가입
                 </button>
               </>
-            )}
+            ))}
           </div>
 
           {/* 모바일 메뉴 버튼 */}
