@@ -34,7 +34,7 @@ const PrivacyPolicy = () => {
                                 제1조 (목적)
                             </h2>
                             <p className="text-gray-600 leading-relaxed">
-                                3PL 매칭 플랫폼(이하 "회사"라 함)은 정보통신망 이용촉진 및 정보보호 등에 관한 법률, 개인정보보호법 등 관련 법령을 준수하며, 회원의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보처리방침을 수립·공개합니다.
+                                (주)동화세상에듀코(이하 "회사"라 함)는 정보통신망 이용촉진 및 정보보호 등에 관한 법률, 개인정보보호법 등 관련 법령을 준수하며, 회원의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보처리방침을 수립·공개합니다.
                             </p>
                         </section>
 
@@ -44,7 +44,7 @@ const PrivacyPolicy = () => {
                                 제2조 (수집하는 개인정보의 항목)
                             </h2>
                             <p className="text-gray-600 leading-relaxed mb-2">
-                                회사는 회원가입, 상담, 서비스 신청 등을 위해 아래와 같은 개인정보를 수집하고 있습니다.
+                                회사는 회원가입, 상담, 서비스 신청 및 결제 등을 위해 아래와 같은 개인정보를 수집하고 있습니다.
                             </p>
                             <ul className="list-disc list-inside text-gray-600 leading-relaxed space-y-2 ml-4">
                                 <li><strong>창고업체 회원:</strong> 회사명, 대표자명, 사업자등록번호, 주소, 연락처, 이메일, 창고 정보 등</li>
@@ -71,13 +71,8 @@ const PrivacyPolicy = () => {
                             </p>
                         </section>
 
-                        <div className="border-t pt-8 mt-8">
-                            <div className="flex items-start text-sm text-gray-500">
-                                <FileText className="w-5 h-5 mr-2 flex-shrink-0" />
-                                <p>
-                                    본 방침은 예시이며, 실제 서비스 운영 시에는 반드시 수집하는 항목과 목적에 맞춰 수정하여 사용해야 합니다.
-                                </p>
-                            </div>
+                        <div className="border-t pt-8 mt-8 text-center text-sm text-gray-400">
+                            <p>본 방침은 (주)동화세상에듀코의 서비스 운영 정책을 따릅니다.</p>
                         </div>
                     </div>
                 </div>

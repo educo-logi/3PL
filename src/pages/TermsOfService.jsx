@@ -34,7 +34,7 @@ const TermsOfService = () => {
                                 제1조 (목적)
                             </h2>
                             <p className="text-gray-600 leading-relaxed">
-                                본 약관은 3PL 매칭 플랫폼(이하 "회사"라 함)이 제공하는 물류 매칭 서비스 및 관련 제반 서비스(이하 "서비스"라 함)의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
+                                본 약관은 (주)동화세상에듀코(이하 "회사"라 함)가 제공하는 물류 매칭 서비스 및 관련 제반 서비스(이하 "서비스"라 함)의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
                             </p>
                         </section>
 
@@ -99,13 +99,8 @@ const TermsOfService = () => {
                             </div>
                         </section>
 
-                        <div className="border-t pt-8 mt-8">
-                            <div className="flex items-start text-sm text-gray-500">
-                                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 text-red-500" />
-                                <p>
-                                    본 약관은 표준 약관의 예시이며, 실제 운영 시에는 반드시 법률 전문가의 검토를 거쳐 사업의 특성에 맞게 수정 및 보완하여 사용하여야 합니다. "회사"는 본 예시 약관의 사용으로 인해 발생하는 법적 문제에 대해 책임지지 않습니다.
-                                </p>
-                            </div>
+                        <div className="border-t pt-8 mt-8 text-center text-sm text-gray-400">
+                            <p>© (주)동화세상에듀코 All rights reserved.</p>
                         </div>
                     </div>
                 </div>
