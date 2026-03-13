@@ -383,7 +383,14 @@ const AdminDashboard = () => {
                   data={pendingWarehouseList}
                   renderRow={(w) => (
                     <>
-                      <td className="px-6 py-4">{w.companyName}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleViewDetails(w, 'warehouse')}
+                          className="font-medium text-primary-600 hover:text-primary-800 hover:underline text-left"
+                        >
+                          {w.companyName}
+                        </button>
+                      </td>
                       <td className="px-6 py-4">{w.phone}</td>
                       <td className="px-6 py-4">{w.location}</td>
                       <td className="px-6 py-4 flex gap-2">
@@ -404,7 +411,14 @@ const AdminDashboard = () => {
                   data={pendingCustomerList}
                   renderRow={(c) => (
                     <>
-                      <td className="px-6 py-4">{c.companyName}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleViewDetails(c, 'customer')}
+                          className="font-medium text-primary-600 hover:text-primary-800 hover:underline text-left"
+                        >
+                          {c.companyName}
+                        </button>
+                      </td>
                       <td className="px-6 py-4">{c.phone}</td>
                       <td className="px-6 py-4">{c.requiredArea}</td>
                       <td className="px-6 py-4 flex gap-2">
