@@ -75,8 +75,7 @@ const PaymentPage = () => {
         return;
       }
 
-      const tossPayments = await loadTossPayments(paymentConfig.clientKey);
-      
+      const tossPayments = await loadTossPayments('test_ck_ZLKGPx4M3MGk5NPWgyaRrBaWypv1');
       const orderId = `order_${new Date().getTime()}_${currentUser.id}`;
       const orderName = isExtending ? '열람권 연장' : packages[selectedPackage].name;
       
