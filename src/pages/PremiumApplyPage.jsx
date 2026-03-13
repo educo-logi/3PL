@@ -180,7 +180,10 @@ const PremiumApplyPage = () => {
   const handlePayment = async () => {
     if (!currentUser) return;
 
-    if (isPending) {
+    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const latestUser = allUsers.find(u => u.id === currentUser.id) || currentUser;
+
+    if (latestUser.status === 'pending' || !latestUser.status) {
       alert('결제를 진행하려면 먼저 관리자의 승인이 필요합니다.\n관리자 승인 후 다시 시도해주세요.');
       return;
     }
