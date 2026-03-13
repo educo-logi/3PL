@@ -187,8 +187,6 @@ const PremiumApplyPage = () => {
 
     setIsProcessing(true);
 
-    setIsProcessing(true);
-
     try {
       const tossPayments = await loadTossPayments(paymentConfig.clientKey);
       
