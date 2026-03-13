@@ -170,29 +170,29 @@ const WarehouseSearch = () => {
     return typeof item.id === 'number' ? item.id : 0;
   };
 
-  // 프리미엄 상태 업데이트
-  const warehousesWithPremium = filteredWarehouses.map(w => ({
-    ...w,
-    isPremium: isPremiumActive(w.id, 'warehouse') || w.isPremium
-  }));
-
-  // 프리미엄 창고 (활성 프리미엄만, 최근 신청 순)
-  const premiumWarehouses = warehousesWithPremium
-    .filter(w => w.isPremium && isPremiumActive(w.id, 'warehouse'))
+  // 프리미엄 상태를 비동기로 미리 한 번씩 모두 가져와 확정 짓는 로직 (우선 기존 로컬 스토리지 또는 DB의 isPremium 뷰 필드 의존)
+  // 프리미엄 창고 (활성 프리미엄만, 최근 신청 순이 아닌 최초 결제 시간 우선 오름차순)
+  const premiumWarehouses = filteredWarehouses
+    .filter(w => w.isPremium || w.is_premium)
     .sort((a, b) => {
+      // 1순위: 프리미엄 결제일자 (최초 결제일자 오름차순 = 먼저 신청한 사람이 왼쪽(최상단))
       const aApps = getItemPremiumApplications(a.id, 'warehouse');
       const bApps = getItemPremiumApplications(b.id, 'warehouse');
-      if (aApps.length > 0 && bApps.length > 0) {
-        return new Date(bApps[0].createdAt) - new Date(aApps[0].createdAt);
-      }
-      if (aApps.length > 0) return -1;
-      if (bApps.length > 0) return 1;
+
+      const aDate = aApps.length > 0 ? new Date(aApps[0].createdAt).getTime() : 0;
+      const bDate = bApps.length > 0 ? new Date(bApps[0].createdAt).getTime() : 0;
+
+      if (aDate && bDate) return aDate - bDate; // 먼저 신청한 사람 우선
+      if (aDate) return -1;
+      if (bDate) return 1;
+
+      // 2순위: 가입/승인일자 최신순
       return getSortDate(b) - getSortDate(a);
     });
 
   // 일반 창고
-  const regularWarehouses = warehousesWithPremium
-    .filter(w => !w.isPremium || !isPremiumActive(w.id, 'warehouse'))
+  const regularWarehouses = filteredWarehouses
+    .filter(w => !(w.isPremium || w.is_premium))
     .sort((a, b) => getSortDate(b) - getSortDate(a));
 
   // 페이지네이션
@@ -258,7 +258,6 @@ const WarehouseSearch = () => {
             {premiumWarehouses.length > 0 && (
               <div className="mb-12">
                 <div className="flex items-center mb-6">
-                  <StarIcon className="w-6 h-6 text-yellow-500 mr-2" />
                   <h2 className="text-2xl font-bold text-gray-900">프리미엄 창고</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

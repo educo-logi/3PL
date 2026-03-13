@@ -139,29 +139,35 @@ const CustomerSearch = () => {
     return typeof item.id === 'number' ? item.id : 0;
   };
 
-  // 프리미엄 상태 업데이트
-  const customersWithPremium = filteredCustomers.map(c => ({
-    ...c,
-    isPremium: isPremiumActive(c.id, 'customer') || c.isPremium
-  }));
-
-  // 프리미엄 고객사 (활성 프리미엄만, 최근 신청 순)
-  const premiumCustomers = customersWithPremium
-    .filter(c => c.isPremium && isPremiumActive(c.id, 'customer'))
+  // 프리미엄 상태를 비동기로 미리 한 번씩 모두 가져와 확정 짓는 로직 (우선 기존 로컬 스토리지 또는 DB의 isPremium 뷰 필드 의존)
+  // 프리미엄 고객사 (활성 프리미엄만, 최근 신청 순이 아닌 최초 결제 시간 우선 오름차순)
+  const premiumCustomers = filteredCustomers
+    .filter(c => {
+      // Supabase 데이터는 c.is_premium(boolean)을 확인
+      // sampleData 등 로컬 데이터는 c.isPremium을 확인하되, 명시적으로 true인 것만 (전체가 true로 오염되는 것 방지)
+      const isActivePremium = c.is_premium === true || (c.isPremium === true && c.id && c.id.toString().includes('premium_test')); // 샘플데이터 강제 프리미엄 방지
+      return isActivePremium;
+    })
     .sort((a, b) => {
       const aApps = getItemPremiumApplications(a.id, 'customer');
       const bApps = getItemPremiumApplications(b.id, 'customer');
-      if (aApps.length > 0 && bApps.length > 0) {
-        return new Date(bApps[0].createdAt) - new Date(aApps[0].createdAt);
-      }
-      if (aApps.length > 0) return -1;
-      if (bApps.length > 0) return 1;
+
+      const aDate = aApps.length > 0 ? new Date(aApps[0].createdAt).getTime() : 0;
+      const bDate = bApps.length > 0 ? new Date(bApps[0].createdAt).getTime() : 0;
+
+      if (aDate && bDate) return aDate - bDate; // 먼저 신청한 사람 우선
+      if (aDate) return -1;
+      if (bDate) return 1;
+
       return getSortDate(b) - getSortDate(a);
     });
 
   // 일반 고객사
-  const regularCustomers = customersWithPremium
-    .filter(c => !c.isPremium || !isPremiumActive(c.id, 'customer'))
+  const regularCustomers = filteredCustomers
+    .filter(c => {
+      const isActivePremium = c.is_premium === true || (c.isPremium === true && c.id && c.id.toString().includes('premium_test'));
+      return !isActivePremium;
+    })
     .sort((a, b) => getSortDate(b) - getSortDate(a));
 
   // 페이지네이션 (일반 고객사만)
@@ -226,7 +232,6 @@ const CustomerSearch = () => {
             {premiumCustomers.length > 0 && (
               <div className="mb-12">
                 <div className="flex items-center mb-6">
-                  <StarIcon className="w-6 h-6 text-yellow-500 mr-2" />
                   <h2 className="text-2xl font-bold text-gray-900">프리미엄 고객사</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -234,6 +239,7 @@ const CustomerSearch = () => {
                     <CustomerCard
                       key={customer.id}
                       customer={customer}
+                      isPremium={true}
                     />
                   ))}
                 </div>
@@ -254,6 +260,7 @@ const CustomerSearch = () => {
                       <CustomerCard
                         key={customer.id}
                         customer={customer}
+                        isPremium={false}
                       />
                     ))}
                   </div>

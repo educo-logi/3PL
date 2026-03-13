@@ -271,7 +271,9 @@ const MyPage = () => {
                       const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
                       const latestUser = allUsers.find(u => u.id === user.id) || user;
 
-                      if (latestUser.userType === 'warehouse') {
+                      const userType = latestUser.userType || latestUser.user_type;
+
+                      if (userType === 'warehouse') {
                         const approvedWarehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
                         const pendingWarehouses = JSON.parse(localStorage.getItem('pendingWarehouses') || '[]');
                         const warehouseData = JSON.parse(localStorage.getItem('warehouseData') || '[]');
@@ -283,7 +285,7 @@ const MyPage = () => {
                         } else {
                           alert('업체 정보를 찾을 수 없습니다.');
                         }
-                      } else if (latestUser.userType === 'customer') {
+                      } else if (userType === 'customer') {
                         const approvedCustomers = JSON.parse(localStorage.getItem('approvedCustomers') || '[]');
                         const pendingCustomers = JSON.parse(localStorage.getItem('pendingCustomers') || '[]');
                         const customerData = JSON.parse(localStorage.getItem('customerData') || '[]');
@@ -296,13 +298,21 @@ const MyPage = () => {
                           alert('업체 정보를 찾을 수 없습니다.');
                         }
                       } else {
-                        alert('업체 타입을 확인할 수 없습니다.');
+                        alert('업체 타입을 확인할 수 없습니다. (데이터: ' + JSON.stringify({ userType: latestUser.userType, user_type: latestUser.user_type, latestUser }) + ')');
                       }
                     }}
-                    className="w-full bg-secondary-500 text-white py-2 px-4 rounded-lg hover:bg-secondary-600 transition-colors flex items-center justify-center mb-4"
+                    className="w-full bg-secondary-500 text-white py-2 px-4 rounded-lg hover:bg-secondary-600 transition-colors flex items-center justify-center mb-3"
                   >
                     <Star className="w-4 h-4 mr-2" />
                     프리미엄 신청하기
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/payment-history')}
+                    className="w-full bg-white border border-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center font-medium shadow-sm mb-4"
+                  >
+                    <CreditCard className="w-4 h-4 mr-2 text-gray-400" />
+                    결제 내역 조회
                   </button>
 
                   {/* 안내사항 */}
@@ -390,8 +400,6 @@ const MyPage = () => {
                   <p className="text-gray-400 text-sm text-center py-4">사용 내역이 없습니다.</p>
                 )}
               </div>
-
-
             </div>
           </div>
           {/* End Left Column Container */}

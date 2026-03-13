@@ -14,7 +14,10 @@ import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
 import MyPage from './pages/MyPage';
 import PaymentPage from './pages/PaymentPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import PaymentFailPage from './pages/PaymentFailPage';
 import PremiumApplyPage from './pages/PremiumApplyPage';
+import PaymentHistoryPage from './pages/PaymentHistoryPage';
 import ComparePage from './pages/ComparePage';
 import FavoritesPage from './pages/FavoritesPage';
 import RecentViewedPage from './pages/RecentViewedPage';
@@ -54,6 +57,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/payment/fail" element={<PaymentFailPage />} />
+          <Route path="/payment-history" element={<PaymentHistoryPage />} />
           <Route path="/premium-apply" element={<PremiumApplyPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/favorites" element={<FavoritesPage />} />

@@ -139,7 +139,7 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
       <div className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${isPremium ? 'border-2 border-secondary-500' : ''
         }`}>
         {isPremium && (
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-start mb-4">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -154,10 +154,6 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
             >
               프리미엄
             </button>
-            <div className="flex items-center text-yellow-500">
-              <StarIcon className="w-4 h-4 fill-current" />
-              <span className="ml-1 text-sm font-semibold">광고</span>
-            </div>
           </div>
         )}
 

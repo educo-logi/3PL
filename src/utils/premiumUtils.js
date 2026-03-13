@@ -1,6 +1,4 @@
-/**
- * 프리미엄 신청 관리 유틸리티 함수
- */
+import { supabase } from './supabaseClient';
 
 const PREMIUM_APPLICATIONS_KEY = 'premiumApplications';
 const PREMIUM_ITEMS_KEY = 'premiumItems';
@@ -9,21 +7,78 @@ const PREMIUM_ITEMS_KEY = 'premiumItems';
  * 프리미엄 신청 패키지 정보
  */
 export const premiumPackages = {
-  '1month': { months: 1, price: 30000, name: '1개월 프리미엄', monthlyPrice: 30000 },
-  '2month': { months: 2, price: 50000, name: '2개월 프리미엄', monthlyPrice: 25000, discount: '17% 할인' },
-  '3month': { months: 3, price: 80000, name: '3개월 프리미엄', monthlyPrice: 26667, discount: '11% 할인' }
+  '5day': { days: 5, price: 50000, name: '5일 프리미엄' },
+  '10day': { days: 10, price: 80000, name: '10일 프리미엄', discount: '약 20% 할인' },
+  '15day': { days: 15, price: 130000, name: '15일 프리미엄', discount: '약 13% 할인' }
 };
 
 /**
- * 프리미엄 신청 생성
+ * 프리미엄 신청 생성 (Supabase 연동)
  */
-export const createPremiumApplication = (userId, userType, itemId, itemType, packageType) => {
+export const createPremiumApplication = async (userId, userType, itemId, itemType, packageType) => {
+  // 날짜 계산: 결제일은 0일, 다음날 00시부터 1일 계산
+  const now = new Date();
+
+  // 시작일: 결제 익일 00:00:00
+  const startDate = new Date(now);
+  startDate.setDate(startDate.getDate() + 1);
+  startDate.setHours(0, 0, 0, 0);
+
+  // 종료일: 시작일 + 패키지일수 (수식 상 startDate + days)
+  const days = premiumPackages[packageType].days;
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + days);
+
+  const amount = premiumPackages[packageType].price;
+
+  try {
+    // 1. premium_applications 테이블에 인서트 시도
+    const { data: appData, error: appError } = await supabase
+      .from('premium_applications')
+      .insert({
+        user_id: userId,
+        user_type: userType,
+        item_id: itemId,
+        item_type: itemType,
+        package_type: packageType,
+        amount: amount,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        status: 'active'
+      })
+      .select()
+      .single();
+
+    if (appError) {
+      // 테이블이 없을 경우를 대비한 로컬 스토리지 Fallback
+      console.warn('Supabase insert failed, falling back to localStorage:', appError);
+      return createPremiumApplicationLocal(userId, userType, itemId, itemType, packageType, startDate, endDate, amount);
+    }
+
+    // 2. 창고/고객사 테이블에 is_premium 연동 업데이트
+    await updateItemPremiumStatusDb(itemId, itemType, true, endDate);
+
+    // 3. 결제 내역 관리자용 payment_history 인서트
+    await supabase.from('payment_history').insert({
+      user_id: userId,
+      amount: amount,
+      package_type: premiumPackages[packageType].name,
+      status: 'success'
+    });
+
+    return { success: true, data: appData };
+  } catch (error) {
+    console.error('Error in createPremiumApplication:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+/**
+ * 로컬 스토리지 Fallback (createPremiumApplication)
+ */
+const createPremiumApplicationLocal = (userId, userType, itemId, itemType, packageType, startDate, endDate, amount) => {
   const applications = JSON.parse(localStorage.getItem(PREMIUM_APPLICATIONS_KEY) || '[]');
-  
-  const startDate = new Date();
-  const endDate = new Date();
-  endDate.setMonth(endDate.getMonth() + premiumPackages[packageType].months);
-  
+
   const application = {
     id: `premium-${userId}-${Date.now()}`,
     userId,
@@ -31,100 +86,118 @@ export const createPremiumApplication = (userId, userType, itemId, itemType, pac
     itemId,
     itemType,
     packageType,
-    amount: premiumPackages[packageType].price,
+    amount,
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
     status: 'active',
     createdAt: new Date().toISOString(),
     paymentDate: new Date().toISOString()
   };
-  
+
   applications.push(application);
   localStorage.setItem(PREMIUM_APPLICATIONS_KEY, JSON.stringify(applications));
-  
-  // 프리미엄 아이템 업데이트
-  updatePremiumItem(itemId, itemType, endDate.toISOString());
-  
-  return application;
+
+  updateItemPremiumStatusLocal(itemId, itemType, true, endDate);
+  return { success: true, data: application };
 };
 
 /**
- * 프리미엄 아이템 업데이트
+ * DB에 프리미엄 상태 반영
  */
-const updatePremiumItem = (itemId, itemType, endDate) => {
+export const updateItemPremiumStatusDb = async (itemId, itemType, isPremium, endDate) => {
+  try {
+    const table = itemType === 'warehouse' ? 'warehouses' : 'customers';
+
+    await supabase.from(table).update({
+      is_premium: isPremium,
+      premium_end_date: endDate ? new Date(endDate).toISOString() : null
+    }).eq('id', itemId);
+
+    // Fallback: 로컬 스토리지도 같이 업데이트
+    updateItemPremiumStatusLocal(itemId, itemType, isPremium, endDate);
+  } catch (error) {
+    console.error('Error updating premium status DB:', error);
+    updateItemPremiumStatusLocal(itemId, itemType, isPremium, endDate);
+  }
+};
+
+/**
+ * 로컬 스토리지에 프리미엄 상태 반영 (DB 업데이트 실패 등 백업용)
+ */
+export const updateItemPremiumStatusLocal = (itemId, itemType, isPremium, endDate) => {
   const premiumItems = JSON.parse(localStorage.getItem(PREMIUM_ITEMS_KEY) || '[]');
-  
+
   // 기존 항목 찾기
   const existingIndex = premiumItems.findIndex(
     item => item.itemId === itemId && item.itemType === itemType
   );
-  
+
   const premiumItem = {
     itemId,
     itemType,
-    endDate,
-    isPremium: true,
+    endDate: endDate ? new Date(endDate).toISOString() : null,
+    isPremium,
     updatedAt: new Date().toISOString()
   };
-  
+
   if (existingIndex >= 0) {
-    // 기존 항목 업데이트 (만료일 연장)
-    premiumItems[existingIndex] = premiumItem;
+    if (isPremium) {
+      premiumItems[existingIndex] = premiumItem;
+    } else {
+      premiumItems.splice(existingIndex, 1);
+    }
   } else {
-    // 새 항목 추가
-    premiumItems.push(premiumItem);
+    if (isPremium) {
+      premiumItems.push(premiumItem);
+    }
   }
-  
+
   localStorage.setItem(PREMIUM_ITEMS_KEY, JSON.stringify(premiumItems));
-  
-  // 실제 데이터도 업데이트
-  updateItemPremiumStatus(itemId, itemType, true, endDate);
 };
 
 /**
- * 실제 아이템 데이터의 프리미엄 상태 업데이트
+ * 프리미엄 활성화 여부 확인 (클라이언트 측 단일 아이템 체크용)
+ * (Supabase 연동 시점에 이미 테이블에 is_premium 값이 있으므로, 이 함수는 주로 로컬/예외 상황 체크나 
+ * 만료일 지난 아이템의 상태를 해제 처리하기 위한 용도로 활용됩니다)
  */
-const updateItemPremiumStatus = (itemId, itemType, isPremium, endDate) => {
-  if (itemType === 'warehouse') {
-    const warehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
-    const warehouse = warehouses.find(w => w.id === itemId);
-    if (warehouse) {
-      warehouse.isPremium = isPremium;
-      warehouse.premiumEndDate = endDate;
-      localStorage.setItem('approvedWarehouses', JSON.stringify(warehouses));
+export const isPremiumActive = async (itemId, itemType, forceCheckDb = false) => {
+  const now = new Date();
+
+  try {
+    if (forceCheckDb) {
+      const table = itemType === 'warehouse' ? 'warehouses' : 'customers';
+      const { data, error } = await supabase.from(table).select('is_premium, premium_end_date').eq('id', itemId).single();
+
+      if (!error && data) {
+        if (!data.is_premium) return false;
+        if (data.premium_end_date && new Date(data.premium_end_date) < now) {
+          // 만료되었으면 DB 업데이트
+          await updateItemPremiumStatusDb(itemId, itemType, false, null);
+          return false;
+        }
+        return true;
+      }
     }
-  } else if (itemType === 'customer') {
-    const customers = JSON.parse(localStorage.getItem('approvedCustomers') || '[]');
-    const customer = customers.find(c => c.id === itemId);
-    if (customer) {
-      customer.isPremium = isPremium;
-      customer.premiumEndDate = endDate;
-      localStorage.setItem('approvedCustomers', JSON.stringify(customers));
-    }
+  } catch (err) {
+    console.warn('isPremiumActive DB check failed:', err);
   }
-};
 
-/**
- * 프리미엄 상태 확인
- */
-export const isPremiumActive = (itemId, itemType) => {
+  // Fallback 로컬 검사 로직
   const premiumItems = JSON.parse(localStorage.getItem(PREMIUM_ITEMS_KEY) || '[]');
   const premiumItem = premiumItems.find(
     item => item.itemId === itemId && item.itemType === itemType
   );
-  
+
   if (!premiumItem) return false;
-  
-  // 만료일 확인
+
+  // 만료일 확인 (자정 기준 등이 이미 적용되어 들어감)
   const endDate = new Date(premiumItem.endDate);
-  const now = new Date();
-  
   if (endDate < now) {
     // 만료된 경우 상태 업데이트
-    updateItemPremiumStatus(itemId, itemType, false, null);
+    updateItemPremiumStatusLocal(itemId, itemType, false, null);
     return false;
   }
-  
+
   return true;
 };
 
@@ -141,9 +214,9 @@ export const getUserPremiumApplications = (userId) => {
  */
 export const isPremiumOwner = (userId, itemId, itemType) => {
   const applications = JSON.parse(localStorage.getItem(PREMIUM_APPLICATIONS_KEY) || '[]');
-  return applications.some(app => 
-    app.userId === userId && 
-    app.itemId === itemId && 
+  return applications.some(app =>
+    app.userId === userId &&
+    app.itemId === itemId &&
     app.itemType === itemType &&
     app.status === 'active'
   );
@@ -165,11 +238,11 @@ export const getItemPremiumApplications = (itemId, itemType) => {
 export const checkAndUpdateExpiredPremiums = () => {
   const premiumItems = JSON.parse(localStorage.getItem(PREMIUM_ITEMS_KEY) || '[]');
   const now = new Date();
-  
+
   premiumItems.forEach(item => {
     const endDate = new Date(item.endDate);
     if (endDate < now && item.isPremium) {
-      updateItemPremiumStatus(item.itemId, item.itemType, false, null);
+      updateItemPremiumStatusDb(item.itemId, item.itemType, false, null);
     }
   });
 };
@@ -179,27 +252,27 @@ export const checkAndUpdateExpiredPremiums = () => {
  */
 export const sortPremiumItems = (items) => {
   const premiumItems = JSON.parse(localStorage.getItem(PREMIUM_ITEMS_KEY) || '[]');
-  
+
   return items.sort((a, b) => {
     const aIsPremium = isPremiumActive(a.id, 'warehouse') || isPremiumActive(a.id, 'customer');
     const bIsPremium = isPremiumActive(b.id, 'warehouse') || isPremiumActive(b.id, 'customer');
-    
+
     // 프리미엄 우선
     if (aIsPremium && !bIsPremium) return -1;
     if (!aIsPremium && bIsPremium) return 1;
-    
+
     // 둘 다 프리미엄이면 최근 신청 순
     if (aIsPremium && bIsPremium) {
       const aApp = getItemPremiumApplications(a.id, a.userType || 'warehouse')[0];
       const bApp = getItemPremiumApplications(b.id, b.userType || 'warehouse')[0];
-      
+
       if (aApp && bApp) {
         return new Date(bApp.createdAt) - new Date(aApp.createdAt);
       }
       if (aApp) return -1;
       if (bApp) return 1;
     }
-    
+
     return 0;
   });
 };

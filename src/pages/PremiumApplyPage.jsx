@@ -4,6 +4,8 @@ import { CreditCard, CheckCircle, AlertCircle, Star } from 'lucide-react';
 import { paymentConfig } from '../config/paymentConfig';
 import { premiumPackages, createPremiumApplication } from '../utils/premiumUtils';
 import { createNotification } from '../utils/notificationUtils';
+import { supabase } from '../utils/supabaseClient';
+import { loadTossPayments } from '@tosspayments/payment-sdk';
 
 const PremiumApplyPage = () => {
   const navigate = useNavigate();
@@ -14,8 +16,9 @@ const PremiumApplyPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState('1month');
+  const [selectedPackage, setSelectedPackage] = useState('5day');
   const [itemInfo, setItemInfo] = useState(null);
+  const [isLoadingItem, setIsLoadingItem] = useState(true);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -31,11 +34,29 @@ const PremiumApplyPage = () => {
 
     // 아이템 정보 가져오기
     if (itemId && itemType) {
-      loadItemInfo(itemId, itemType);
+      loadItemInfo(itemId, itemType).finally(() => setIsLoadingItem(false));
+    } else {
+      setIsLoadingItem(false);
     }
   }, [navigate, itemId, itemType]);
 
-  const loadItemInfo = (id, type) => {
+  const loadItemInfo = async (id, type) => {
+    try {
+      const table = type === 'warehouse' ? 'warehouses' : 'customers';
+      const { data, error } = await supabase.from(table).select('*').eq('id', id).maybeSingle();
+
+      if (!error && data) {
+        setItemInfo({
+          id: data.id,
+          name: data.company_name || data.companyName || (type === 'warehouse' ? '창고' : '고객사'),
+          type: type
+        });
+        return;
+      }
+    } catch (err) {
+      console.warn('DB fetch failed, falling back to localStorage:', err);
+    }
+
     if (type === 'warehouse') {
       // 승인된 창고, 대기 중인 창고, 샘플 데이터 모두 확인
       const approvedWarehouses = JSON.parse(localStorage.getItem('approvedWarehouses') || '[]');
@@ -113,6 +134,21 @@ const PremiumApplyPage = () => {
 
   // 아이템 정보를 찾지 못한 경우
   if (!itemInfo) {
+    if (isLoadingItem) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">업체 정보 확인 중</h2>
+            <p className="text-gray-600">
+              업체 정보를 불러오고 있습니다.<br />
+              잠시만 기다려주세요...
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -137,6 +173,74 @@ const PremiumApplyPage = () => {
 
   const selectedPackageInfo = premiumPackages[selectedPackage];
 
+  // 승인 상태 확인
+  const isApproved = currentUser.status === 'approved';
+  const isPending = currentUser.status === 'pending' || !currentUser.status;
+
+  const handlePayment = async () => {
+    if (!currentUser) return;
+
+    if (isPending) {
+      alert('결제를 진행하려면 먼저 관리자의 승인이 필요합니다.\n관리자 승인 후 다시 시도해주세요.');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    setIsProcessing(true);
+
+    try {
+      const tossPayments = await loadTossPayments(paymentConfig.clientKey);
+      
+      const orderId = `premium_${new Date().getTime()}_${currentUser.id}`;
+      const orderName = `[프리미엄] ${itemInfo.name} ${selectedPackageInfo.name}`;
+      
+      await tossPayments.requestPayment('카드', {
+        amount: selectedPackageInfo.price,
+        orderId,
+        orderName,
+        customerName: latestUser.name || latestUser.companyName || '고객',
+        successUrl: `${window.location.origin}/payment/success?isPremium=true&itemId=${itemInfo.id}&itemType=${itemInfo.type}&packageType=${selectedPackage}`,
+        failUrl: `${window.location.origin}/payment/fail?failRedirect=/premium-apply?type=${itemInfo.type}&itemId=${itemInfo.id}`
+      });
+    } catch (err) {
+      console.error('프리미엄 결제 초기화 에러:', err);
+      if (err.code !== 'USER_CANCEL') {
+        alert('결제창을 띄우지 못했습니다: ' + err.message);
+      }
+      setIsProcessing(false);
+    }
+  };
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">결제 완료!</h2>
+          <p className="text-gray-600 mb-6">
+            프리미엄 신청이 완료되었습니다.<br />
+            내일 00:00부터 상단에 노출됩니다.
+          </p>
+          <div className="bg-gray-50 p-4 rounded-lg mb-6 text-left">
+            <p className="text-sm text-gray-700 mb-2"><strong>결제 내역:</strong></p>
+            <p className="text-sm text-gray-600">
+              • 업체명: {itemInfo.name}<br />
+              • 패키지: {selectedPackageInfo.name}<br />
+              • 기간: {selectedPackageInfo.days}일
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/mypage')}
+            className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+          >
+            마이페이지로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
@@ -154,7 +258,7 @@ const PremiumApplyPage = () => {
                   <button
                     key={key}
                     onClick={() => setSelectedPackage(key)}
-                    className={`p-4 rounded-lg border-2 transition-all ${selectedPackage === key
+                    className={`p-4 rounded-lg border-2 transition-all relative ${selectedPackage === key
                       ? 'border-primary-600 bg-primary-50'
                       : 'border-gray-200 hover:border-primary-300'
                       }`}
@@ -163,22 +267,23 @@ const PremiumApplyPage = () => {
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-semibold text-gray-900">{pkg.name}</h3>
                         {pkg.discount && (
-                          <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                          <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold">
                             {pkg.discount}
                           </span>
                         )}
                       </div>
                       <p className="text-2xl font-bold text-primary-600 mb-1">
-                        {pkg.months}개월
+                        {pkg.days}일
                       </p>
                       <p className="text-sm text-gray-600 mb-2">
-                        유효기간: {pkg.months}개월
+                        유효기간: {pkg.days}일
                       </p>
                       <p className="text-lg font-bold text-gray-900">
                         {pkg.price.toLocaleString()}원
                       </p>
+
                       {selectedPackage === key && (
-                        <div className="mt-2 text-primary-600 text-sm font-semibold">
+                        <div className="mt-2 text-primary-600 text-sm font-semibold flex items-center">
                           ✓ 선택됨
                         </div>
                       )}
@@ -193,14 +298,18 @@ const PremiumApplyPage = () => {
               <h3 className="font-semibold text-gray-900 mb-3">선택한 패키지</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
+                  <span className="text-gray-600">적용 대상</span>
+                  <span className="font-semibold text-gray-900">{itemInfo.name}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">패키지명</span>
                   <span className="font-semibold text-gray-900">{selectedPackageInfo.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">기간</span>
-                  <span className="font-semibold text-gray-900">{selectedPackageInfo.months}개월</span>
+                  <span className="text-gray-600">이용 기간</span>
+                  <span className="font-semibold text-gray-900">{selectedPackageInfo.days}일</span>
                 </div>
-                <div className="flex justify-between pt-2 border-t">
+                <div className="flex justify-between pt-2 border-t mt-2">
                   <span className="text-lg font-semibold text-gray-900">결제 금액</span>
                   <span className="text-2xl font-bold text-primary-600">
                     {selectedPackageInfo.price.toLocaleString()}원
@@ -214,12 +323,13 @@ const PremiumApplyPage = () => {
               <div className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-blue-600 mr-2 mt-0.5" />
                 <div className="text-sm text-blue-800">
-                  <p className="font-semibold mb-2">안내사항</p>
+                  <p className="font-semibold mb-2">프리미엄 안내사항</p>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>프리미엄 신청 시 최상단에 노출됩니다.</li>
-                    <li>최근 신청한 프리미엄 업체가 가장 위에 표시됩니다.</li>
-                    <li>기간이 만료되면 자동으로 일반 업체로 전환됩니다.</li>
-                    <li>기간 연장 시 기존 만료일 기준으로 연장됩니다.</li>
+                    <li>프리미엄 노출은 <span className="font-bold text-red-600">결제일 다음 날 00:00부터</span> 시작됩니다. (결제 당일은 준비 기간입니다)</li>
+                    <li><span className="font-bold">가장 먼저 신청한 업체</span>가 항상 <span className="font-bold">최상단 첫 번째칸(왼쪽)</span>에 고정 배정됩니다.</li>
+                    <li>이용 기간이 1분이라도 남은 기존 프리미엄 업체가 상위 좌측 자리를 먼저 선점합니다.</li>
+                    <li>이용 기간이 모두 만료되면 자동으로 일반 업체 노출로 즉시 전환됩니다.</li>
+                    <li>기간 내 추가 연장 결제 시 기존 남은 기간에 <span className="font-bold">이어서 만료일이 추가 연장</span>됩니다.</li>
                   </ul>
                 </div>
               </div>
@@ -271,7 +381,7 @@ const PremiumApplyPage = () => {
                 ) : isPending ? (
                   <>
                     <AlertCircle className="w-5 h-5 mr-2" />
-                    승인 대기 중
+                    승인 대기 중 (결제 불가)
                   </>
                 ) : (
                   <>

@@ -4,6 +4,7 @@ import { CreditCard, CheckCircle, AlertCircle, Star } from 'lucide-react';
 import { paymentConfig } from '../config/paymentConfig';
 import { purchaseViewingPass, getViewingPassInfo, extendViewingPass, checkEventEligibility } from '../utils/viewingPassUtils';
 import { createNotification } from '../utils/notificationUtils';
+import { loadTossPayments } from '@tosspayments/payment-sdk';
 
 const PaymentPage = () => {
   const navigate = useNavigate();
@@ -11,7 +12,6 @@ const PaymentPage = () => {
   const action = searchParams.get('action'); // 'extend' 또는 null
   const [currentUser, setCurrentUser] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState('basic');
   const [isExtending, setIsExtending] = useState(action === 'extend');
   const [currentPass, setCurrentPass] = useState(null);
@@ -56,10 +56,8 @@ const PaymentPage = () => {
     // 승인 상태 확인
     const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
     const latestUser = allUsers.find(u => u.id === currentUser.id) || currentUser;
-    console.log('[PaymentPage] User Status Check:', { currentUser, latestUser, status: latestUser.status });
 
     if (latestUser.status === 'pending' || !latestUser.status) {
-      console.warn('[PaymentPage] Purchase blocked due to pending status.');
       alert('결제를 진행하려면 먼저 관리자의 승인이 필요합니다.\n관리자 승인 후 다시 시도해주세요.');
       setIsProcessing(false);
       return;
@@ -67,91 +65,42 @@ const PaymentPage = () => {
 
     setIsProcessing(true);
 
-    // 테스트 모드: 실제 결제 없이 시뮬레이션
-    if (paymentConfig.isTestMode) {
-      setTimeout(async () => {
-        if (isExtending) {
-          // 연장 처리
-          const extended = await extendViewingPass(currentPass?.id, 3);
-          if (extended) {
-            createNotification(
-              currentUser.id,
-              'purchase',
-              '열람권 연장 완료',
-              `열람권이 ${extended.expiryDate ? new Date(extended.expiryDate).toLocaleDateString('ko-KR') : '3개월'}까지 연장되었습니다.`
-            );
-            setIsProcessing(false);
-            setIsSuccess(true);
-          } else {
-            alert('연장 처리에 실패했습니다.');
-            setIsProcessing(false);
-          }
-        } else {
-          // 구매 처리
-          // 이벤트 대상이고 기본 패키지면 0원 처리
-          const isEvent = isEventEligible && selectedPackage === 'basic';
-          const type = isEvent ? 'basic_event' : selectedPackage;
+    try {
+      const isEvent = isEventEligible && selectedPackage === 'basic';
+      const amount = isEvent ? 0 : (isExtending ? 45000 : packages[selectedPackage].price);
+      
+      // 금액이 0원(무료 이벤트)인 경우 PG를 거치지 않고 바로 성공 페이지로 이동
+      if (amount === 0) {
+        window.location.href = `/payment/success?packageType=${selectedPackage}&isEvent=true&freePass=true`;
+        return;
+      }
 
-          const result = await purchaseViewingPass(type);
-          if (result.success) {
-            createNotification(
-              currentUser.id,
-              'purchase',
-              isEvent ? '이벤트 열람권 지급 완료' : '열람권 구매 완료',
-              `${packages[selectedPackage].name} ${isEvent ? '지급' : '구매'}가 완료되었습니다. (${packages[selectedPackage].count}회)`
-            );
-            setIsProcessing(false);
-            setIsSuccess(true);
-          } else {
-            console.error(result.message);
-            alert('구매 처리에 실패했습니다: ' + result.message);
-            setIsProcessing(false);
-          }
-        }
-      }, 1000);
-    } else {
-      // 실제 PG사 연동 (나중에 구현)
-      alert('실제 결제는 추후 PG사 연동을 통해 제공될 예정입니다.');
+      const tossPayments = await loadTossPayments(paymentConfig.clientKey);
+      
+      const orderId = `order_${new Date().getTime()}_${currentUser.id}`;
+      const orderName = isExtending ? '열람권 연장' : packages[selectedPackage].name;
+      
+      // 연장의 경우 현재 이용권 정보를 저장 (성공된 사이트에서 사용하기 위해)
+      if (isExtending && currentPass) {
+        localStorage.setItem(`viewingPass_${currentUser.id}`, JSON.stringify(currentPass));
+      }
+
+      await tossPayments.requestPayment('카드', {
+        amount,
+        orderId,
+        orderName,
+        customerName: latestUser.name || latestUser.companyName || '고객',
+        successUrl: `${window.location.origin}/payment/success?packageType=${selectedPackage}&isEvent=${isEvent}&isExtending=${isExtending}`,
+        failUrl: `${window.location.origin}/payment/fail`
+      });
+    } catch (err) {
+      console.error('결제 초기화 에러:', err);
+      if (err.code !== 'USER_CANCEL') {
+        alert('결제창을 띄우지 못했습니다: ' + err.message);
+      }
+      setIsProcessing(false);
     }
   };
-
-  if (isSuccess) {
-    const purchasedPackage = isExtending ? null : packages[selectedPackage];
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            {isExtending ? '연장 완료!' : '결제 완료!'}
-          </h2>
-          <p className="text-gray-600 mb-6">
-            {isExtending
-              ? '열람권 연장이 완료되었습니다.'
-              : '열람권 구매가 완료되었습니다.'}
-            <br />
-            이제 상세 정보를 열람하실 수 있습니다.
-          </p>
-          {purchasedPackage && (
-            <div className="bg-gray-50 p-4 rounded-lg mb-6 text-left">
-              <p className="text-sm text-gray-700 mb-2">
-                <strong>구매 내용:</strong>
-              </p>
-              <p className="text-sm text-gray-600">
-                • 사용 횟수: {purchasedPackage.count}회<br />
-                • 유효기간: {purchasedPackage.validityMonths}개월
-              </p>
-            </div>
-          )}
-          <button
-            onClick={() => navigate('/mypage')}
-            className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 transition-colors font-semibold"
-          >
-            마이페이지로 이동
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (!currentUser) {
     return null;
