@@ -10,8 +10,8 @@ export const paymentConfig = {
   // VITE_TOSS_CLIENT_KEY=test_ck_ZLKGPx4M3MGk5NPWgyaRrBaWypv1
   // VITE_TEST_MODE=true
   // VITE_PAYMENT_AMOUNT=50000
-  merchantId: import.meta.env.VITE_TOSS_MID || '',
-  clientKey: import.meta.env.VITE_TOSS_CLIENT_KEY || '',
+  merchantId: import.meta.env.VITE_TOSS_MID || '33ply4afmm',
+  clientKey: import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_ZLKGPx4M3MGk5NPWgyaRrBaWypv1',
   pgProvider: 'tosspayments',
   
   // 테스트 모드 (기본값: true)
