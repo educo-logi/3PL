@@ -13,10 +13,14 @@ import {
   CreditCard,
   MessageCircle,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Gift
 } from 'lucide-react';
 import DetailModal from '../components/DetailModal';
 import { supabase } from '../utils/supabaseClient';
+import { grantAdminViewingPass } from '../utils/viewingPassUtils';
+import { createPremiumApplication } from '../utils/premiumUtils';
+import { createNotification } from '../utils/notificationUtils';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -33,6 +37,20 @@ const AdminDashboard = () => {
   const [selectedItemType, setSelectedItemType] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
+  // 열람권 지급 모달 상태
+  const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
+  const [grantTarget, setGrantTarget] = useState(null); // { id, name, type }
+
+  // [신규] 프리미엄 지급 모달 상태
+  const [isPremiumGrantModalOpen, setIsPremiumGrantModalOpen] = useState(false);
+  const [premiumGrantTarget, setPremiumGrantTarget] = useState(null); // { id, name, type }
+
+  // [신규] 통계 및 모니터링용 상태 추가
+  const [viewingPasses, setViewingPasses] = useState([]);
+  const [viewingHistory, setViewingHistory] = useState([]);
+  const [premiumApplications, setPremiumApplications] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const fetchData = async () => {
     try {
       // 1. Warehouses
@@ -47,8 +65,13 @@ const AdminDashboard = () => {
         submittedAt: w.submitted_at,
         approvedAt: w.approved_at
       }));
-      setWarehouses(processedWarehouses.filter(w => w.status === 'approved'));
-      setPendingWarehouseList(processedWarehouses.filter(w => w.status === 'pending'));
+      const approvedWarehouses = processedWarehouses.filter(w => w.status === 'approved')
+        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      setWarehouses(approvedWarehouses);
+      
+      const pendingWarehouses = processedWarehouses.filter(w => w.status === 'pending')
+        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      setPendingWarehouseList(pendingWarehouses);
 
       // 2. Customers
       const { data: cData } = await supabase.from('customers').select('*');
@@ -61,8 +84,14 @@ const AdminDashboard = () => {
         submittedAt: c.submitted_at,
         approvedAt: c.approved_at
       }));
-      setCustomers(processedCustomers.filter(c => c.status === 'approved'));
-      setPendingCustomerList(processedCustomers.filter(c => c.status === 'pending'));
+      
+      const approvedCustomers = processedCustomers.filter(c => c.status === 'approved')
+        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      setCustomers(approvedCustomers);
+      
+      const pendingCustomers = processedCustomers.filter(c => c.status === 'pending')
+        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      setPendingCustomerList(pendingCustomers);
 
       // 3. Payments (New)
       const { data: pData } = await supabase
@@ -70,15 +99,18 @@ const AdminDashboard = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // 사용자 이름 매핑을 위해 전체 사용자 목록 매핑 (최적화 필요하지만 MVP 위해 이렇게 진행)
+      // 사용자 이름 및 이메일 매핑용 풀 생성
       const userMap = {};
+      const userEmailMap = {};
       [...processedWarehouses, ...processedCustomers].forEach(u => {
         userMap[u.id] = u.companyName;
+        userEmailMap[u.id] = u.email;
       });
 
       setPayments((pData || []).map(p => ({
         ...p,
-        userName: userMap[p.user_id] || 'Unknown User'
+        userName: userMap[p.user_id] || 'Unknown User',
+        email: userEmailMap[p.user_id] || '-'
       })));
 
       // 4. Inquiries (New)
@@ -94,6 +126,53 @@ const AdminDashboard = () => {
         .select('*')
         .gte('viewed_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Last 7 days
       setPageViews(vData || []);
+
+      // 6. Viewing Passes [신규]
+      const { data: vpData } = await supabase.from('viewing_passes').select('*');
+      setViewingPasses(vpData || []);
+
+      // 7. Viewing History [신규]
+      const { data: vhData } = await supabase
+        .from('viewing_history')
+        .select('*')
+        .order('viewed_at', { ascending: false });
+      setViewingHistory(vhData || []);
+
+      // 8. Premium Applications [신규]
+      try {
+        const { data: paData, error: paError } = await supabase
+          .from('premium_applications')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        const localApps = JSON.parse(localStorage.getItem('premiumApplications') || '[]');
+        const mappedLocal = localApps.map(a => ({
+          ...a,
+          item_id: a.itemId,
+          item_type: a.itemType,
+          package_type: a.packageType,
+          start_date: a.startDate,
+          end_date: a.endDate,
+          status: a.status
+        }));
+
+        if (paError) {
+          setPremiumApplications(mappedLocal);
+        } else {
+          setPremiumApplications([...(paData || []), ...mappedLocal]);
+        }
+      } catch (paErr) {
+        const localApps = JSON.parse(localStorage.getItem('premiumApplications') || '[]');
+        setPremiumApplications(localApps.map(a => ({
+          ...a,
+          item_id: a.itemId,
+          item_type: a.itemType,
+          package_type: a.packageType,
+          start_date: a.startDate,
+          end_date: a.endDate,
+          status: a.status
+        })));
+      }
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -177,6 +256,83 @@ const AdminDashboard = () => {
     setIsDetailModalOpen(true);
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '-';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}.${month}.${day} ${hours}:${minutes}`;
+  };
+
+  const handleOpenGrantModal = (item, type) => {
+    setGrantTarget({
+      id: item.user_id || item.id, // items usually have their own id as user_id in this design, or we assume they are the same
+      name: item.companyName,
+      type: type,
+      originalData: item
+    });
+    setIsGrantModalOpen(true);
+  };
+
+  const handleGrantPass = async (count, reason) => {
+    if (!grantTarget) return;
+    
+    // 지급 실행
+    const result = await grantAdminViewingPass(grantTarget.id, count, reason);
+    if (result.success) {
+      alert(`[${grantTarget.name}] 님에게 열람권 ${count}장이 지급되었습니다.`);
+      setIsGrantModalOpen(false);
+      setGrantTarget(null);
+    } else {
+      alert(result.message);
+    }
+  };
+
+  // [신규] 프리미엄 개별 지급 핸들러
+  const handleOpenPremiumGrantModal = (item, type) => {
+    setPremiumGrantTarget({
+      userId: item.user_id || item.id, // 관리용 사용자 ID
+      itemId: item.id,                // 실제 창고/고객사 ID 
+      name: item.companyName,
+      type: type
+    });
+    setIsPremiumGrantModalOpen(true);
+  };
+
+  const handleGrantPremium = async (days, reason) => {
+    if (!premiumGrantTarget) return;
+    
+    const result = await createPremiumApplication(
+      premiumGrantTarget.userId, 
+      premiumGrantTarget.type, 
+      premiumGrantTarget.itemId, 
+      premiumGrantTarget.type, 
+      'admin_custom', 
+      null, 
+      null, 
+      days
+    );
+    
+    if (result.success) {
+      createNotification(
+        premiumGrantTarget.userId, 
+        'purchase', 
+        '👑 프리미엄 혜택 특별 지급', 
+        `관리자가 프리미엄 서비스를 ${days}일 동안 특별 지급했습니다. 사유: ${reason || '이벤트'}`
+      );
+      alert(`[${premiumGrantTarget.name}] 님에게 프리미엄 ${days}일이 지급되었습니다.`);
+      setIsPremiumGrantModalOpen(false);
+      setPremiumGrantTarget(null);
+      fetchData();
+    } else {
+      alert(result.message || '지급 실패');
+    }
+  };
+
   // --- Stats Calculation ---
   const totalRevenue = payments.reduce((sum, p) => sum + (p.status === 'success' ? Number(p.amount) : 0), 0);
   const pendingCount = pendingWarehouseList.length + pendingCustomerList.length;
@@ -189,6 +345,202 @@ const AdminDashboard = () => {
     return acc;
   }, {});
   const topPages = Object.entries(pageViewStats).sort(([, a], [, b]) => b - a).slice(0, 5);
+
+  // --- [신규] 열람권 통계 집계 ---
+  const totalRemainingPasses = viewingPasses.reduce((sum, p) => sum + (p.remaining_count || 0), 0);
+  const totalDistributedPasses = viewingPasses.reduce((sum, p) => sum + (p.total_count || 0), 0);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayUsage = viewingHistory.filter(h => h.viewed_at && h.viewed_at.startsWith(todayStr)).length;
+
+  const passesByType = viewingPasses.reduce((acc, p) => {
+    const type = p.package_type || 'regular';
+    acc[type] = (acc[type] || 0) + (p.remaining_count || 0);
+    return acc;
+  }, {});
+
+  // 일자별 사용량 집계 (최근 7일)
+  const dailyHistoryStats = viewingHistory.reduce((acc, h) => {
+    if (!h.viewed_at) return acc;
+    const d = h.viewed_at.split('T')[0];
+    if (!acc[d]) acc[d] = { total: 0, welcome: 0, admin: 0, paid: 0 };
+    acc[d].total += 1;
+    if (h.package_type === 'welcome_free') acc[d].welcome += 1;
+    else if (h.package_type === 'admin_grant') acc[d].admin += 1;
+    else acc[d].paid += 1; // event 나 basic 등 포함
+    return acc;
+  }, {});
+  const dailyHistoryList = Object.entries(dailyHistoryStats)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 7);
+
+  // --- [신규] 프리미엄 통계 집계 ---
+  const activePremiums = premiumApplications.filter(app => {
+    return app.status === 'active' && app.end_date && new Date(app.end_date) > new Date();
+  });
+  const expiringPremiums = activePremiums.filter(app => {
+    const remainMs = new Date(app.end_date) - new Date();
+    return remainMs > 0 && remainMs < 3 * 24 * 60 * 60 * 1000; // 3일 이내
+  });
+
+  const calculateDDay = (endDate) => {
+    if (!endDate) return 0;
+    const end = new Date(endDate);
+    const now = new Date();
+    // 시간 부분을 제외하고 날짜 단위로만 차이 계산 (D-Day 표준)
+    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = endDay - nowDay;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    return days >= 0 ? days : 0;
+  };
+
+  // --- [신규] 오류 추적용 래퍼 함수 ---
+  const renderPassesTab = () => {
+    try {
+      const warehousePasses = viewingPasses.filter(p => warehouses.some(w => w.id === p.user_id));
+      const customerPasses = viewingPasses.filter(p => customers.some(c => c.id === p.user_id));
+
+      return (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <StatCard icon={CreditCard} title="전체 보유 잔여량" value={`${totalRemainingPasses}회`} color="blue" />
+            <StatCard icon={TrendingUp} title="오늘 소진량" value={`${todayUsage}회`} color="red" />
+            <StatCard icon={Building2} title="창고 보유량" value={`${warehousePasses.reduce((s,p)=>s+(p.remaining_count||0),0)}회`} color="green" />
+            <StatCard icon={Users} title="고객사 보유량" value={`${customerPasses.reduce((s,p)=>s+(p.remaining_count||0),0)}회`} color="purple" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white shadow rounded-lg p-6 overflow-hidden">
+              <h3 className="text-lg font-bold mb-4">일자별 사용 통계</h3>
+              <DataTable
+                headers={['날짜', '총 사용', '무료', '유료', '선물']}
+                data={dailyHistoryList.map(([date, stats]) => ({ id: date, date, ...stats }))}
+                renderRow={(item) => (
+                  <>
+                    <td className="px-6 py-4 text-sm font-medium">{item.date}</td>
+                    <td className="px-6 py-4 font-bold text-primary-600">{item.total}회</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.welcome}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.total - item.welcome - item.admin}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.admin}</td>
+                  </>
+                )}
+              />
+            </div>
+
+            <div className="bg-white shadow rounded-lg p-6 overflow-hidden">
+              <h3 className="text-lg font-bold mb-2 flex items-center text-green-600"><Building2 className="mr-1 h-5 w-5"/> 창고업체 보유 현황</h3>
+              <DataTable
+                headers={['이메일', '회사명', '패키지', '잔여']}
+                data={warehousePasses.slice(0, 10)}
+                renderRow={(p) => {
+                  const company = warehouses.find(w => w.id === p.user_id);
+                  return (
+                    <>
+                      <td className="px-6 py-4 text-sm text-gray-500 break-all">{company ? company.email : '-'}</td>
+                      <td className="px-6 py-4 text-sm font-medium">{company ? company.companyName : (p.user_id || '').substring(0, 8)}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-2 py-0.5 rounded text-xs ${p.package_type === 'welcome_free' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {p.package_type === 'welcome_free' ? '무료' : '일반'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-bold">{p.remaining_count}회</td>
+                    </>
+                  );
+                }}
+              />
+            </div>
+
+            <div className="bg-white shadow rounded-lg p-6 overflow-hidden">
+              <h3 className="text-lg font-bold mb-2 flex items-center text-purple-600"><Users className="mr-1 h-5 w-5"/> 고객사 보유 현황</h3>
+              <DataTable
+                headers={['이메일', '회사명', '패키지', '잔여']}
+                data={customerPasses.slice(0, 10)}
+                renderRow={(p) => {
+                  const company = customers.find(c => c.id === p.user_id);
+                  return (
+                    <>
+                      <td className="px-6 py-4 text-sm text-gray-500 break-all">{company ? company.email : '-'}</td>
+                      <td className="px-6 py-4 text-sm font-medium">{company ? company.companyName : (p.user_id || '').substring(0, 8)}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-2 py-0.5 rounded text-xs ${p.package_type === 'welcome_free' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {p.package_type === 'welcome_free' ? '무료' : '일반'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-bold">{p.remaining_count}회</td>
+                    </>
+                  );
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    } catch (err) {
+      return (
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+          <h4 className="font-bold mb-2">열람권 관리 화면 연산 에러:</h4>
+          <p className="text-sm font-mono">{err.message}</p>
+        </div>
+      );
+    }
+  };
+
+  const renderPremiumTab = () => {
+    try {
+      return (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatCard icon={AlertCircle} title="활성 프리미엄" value={`${activePremiums.length}개`} color="green" />
+            <StatCard icon={Clock} title="만료 임박 (3일 이내)" value={`${expiringPremiums.length}개`} color="yellow" />
+            <StatCard icon={BarChart3} title="총 신청 건수" value={`${premiumApplications.length}건`} color="blue" />
+          </div>
+
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <DataTable
+              headers={['업체(아이디)', '유형', '상품명', '게시 기간', '남은 기간 (D-Day)', '상태']}
+              data={premiumApplications}
+              renderRow={(app) => {
+                const dDay = calculateDDay(app.end_date);
+                const isActive = app.status === 'active' && new Date(app.end_date) > new Date();
+                return (
+                  <>
+                    <td className="px-6 py-4 text-sm font-medium">{(app.item_id || '').substring(0,8)}...</td>
+                    <td className="px-6 py-4 text-sm">{app.item_type === 'warehouse' ? '창고' : '고객사'}</td>
+                    <td className="px-6 py-4 text-sm">{app.package_type}</td>
+                    <td className="px-6 py-4 text-xs text-gray-500">{formatDate(app.start_date)} ~ {formatDate(app.end_date)}</td>
+                    <td className="px-6 py-4">
+                      {isActive ? (
+                        <div className="flex items-center">
+                          <span className={`font-bold mr-2 ${dDay <= 3 ? 'text-red-500' : 'text-green-600'}`}>D-{dDay}</span>
+                          <div className="w-24 bg-gray-200 rounded-full h-1.5">
+                            <div className={`h-1.5 rounded-full ${dDay <= 3 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min((dDay / 15) * 100, 100)}%` }}></div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">만료</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {isActive ? '게시중' : '종료'}
+                      </span>
+                    </td>
+                  </>
+                );
+              }}
+            />
+          </div>
+        </div>
+      );
+    } catch (err) {
+      return (
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-600">
+          <h4 className="font-bold mb-2">프리미엄 관리 화면 연산 에러:</h4>
+          <p className="text-sm font-mono">{err.message}</p>
+        </div>
+      );
+    }
+  };
 
 
   return (
@@ -216,6 +568,8 @@ const AdminDashboard = () => {
               { id: 'warehouses', label: '창고 관리' },
               { id: 'customers', label: '고객사 관리' },
               { id: 'payments', label: '결제 관리' },
+              { id: 'passes', label: '열람권 관리' },
+              { id: 'premium', label: '프리미엄 관리' },
               { id: 'inquiries', label: `문의 관리 (${unresolvedInquiries})` },
               { id: 'pending', label: `승인 대기 (${pendingCount})` },
             ].map(tab => (
@@ -284,10 +638,11 @@ const AdminDashboard = () => {
         {/* 2. Warehouses */}
         {activeTab === 'warehouses' && (
           <DataTable
-            headers={['회사명', '지역', '면적', '연락처', '액션']}
+            headers={['이메일', '회사명', '지역', '면적', '연락처', '가입일', '승인일', '액션']}
             data={warehouses}
             renderRow={(w) => (
               <>
+                <td className="px-6 py-4 text-sm text-gray-600 break-all">{w.email}</td>
                 <td className="px-6 py-4">
                   <button
                     onClick={() => handleViewDetails(w, 'warehouse')}
@@ -296,11 +651,15 @@ const AdminDashboard = () => {
                     {w.companyName}
                   </button>
                 </td>
-                <td className="px-6 py-4">{w.location}</td>
-                <td className="px-6 py-4">{w.availableArea.toLocaleString()} / {w.totalArea.toLocaleString()}</td>
-                <td className="px-6 py-4">{w.phone}</td>
+                <td className="px-6 py-4 text-sm">{w.location}</td>
+                <td className="px-6 py-4 text-sm">{w.availableArea ? w.availableArea.toLocaleString() : ''} / {w.totalArea ? w.totalArea.toLocaleString() : ''}</td>
+                <td className="px-6 py-4 text-sm">{w.phone}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.submittedAt)}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.approvedAt)}</td>
                 <td className="px-6 py-4 flex gap-2">
-                  <ActionButton icon={Eye} onClick={() => handleViewDetails(w, 'warehouse')} />
+                  <ActionButton icon={Eye} onClick={() => handleViewDetails(w, 'warehouse')} title="상세보기" />
+                  <ActionButton icon={Gift} color="blue" onClick={() => handleOpenGrantModal(w, 'warehouse')} title="열람권 지급" />
+                  <ActionButton icon={Gift} color="orange" onClick={() => handleOpenPremiumGrantModal(w, 'warehouse')} title="프리미엄 지급" />
                   <ActionButton icon={Trash2} color="red" onClick={() => handleDelete('warehouses', w.id)} />
                 </td>
               </>
@@ -311,10 +670,11 @@ const AdminDashboard = () => {
         {/* 3. Customers */}
         {activeTab === 'customers' && (
           <DataTable
-            headers={['회사명', '지역', '월 물동량', '연락처', '액션']}
+            headers={['이메일', '회사명', '지역', '월 물동량', '연락처', '가입일', '승인일', '액션']}
             data={customers}
             renderRow={(c) => (
               <>
+                <td className="px-6 py-4 text-sm text-gray-600 break-all">{c.email}</td>
                 <td className="px-6 py-4">
                   <button
                     onClick={() => handleViewDetails(c, 'customer')}
@@ -323,11 +683,15 @@ const AdminDashboard = () => {
                     {c.companyName}
                   </button>
                 </td>
-                <td className="px-6 py-4">{c.location}</td>
-                <td className="px-6 py-4">{c.monthlyVolume.toLocaleString()}</td>
-                <td className="px-6 py-4">{c.phone}</td>
+                <td className="px-6 py-4 text-sm">{c.location}</td>
+                <td className="px-6 py-4 text-sm">{c.monthlyVolume ? c.monthlyVolume.toLocaleString() : ''}</td>
+                <td className="px-6 py-4 text-sm">{c.phone}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.submittedAt)}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.approvedAt)}</td>
                 <td className="px-6 py-4 flex gap-2">
-                  <ActionButton icon={Eye} onClick={() => handleViewDetails(c, 'customer')} />
+                  <ActionButton icon={Eye} onClick={() => handleViewDetails(c, 'customer')} title="상세보기" />
+                  <ActionButton icon={Gift} color="blue" onClick={() => handleOpenGrantModal(c, 'customer')} title="열람권 지급" />
+                  <ActionButton icon={Gift} color="orange" onClick={() => handleOpenPremiumGrantModal(c, 'customer')} title="프리미엄 지급" />
                   <ActionButton icon={Trash2} color="red" onClick={() => handleDelete('customers', c.id)} />
                 </td>
               </>
@@ -343,18 +707,19 @@ const AdminDashboard = () => {
               <span className="text-lg font-bold text-primary-600">Total: {totalRevenue.toLocaleString()}원</span>
             </div>
             <DataTable
-              headers={['일시', '사용자', '상품명', '금액', '상태']}
+              headers={['이메일', '일시', '사용자', '상품명', '금액', '상태']}
               data={payments}
               renderRow={(p) => (
                 <>
+                  <td className="px-6 py-4 text-sm text-gray-600 break-all">{p.email}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{new Date(p.created_at).toLocaleString()}</td>
                   <td className="px-6 py-4 font-medium">{p.userName}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${p.package_type.includes('event') ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${p.package_type && p.package_type.includes('event') ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                       {p.package_type}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-bold">{Number(p.amount).toLocaleString()}원</td>
+                  <td className="px-6 py-4 font-bold">{p.amount ? Number(p.amount).toLocaleString() : '0'}원</td>
                   <td className="px-6 py-4 text-green-600 text-sm font-bold">{p.status}</td>
                 </>
               )}
@@ -379,10 +744,11 @@ const AdminDashboard = () => {
               <div>
                 <h3 className="text-lg font-bold mb-4 flex items-center text-yellow-600"><Clock className="mr-2" /> 창고 승인 대기</h3>
                 <DataTable
-                  headers={['회사명', '연락처', '지역', '액션']}
+                  headers={['이메일', '회사명', '연락처', '지역', '가입일', '액션']}
                   data={pendingWarehouseList}
                   renderRow={(w) => (
                     <>
+                      <td className="px-6 py-4 text-sm text-gray-600 break-all">{w.email}</td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => handleViewDetails(w, 'warehouse')}
@@ -391,8 +757,9 @@ const AdminDashboard = () => {
                           {w.companyName}
                         </button>
                       </td>
-                      <td className="px-6 py-4">{w.phone}</td>
-                      <td className="px-6 py-4">{w.location}</td>
+                      <td className="px-6 py-4 text-sm">{w.phone}</td>
+                      <td className="px-6 py-4 text-sm">{w.location}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.submittedAt)}</td>
                       <td className="px-6 py-4 flex gap-2">
                         <button onClick={() => handleApprove('warehouses', w.id)} className="text-green-600 font-bold hover:underline">승인</button>
                         <button onClick={() => handleReject('warehouses', w.id)} className="text-red-600 hover:underline">거절</button>
@@ -407,10 +774,11 @@ const AdminDashboard = () => {
               <div>
                 <h3 className="text-lg font-bold mb-4 flex items-center text-yellow-600"><Clock className="mr-2" /> 고객사 승인 대기</h3>
                 <DataTable
-                  headers={['회사명', '연락처', '필요면적', '액션']}
+                  headers={['이메일', '회사명', '연락처', '필요면적', '가입일', '액션']}
                   data={pendingCustomerList}
                   renderRow={(c) => (
                     <>
+                      <td className="px-6 py-4 text-sm text-gray-600 break-all">{c.email}</td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => handleViewDetails(c, 'customer')}
@@ -419,8 +787,9 @@ const AdminDashboard = () => {
                           {c.companyName}
                         </button>
                       </td>
-                      <td className="px-6 py-4">{c.phone}</td>
-                      <td className="px-6 py-4">{c.requiredArea}</td>
+                      <td className="px-6 py-4 text-sm">{c.phone}</td>
+                      <td className="px-6 py-4 text-sm">{c.requiredArea}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.submittedAt)}</td>
                       <td className="px-6 py-4 flex gap-2">
                         <button onClick={() => handleApprove('customers', c.id)} className="text-green-600 font-bold hover:underline">승인</button>
                         <button onClick={() => handleReject('customers', c.id)} className="text-red-600 hover:underline">거절</button>
@@ -437,6 +806,12 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* 7. 열람권 관리 [신규] */}
+        {activeTab === 'passes' && renderPassesTab()}
+
+        {/* 8. 프리미엄 관리 [신규] */}
+        {activeTab === 'premium' && renderPremiumTab()}
+
       </div>
 
       {isDetailModalOpen && (
@@ -445,6 +820,24 @@ const AdminDashboard = () => {
           onClose={() => setIsDetailModalOpen(false)}
           data={selectedItem}
           type={selectedItemType}
+        />
+      )}
+
+      {isGrantModalOpen && grantTarget && (
+        <GrantPassModal
+          isOpen={isGrantModalOpen}
+          onClose={() => setIsGrantModalOpen(false)}
+          target={grantTarget}
+          onConfirm={handleGrantPass}
+        />
+      )}
+
+      {isPremiumGrantModalOpen && premiumGrantTarget && (
+        <GrantPremiumModal
+          isOpen={isPremiumGrantModalOpen}
+          onClose={() => setIsPremiumGrantModalOpen(false)}
+          target={premiumGrantTarget}
+          onConfirm={handleGrantPremium}
         />
       )}
     </div>
@@ -563,13 +956,170 @@ const InquiryCard = ({ inquiry, onUpdateStatus }) => {
             )}
           </div>
         )}
+
+        {/* 7. 열람권 관리 [신규] */}
+        {activeTab === 'passes' && renderPassesTab()}
+
+        {/* 8. 프리미엄 관리 [신규] */}
+        {activeTab === 'premium' && renderPremiumTab()}
+
       </div>
     </div>
   );
 };
 
-const ActionButton = ({ icon: Icon, onClick, color = 'gray' }) => (
-  <button onClick={onClick} className={`text-${color}-600 hover:text-${color}-900 p-1`}>
+const GrantPassModal = ({ isOpen, onClose, target, onConfirm }) => {
+  const [count, setCount] = useState('');
+  const [reason, setReason] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const numCount = parseInt(count, 10);
+    if (isNaN(numCount) || numCount <= 0) {
+      alert('유효한 수량을 입력해주세요.');
+      return;
+    }
+    onConfirm(numCount, reason);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center">
+          <Gift className="w-6 h-6 mr-2 text-blue-600" />
+          열람권 개별 지급
+        </h2>
+        
+        <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
+          <p className="text-sm text-gray-500">지급 대상</p>
+          <p className="font-bold text-gray-900">{target.name} <span className="text-xs font-normal">({target.type === 'warehouse' ? '창고' : '고객사'})</span></p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">지급 개수 <span className="text-red-500">*</span></label>
+            <input
+              type="number"
+              min="1"
+              value={count}
+              onChange={(e) => setCount(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 outline-none"
+              placeholder="예: 5"
+              required
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">지급 사유 (선택)</label>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 outline-none"
+              placeholder="예: 우수 의견 제안 보상"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 font-bold"
+            >
+              지급하기
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const GrantPremiumModal = ({ isOpen, onClose, target, onConfirm }) => {
+  const [days, setDays] = useState('');
+  const [reason, setReason] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const numDays = parseInt(days, 10);
+    if (isNaN(numDays) || numDays <= 0) {
+      alert('유효한 일수를 입력해주세요.');
+      return;
+    }
+    onConfirm(numDays, reason);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center">
+          <Gift className="w-6 h-6 mr-2 text-orange-500" />
+          프리미엄 혜택 지급
+        </h2>
+        
+        <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
+          <p className="text-sm text-gray-500">지급 대상</p>
+          <p className="font-bold text-gray-900">{target.name} <span className="text-xs font-normal">({target.type === 'warehouse' ? '창고' : '고객사'})</span></p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">지급 기간(일수) <span className="text-red-500">*</span></label>
+            <input
+              type="number"
+              min="1"
+              value={days}
+              onChange={(e) => setDays(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 outline-none"
+              placeholder="예: 5"
+              required
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">지급 사유 (선택)</label>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 outline-none"
+              placeholder="예: 우수 창고 지원"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-white bg-orange-500 rounded hover:bg-orange-600 font-bold"
+            >
+              지급하기
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const ActionButton = ({ icon: Icon, onClick, color = 'gray', title }) => (
+  <button onClick={onClick} className={`text-${color}-600 hover:text-${color}-900 p-1`} title={title}>
     <Icon className="w-5 h-5" />
   </button>
 );

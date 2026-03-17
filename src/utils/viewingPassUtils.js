@@ -2,6 +2,7 @@
  * 열람권 관리 유틸리티 함수 (Supabase DB 연동 버전)
  */
 import { supabase } from './supabaseClient';
+import { createNotification } from './notificationUtils';
 
 /**
  * 현재 사용자의 열람권 정보 조회 (DB)
@@ -290,7 +291,8 @@ export const useViewingPass = async (itemId, itemType, itemName, targetEmail = n
         user_id: user.id,
         item_id: itemId,
         item_type: itemType,
-        item_name: itemName
+        item_name: itemName,
+        package_type: activePass.package_type // [지표 강화] 소진 출처 기록
       });
 
     if (historyError) throw historyError;
@@ -307,7 +309,11 @@ export const useViewingPass = async (itemId, itemType, itemName, targetEmail = n
       return { success: false, message: '열람권 차감 중 오류가 발생했습니다.' };
     }
 
-    return { success: true, remainingCount: activePass.remaining_count - 1 };
+    return { 
+      success: true, 
+      remainingCount: activePass.remaining_count - 1,
+      packageType: activePass.package_type
+    };
 
   } catch (error) {
     console.error('useViewingPass Error:', error);
@@ -319,35 +325,53 @@ export const useViewingPass = async (itemId, itemType, itemName, targetEmail = n
  * 이벤트 대상 여부 확인 (DB)
  */
 export const checkEventEligibility = async (userId) => {
-  // 이미 구매 이력이 있는지 확인
-  const { data, error } = await supabase
-    .from('viewing_passes')
-    .select('id')
-    .eq('user_id', userId)
-    .limit(1);
+  try {
+    // 1. 상세 결제 이력(payment_history)에서 'welcome_event' 구매 이력 유무 상시 크로스 체크 (중복 결제 확실한 차단)
+    const { data: historyData, error: historyError } = await supabase
+      .from('payment_history')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('package_type', 'welcome_event')
+      .limit(1);
 
-  if (error) {
-    console.error('Eligibility check failed:', error);
+    if (!historyError && historyData && historyData.length > 0) {
+      return false; // 이미 결제 이력이 존재하므로 이벤트 대상에서 제외
+    }
+
+    // 2. 기존 로직: 다른 복수 유료 결제 상품 보유 시 차단 (welcome_free 제외)
+    const { data, error } = await supabase
+      .from('viewing_passes')
+      .select('package_type')
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Eligibility check failed:', error);
+      return false;
+    }
+
+    const hasPaidPass = data.some(pass => pass.package_type !== 'welcome_free');
+    return !hasPaidPass;
+
+  } catch (err) {
+    console.error('Error checking event eligibility:', err);
     return false;
   }
-
-  // 데이터가 없으면(length === 0) 이벤트 대상임
-  return data.length === 0;
 };
 
 
 /**
  * 열람권 구매 처리 (DB)
  */
-export const purchaseViewingPass = async (packageType = 'basic') => {
+export const purchaseViewingPass = async (packageType = 'basic', orderId = null, receiptUrl = null) => {
   const user = getCurrentUser();
   if (!user) return { success: false, message: '로그인이 필요합니다.' };
 
   const packages = {
-    basic: { count: 10, price: 50000, validityMonths: 3 },
-    basic_event: { count: 10, price: 0, validityMonths: 3 }, // 이벤트 패키지 추가
-    premium: { count: 20, price: 90000, validityMonths: 3 },
-    deluxe: { count: 30, price: 130000, validityMonths: 3 }
+    basic: { count: 10, price: 50000, validityMonths: 12 },
+    basic_event: { count: 10, price: 0, validityMonths: 12 }, // 이벤트 패키지 추가
+    premium: { count: 20, price: 90000, validityMonths: 12 },
+    deluxe: { count: 30, price: 130000, validityMonths: 12 },
+    welcome_event: { count: 10, price: 9900, originalPrice: 50000, validityMonths: 12, name: '처음 봄 특가 10회권' } // 런칭 이벤트 팩
   };
 
   const selectedPackage = packages[packageType] || packages.basic;
@@ -414,7 +438,9 @@ export const purchaseViewingPass = async (packageType = 'basic') => {
         user_id: user.id,
         amount: selectedPackage.price,
         package_type: packageType,
-        status: 'success'
+        status: 'success',
+        order_id: orderId,
+        receipt_url: receiptUrl
       });
     } catch (historyError) {
       console.error('Failed to save payment history:', historyError);
@@ -433,7 +459,7 @@ export const purchaseViewingPass = async (packageType = 'basic') => {
 /**
  * 열람권 연장 (DB)
  */
-export const extendViewingPass = async (passId, months = 3) => {
+export const extendViewingPass = async (passId, months = 12, amount = 0, orderId = null, receiptUrl = null) => {
   const user = getCurrentUser();
   if (!user) return null;
 
@@ -467,6 +493,22 @@ export const extendViewingPass = async (passId, months = 3) => {
   if (error) {
     console.error('Extension failed:', error);
     return null;
+  }
+
+  // 결제 이력 저장 추가
+  if (orderId) {
+    try {
+      await supabase.from('payment_history').insert({
+        user_id: user.id,
+        amount: amount,
+        package_type: '열람권 연장',
+        status: 'success',
+        order_id: orderId,
+        receipt_url: receiptUrl
+      });
+    } catch (historyError) {
+      console.error('Failed to save payment history for extension:', historyError);
+    }
   }
 
   return { expiryDate: data[0].expires_at };
@@ -607,3 +649,186 @@ export const getItemDetail = async (itemId, itemType) => {
 
   return data;
 };
+
+/**
+ * [처음 봄 이벤트] 웰컴 패키지 3장 무료 지급 (+ 어뷰징 방지 로직)
+ */
+export const checkAndGrantWelcomePass = async () => {
+  const user = getCurrentUser();
+  if (!user) return { success: false, reason: 'unauthorized' };
+
+  // 1. 본인이 이미 발급받았는지 DB 검사
+  const { data: existingPasses } = await supabase
+    .from('viewing_passes')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('package_type', 'welcome_free');
+    
+  if (existingPasses && existingPasses.length > 0) {
+    return { success: false, reason: 'already_granted' }; // 이미 발급완료
+  }
+
+  // 2. 어뷰징 방지: 사업자번호, 이메일, 연락처, 폰, 업체명, 대표자명 중 하나라도 겹치는 다른 가입자 판별
+  const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+  
+  const searchValues = [
+    user.email,
+    user.businessNumber,
+    user.phone,
+    user.contactNumber,
+    user.companyName,
+    user.representative
+  ].filter(val => val && String(val).trim() !== '');
+
+  let suspectedUserIds = [];
+  for (const otherUser of allUsers) {
+    if (otherUser.id === user.id) continue;
+    
+    const otherValues = [
+      otherUser.email,
+      otherUser.businessNumber,
+      otherUser.phone,
+      otherUser.contactNumber,
+      otherUser.companyName,
+      otherUser.representative
+    ].filter(val => val && String(val).trim() !== '');
+
+    const hasOverlap = searchValues.some(val => otherValues.includes(val));
+    if (hasOverlap) {
+      suspectedUserIds.push(otherUser.id);
+    }
+  }
+
+  // 겹치는 타 유저가 있다면, 그 유저가 이미 웰컴 패스를 받았는지 DB 조회
+  if (suspectedUserIds.length > 0) {
+    const { data: abuses } = await supabase
+      .from('viewing_passes')
+      .select('id')
+      .in('user_id', suspectedUserIds)
+      .eq('package_type', 'welcome_free');
+
+    if (abuses && abuses.length > 0) {
+      console.warn('Abuse detected! Stopping welcome pass grant.');
+      return { success: false, reason: 'abusing_detected' }; 
+    }
+  }
+
+  // 3. 문제없으므로 지급 진행 (3회, 30일 유효)
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + 30);
+
+  const { data, error } = await supabase
+    .from('viewing_passes')
+    .insert({
+      user_id: user.id,
+      package_type: 'welcome_free',
+      remaining_count: 3,
+      total_count: 3,
+      expires_at: expiryDate.toISOString()
+    })
+    .select();
+
+  if (error) {
+    console.error('Failed to grant welcome pass:', error);
+    return { success: false, reason: 'db_error' };
+  }
+
+  return { success: true, data: data[0] };
+};
+
+/**
+ * [관리자 전용] 특정 유저에게 열람권 수동 지급
+ * @param {string} userId 지급받을 대상 유저 ID
+ * @param {number} count 지급할 열람권 개수
+ * @param {string} reason 사유 (메모용)
+ */
+export const grantAdminViewingPass = async (userId, count, reason) => {
+  try {
+    const adminAuth = localStorage.getItem('adminAuth');
+    if (adminAuth !== 'true') {
+      return { success: false, message: '관리자 권한이 없습니다.' };
+    }
+
+    if (!count || count <= 0) {
+      return { success: false, message: '지급할 수량을 올바르게 입력해주세요.' };
+    }
+
+    const now = new Date();
+    const targetReason = reason ? `관리자 특별 지급 : ${reason}` : '관리자 특별 지급';
+
+    // 1. 기존 유저의 열람권 레코드가 있는지 검사
+    const { data: existingPass, error: fetchError } = await supabase
+      .from('viewing_passes')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    if (existingPass) {
+      // ** 기존 레코드가 있는 경우: 수량 합산 및 유효기간 연장 (Update) **
+      const currentExpiry = new Date(existingPass.expires_at);
+      const baseDate = currentExpiry > now ? currentExpiry : now;
+      const newExpiry = new Date(baseDate);
+      newExpiry.setMonth(newExpiry.getMonth() + 12); // 기존 만료일 혹은 현재부터 1년 연장
+
+      const { error: updateError } = await supabase
+        .from('viewing_passes')
+        .update({
+          remaining_count: existingPass.remaining_count + count,
+          total_count: existingPass.total_count + count,
+          expires_at: newExpiry.toISOString(),
+          // 필요하다면 package_type을 'admin_grant'로 덮어씌울 수 있지만, 원래 패키지를 유지함
+        })
+        .eq('id', existingPass.id);
+
+      if (updateError) throw updateError;
+    } else {
+      // ** 기존 레코드가 없는 경우: 신규 발급 (Insert) **
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 12);
+
+      const { error: insertError } = await supabase
+        .from('viewing_passes')
+        .insert({
+          user_id: userId,
+          package_type: 'admin_grant',
+          remaining_count: count,
+          total_count: count,
+          expires_at: expiryDate.toISOString(),
+        });
+
+      if (insertError) throw insertError;
+    }
+
+      // [신규] 사용자 알림 생성 연동 (DB 저장 오류가 나도 알림은 생성되게 최우선 처리)
+      try {
+        createNotification(
+          userId,
+          'purchase',
+          '🎁 열람권 특별 지급 안내',
+          `관리자가 열람권 ${count}장을 지급했습니다. 사유: ${reason || '특별 제안 보상'}`
+        );
+      } catch (notifErr) {
+        console.warn('로컬 알림 생성 실패:', notifErr);
+      }
+
+      // 지급 내역을 명시적으로 기록하기 위해 결제 히스토리 쪽에도 0원 결제로 기록 (관리용)
+      try {
+        await supabase.from('payment_history').insert({
+          user_id: userId,
+          amount: 0,
+          package_type: targetReason.substring(0, 50), // 길이 제한 고려
+          status: 'success',
+        });
+      } catch (historyLogErr) {
+        console.warn('관리자 지급 히스토리 기록 실패 (무시 가능):', historyLogErr);
+      }
+
+    return { success: true, message: `성공적으로 ${count}장을 지급했습니다.` };
+  } catch (error) {
+    console.error('Unknown error in grantAdminViewingPass:', error);
+    return { success: false, message: '처리 중 오류가 발생했습니다: ' + (error.message || error.details) };
+  }
+};
+

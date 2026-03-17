@@ -18,8 +18,8 @@ const CustomerSearch = () => {
     areaRange: '',
     palletRange: ''
   });
-  const [allCustomers, setAllCustomers] = useState(customerData);
-  const [filteredCustomers, setFilteredCustomers] = useState(customerData);
+  const [allCustomers, setAllCustomers] = useState(() => customerData.map(c => ({ ...c, rnd: Math.random() })));
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -58,7 +58,12 @@ const CustomerSearch = () => {
         // sampleData와 승인된 고객사 합치기 (중복 제거)
         const existingIds = customerData.map(c => c.id);
         const newCustomers = mappedCustomers.filter(c => !existingIds.includes(c.id));
-        setAllCustomers([...customerData, ...newCustomers]);
+        const randomizedNew = newCustomers.map(c => ({ ...c, rnd: Math.random() }));
+        setAllCustomers(prev => {
+          // 기존에 없는 것만 추가
+          const randomizedExisting = prev.map(p => ({ ...p, rnd: p.rnd || Math.random() }));
+          return [...randomizedExisting, ...randomizedNew];
+        });
       } catch (error) {
         console.error('Error fetching customers:', error);
       }
@@ -143,30 +148,22 @@ const CustomerSearch = () => {
   // 프리미엄 고객사 (활성 프리미엄만, 최근 신청 순이 아닌 최초 결제 시간 우선 오름차순)
   const premiumCustomers = filteredCustomers
     .filter(c => {
-      // Supabase 데이터는 c.is_premium(boolean)을 확인
-      // sampleData 등 로컬 데이터는 c.isPremium을 확인하되, 명시적으로 true인 것만 (전체가 true로 오염되는 것 방지)
-      const isActivePremium = c.is_premium === true || (c.isPremium === true && c.id && c.id.toString().includes('premium_test')); // 샘플데이터 강제 프리미엄 방지
-      return isActivePremium;
+      const premiumItems = JSON.parse(localStorage.getItem('premiumItems') || '[]');
+      const isLocalPremium = premiumItems.some(item => 
+        item.itemId === c.id && item.itemType === 'customer' && item.isPremium
+      );
+      return c.is_premium || isLocalPremium;
     })
-    .sort((a, b) => {
-      const aApps = getItemPremiumApplications(a.id, 'customer');
-      const bApps = getItemPremiumApplications(b.id, 'customer');
-
-      const aDate = aApps.length > 0 ? new Date(aApps[0].createdAt).getTime() : 0;
-      const bDate = bApps.length > 0 ? new Date(bApps[0].createdAt).getTime() : 0;
-
-      if (aDate && bDate) return aDate - bDate; // 먼저 신청한 사람 우선
-      if (aDate) return -1;
-      if (bDate) return 1;
-
-      return getSortDate(b) - getSortDate(a);
-    });
+    .sort((a, b) => (a.rnd || 0) - (b.rnd || 0));
 
   // 일반 고객사
   const regularCustomers = filteredCustomers
     .filter(c => {
-      const isActivePremium = c.is_premium === true || (c.isPremium === true && c.id && c.id.toString().includes('premium_test'));
-      return !isActivePremium;
+      const premiumItems = JSON.parse(localStorage.getItem('premiumItems') || '[]');
+      const isLocalPremium = premiumItems.some(item => 
+        item.itemId === c.id && item.itemType === 'customer' && item.isPremium
+      );
+      return c.is_premium !== true && !isLocalPremium;
     })
     .sort((a, b) => getSortDate(b) - getSortDate(a));
 

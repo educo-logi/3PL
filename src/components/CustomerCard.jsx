@@ -9,6 +9,7 @@ import ViewingPassConfirmModal from './ViewingPassConfirmModal';
 import ViewingPassExpiredModal from './ViewingPassExpiredModal';
 import NoViewingPassModal from './NoViewingPassModal';
 import DetailModal from './DetailModal';
+import NudgePopup from './NudgePopup';
 import { useNavigate } from 'react-router-dom';
 import {
   checkViewingPass,
@@ -17,7 +18,8 @@ import {
   useViewingPass,
   getViewingPassInfo,
   canCompare,
-  getDisplayNameHelper
+  getDisplayNameHelper,
+  checkEventEligibility
 } from '../utils/viewingPassUtils';
 import { isPremiumActive } from '../utils/premiumUtils';
 
@@ -28,6 +30,7 @@ const CustomerCard = ({ customer, isPremium = false }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
   const [isNoPassModalOpen, setIsNoPassModalOpen] = useState(false);
+  const [isNudgePopupOpen, setIsNudgePopupOpen] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [isViewed, setIsViewed] = useState(false);
   const [currentPassInfo, setCurrentPassInfo] = useState(null);
@@ -70,6 +73,13 @@ const CustomerCard = ({ customer, isPremium = false }) => {
       return;
     }
 
+    // 본인 업체 확인
+    const isOwner = user.id === customer.id;
+    if (isOwner) {
+      setIsDetailModalOpen(true);
+      return;
+    }
+
     // 유효기간 확인
     const passInfo = await getViewingPassInfo();
     if (passInfo && isExpired(passInfo)) {
@@ -106,7 +116,20 @@ const CustomerCard = ({ customer, isPremium = false }) => {
     if (result.success) {
       setIsViewed(true);
       setIsConfirmModalOpen(false);
-      setIsDetailModalOpen(true);
+      
+      // 넛지 팝업 조건 확인: 잔여 1회 & 무료 패키지 & 유료 패키지 없음
+      if (result.remainingCount === 1 && result.packageType === 'welcome_free') {
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        checkEventEligibility(user?.id).then(isEligible => {
+          if (isEligible) {
+            setIsNudgePopupOpen(true);
+          } else {
+            setIsDetailModalOpen(true);
+          }
+        });
+      } else {
+        setIsDetailModalOpen(true);
+      }
     } else {
       alert(result.message);
       if (result.expired) {
@@ -131,6 +154,8 @@ const CustomerCard = ({ customer, isPremium = false }) => {
   };
 
   const displayName = getDisplayNameHelper(customer, 'customer', isViewed);
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  const isOwner = currentUser && currentUser.id === customer.id;
 
   return (
     <>
@@ -157,7 +182,12 @@ const CustomerCard = ({ customer, isPremium = false }) => {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-bold text-gray-900">{displayName}</h3>
-            {isViewed && (
+            {isOwner && (
+              <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+                My
+              </span>
+            )}
+            {isViewed && !isOwner && (
               <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
                 <Eye className="w-3 h-3" />
                 열람
@@ -197,9 +227,12 @@ const CustomerCard = ({ customer, isPremium = false }) => {
             <span>필요면적: {formatArea(customer.requiredArea)}</span>
           </div>
 
-          <div className="flex items-center text-gray-600">
-            <Package className="w-4 h-4 mr-2" />
-            <span>월평균출고량: {customer.monthlyVolume.toLocaleString()}개 (택배 송장 기준)</span>
+          <div className="flex items-start text-gray-600">
+            <Package className="w-4 h-4 mr-2 mt-1" />
+            <div className="flex flex-col">
+              <span>월평균출고량: {customer.monthlyVolume.toLocaleString()}개</span>
+              <span className="text-[11px] text-gray-400 font-normal">(택배 송장 기준)</span>
+            </div>
           </div>
 
           <div className="flex items-center text-gray-600">
@@ -263,6 +296,16 @@ const CustomerCard = ({ customer, isPremium = false }) => {
         onLogin={() => setIsLoginModalOpen(true)}
         onSignup={() => setIsSignupModalOpen(true)}
       />
+
+      {/* 넛지 팝업 */}
+      {isNudgePopupOpen && (
+        <NudgePopup 
+          onClose={() => {
+            setIsNudgePopupOpen(false);
+            setIsDetailModalOpen(true); // 넛지 닫으면 상세페이지는 보여줘야함
+          }} 
+        />
+      )}
     </>
   );
 };

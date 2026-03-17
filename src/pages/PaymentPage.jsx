@@ -16,12 +16,13 @@ const PaymentPage = () => {
   const [isExtending, setIsExtending] = useState(action === 'extend');
   const [currentPass, setCurrentPass] = useState(null);
   const [isEventEligible, setIsEventEligible] = useState(false);
-  const [showEventPopup, setShowEventPopup] = useState(false);
 
+  // 이벤트 대상 여부에 따라 패키지 구성이 동적으로 보이도록 처리
   const packages = {
-    basic: { count: 10, price: 50000, validityMonths: 3, name: '기본 패키지' },
-    premium: { count: 20, price: 90000, validityMonths: 3, name: '프리미엄 패키지', discount: '10% 할인', disabled: true },
-    deluxe: { count: 30, price: 130000, validityMonths: 3, name: '디럭스 패키지', discount: '13% 할인', disabled: true }
+    welcome_event: { count: 10, price: 9900, originalPrice: 50000, validityMonths: 12, name: '처음 봄 이벤트 10회권 특가', isEvent: true },
+    basic: { count: 10, price: 50000, validityMonths: 12, name: '기본 패키지' },
+    premium: { count: 20, price: 90000, validityMonths: 12, name: '프리미엄 패키지', discount: '10% 할인' },
+    deluxe: { count: 30, price: 130000, validityMonths: 12, name: '디럭스 패키지', discount: '13% 할인' }
   };
 
   useEffect(() => {
@@ -44,7 +45,9 @@ const PaymentPage = () => {
       checkEventEligibility(user.id).then(eligible => {
         setIsEventEligible(eligible);
         if (eligible) {
-          setShowEventPopup(true);
+          setSelectedPackage('welcome_event');
+        } else {
+          setSelectedPackage('basic');
         }
       });
     }
@@ -66,15 +69,9 @@ const PaymentPage = () => {
     setIsProcessing(true);
 
     try {
-      const isEvent = isEventEligible && selectedPackage === 'basic';
-      const amount = isEvent ? 0 : (isExtending ? 45000 : packages[selectedPackage].price);
+      const isWelcomeEvent = selectedPackage === 'welcome_event';
+      const amount = isExtending ? 45000 : packages[selectedPackage].price;
       
-      // 금액이 0원(무료 이벤트)인 경우 PG를 거치지 않고 바로 성공 페이지로 이동
-      if (amount === 0) {
-        window.location.href = `/payment/success?packageType=${selectedPackage}&isEvent=true&freePass=true`;
-        return;
-      }
-
       const tossPayments = await loadTossPayments('test_ck_ZLKGPx4M3MGk5NPWgyaRrBaWypv1');
       const orderId = `order_${new Date().getTime()}_${currentUser.id}`;
       const orderName = isExtending ? '열람권 연장' : packages[selectedPackage].name;
@@ -89,7 +86,7 @@ const PaymentPage = () => {
         orderId,
         orderName,
         customerName: latestUser.name || latestUser.companyName || '고객',
-        successUrl: `${window.location.origin}/payment/success?packageType=${selectedPackage}&isEvent=${isEvent}&isExtending=${isExtending}`,
+        successUrl: `${window.location.origin}/payment/success?packageType=${selectedPackage}&isEvent=${isWelcomeEvent}&isExtending=${isExtending}`,
         failUrl: `${window.location.origin}/payment/fail`
       });
     } catch (err) {
@@ -111,7 +108,13 @@ const PaymentPage = () => {
   const isApproved = latestUser.status === 'approved';
   const isPending = latestUser.status === 'pending' || !latestUser.status;
 
-  const selectedPackageInfo = packages[selectedPackage];
+  const selectedPackageInfo = packages[selectedPackage] || packages.basic;
+  
+  // 렌더링할 패키지 필터링 (이벤트 대상이 아니면 welcome_event 숨김)
+  const displayPackages = Object.entries(packages).filter(([key, pkg]) => {
+    if (key === 'welcome_event' && !isEventEligible) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -189,8 +192,72 @@ const PaymentPage = () => {
               {/* 패키지 선택 */}
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">패키지 선택</h2>
+
+                {/* 1. 처음 봄 특가 (타겟 이벤트 - 100% 너비) */}
+                {displayPackages.find(([k]) => k === 'welcome_event') && (() => {
+                  const [key, pkg] = displayPackages.find(([k]) => k === 'welcome_event');
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => !pkg.disabled && setSelectedPackage(key)}
+                      disabled={pkg.disabled}
+                      style={{
+                        backgroundImage: `linear-gradient(rgba(255, 240, 245, 0.7), rgba(255, 255, 255, 0.9)), url('https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&q=80&w=1200')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center 30%',
+                      }}
+                      className={`w-full p-6 mb-4 rounded-2xl border-2 transition-all relative overflow-hidden group ${
+                        selectedPackage === key 
+                          ? 'border-rose-500 shadow-md ring-4 ring-rose-100' 
+                          : 'border-rose-200 hover:border-rose-400'
+                      }`}
+                    >
+                      <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between text-left gap-4">
+                        <div className="flex-1">
+                           <div className="flex items-center gap-3 mb-2">
+                             <div className="flex flex-col">
+                               <h3 className="text-2xl font-black text-rose-900">{pkg.name}</h3>
+                               <span className="text-xs text-rose-700/80 font-medium mt-1">First Spring Event 10-Pass Special Price</span>
+                             </div>
+                             <span className="text-xs bg-gradient-to-r from-rose-500 to-pink-500 text-white px-2.5 py-1 rounded shadow-sm font-bold animate-pulse">
+                               ⭐ 첫 구매 한정
+                             </span>
+                           </div>
+                          <p className={`text-2xl font-bold mb-1 text-rose-600`}>
+                            {pkg.count}회
+                          </p>
+                           <p className="text-sm text-gray-700 font-medium mt-1">
+                             유효기간: {pkg.validityMonths}개월
+                           </p>
+                        </div>
+
+                        <div className="flex flex-col items-start md:items-end shrink-0 md:pl-8 md:border-l border-rose-200/50 mt-4 md:mt-0 w-full md:w-auto">
+                          <div className="flex flex-col md:items-end">
+                            <span className="text-gray-400 text-sm decoration-2 line-through font-medium">
+                              {pkg.originalPrice.toLocaleString()}원
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-4xl font-black text-rose-600">
+                                {pkg.price.toLocaleString()}
+                              </span>
+                              <span className="text-xl font-bold text-rose-600">원</span>
+                            </div>
+                          </div>
+                      
+                          {selectedPackage === key && (
+                            <div className="mt-3 text-sm font-bold flex items-center text-rose-600 bg-rose-50 px-3 py-1.5 rounded-full shadow-sm">
+                              <CheckCircle className="w-4 h-4 mr-1.5" /> 선택됨
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+
+                {/* 2. 일반 패키지 (기본, 프리미엄, 디럭스 - Grid) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(packages).map(([key, pkg]) => (
+                  {displayPackages.filter(([k]) => k !== 'welcome_event').map(([key, pkg]) => (
                     <button
                       key={key}
                       onClick={() => !pkg.disabled && setSelectedPackage(key)}
@@ -204,49 +271,33 @@ const PaymentPage = () => {
                     >
                       {pkg.disabled && (
                         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center transform -rotate-12 z-10">
-                          <span className="bg-gray-600 text-white px-3 py-1 text-sm font-bold shadow-lg">이벤트 기간 중지</span>
+                          <span className="bg-gray-600 text-white px-3 py-1 text-sm font-bold shadow-lg">이벤트 연기</span>
                         </div>
                       )}
 
-                      <div className="text-left">
+                      <div className="text-left relative z-10">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-semibold text-gray-900">{pkg.name}</h3>
-                          {key === 'basic' && isEventEligible && (
-                            <span className="text-xs bg-red-600 text-white px-2 py-1 rounded animate-pulse font-bold">
-                              EVENT
-                            </span>
-                          )}
-                          {!pkg.disabled && key !== 'basic' && pkg.discount && (
+                          {!pkg.disabled && pkg.discount && (
                             <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
                               {pkg.discount}
                             </span>
                           )}
                         </div>
-                        <p className="text-2xl font-bold text-primary-600 mb-1">
+                        <p className="text-2xl font-bold mb-1 text-primary-600">
                           {pkg.count}회
                         </p>
                         <p className="text-sm text-gray-600 mb-2">
                           유효기간: {pkg.validityMonths}개월
                         </p>
 
-                        {key === 'basic' && isEventEligible ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-gray-400 text-lg decoration-2 line-through">
-                              {pkg.price.toLocaleString()}원
-                            </span>
-                            <span className="text-3xl font-black text-red-600">
-                              0원
-                            </span>
-                          </div>
-                        ) : (
-                          <p className="text-lg font-bold text-gray-900">
-                            {pkg.price.toLocaleString()}원
-                          </p>
-                        )}
+                        <p className="text-lg font-bold text-gray-900 mt-5">
+                          {pkg.price.toLocaleString()}원
+                        </p>
 
                         {selectedPackage === key && !pkg.disabled && (
-                          <div className="mt-2 text-primary-600 text-sm font-semibold">
-                            ✓ 선택됨
+                          <div className="mt-2 text-sm font-semibold flex items-center text-primary-600">
+                            <CheckCircle className="w-4 h-4 mr-1" /> 선택됨
                           </div>
                         )}
                       </div>
@@ -273,8 +324,8 @@ const PaymentPage = () => {
                   </div>
                   <div className="flex justify-between pt-2 border-t">
                     <span className="text-lg font-semibold text-gray-900">결제 금액</span>
-                    <span className="text-2xl font-bold text-primary-600">
-                      {isEventEligible && selectedPackage === 'basic' ? '0원 (이벤트 무료)' : `${selectedPackageInfo.price.toLocaleString()}원`}
+                    <span className={`text-2xl font-bold ${selectedPackage === 'welcome_event' ? 'text-rose-600' : 'text-primary-600'}`}>
+                      {selectedPackageInfo.price.toLocaleString()}원
                     </span>
                   </div>
                 </div>
@@ -335,7 +386,7 @@ const PaymentPage = () => {
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5 mr-2" />
-                      {isEventEligible && selectedPackage === 'basic' ? '0원 결제하고 시작하기' : `${selectedPackageInfo.price.toLocaleString()}원 결제하기`}
+                      {`${selectedPackageInfo.price.toLocaleString()}원 결제하기`}
                     </>
                   )}
                 </button>
@@ -352,42 +403,6 @@ const PaymentPage = () => {
           </div>
         )}
       </div>
-
-      {/* 이벤트 팝업 */}
-      {showEventPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden relative">
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-center">
-              <Star className="w-12 h-12 text-yellow-300 mx-auto mb-2 animate-bounce" />
-              <h3 className="text-2xl font-bold text-white mb-1">🎁 오픈 이벤트! 🎁</h3>
-              <p className="text-purple-100">기본 열람권을 무료로 드려요</p>
-            </div>
-            <div className="p-6 text-center space-y-4">
-              <div className="space-y-2">
-                <p className="text-gray-600">
-                  지금 가입하고 첫 결제 시<br />
-                  <span className="text-lg font-bold text-primary-600">기본 패키지(10회)</span>가
-                </p>
-                <div className="flex items-center justify-center gap-2 text-2xl font-bold">
-                  <span className="text-gray-400 line-through">50,000원</span>
-                  <span>→</span>
-                  <span className="text-red-500 text-3xl">0원!</span>
-                </div>
-                <p className="text-sm text-gray-500 pt-2">
-                  * ID 및 사업자번호 기준 최초 1회 한정<br />
-                  * 소진 시 조기 종료될 수 있습니다.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowEventPopup(false)}
-                className="w-full bg-primary-600 text-white py-3 rounded-lg font-bold hover:bg-primary-700 transition-colors"
-              >
-                무료로 받기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

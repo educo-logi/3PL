@@ -16,7 +16,7 @@ export const warehouseData = [
     products: ["공산품", "전자제품"],
     phone: "02-1234-5678",
     email: "contact@korealogistics.com",
-    isPremium: true,
+    isPremium: false,
     premiumLevel: 1,
     description: "서울 강남구 소재의 대형 물류센터입니다."
   },
@@ -36,7 +36,7 @@ export const warehouseData = [
     products: ["식품", "공산품"],
     phone: "032-1234-5678",
     email: "info@incheonlogistics.com",
-    isPremium: true,
+    isPremium: false,
     premiumLevel: 2,
     description: "인천항 인근의 전략적 위치 물류센터입니다."
   },
@@ -56,7 +56,7 @@ export const warehouseData = [
     products: ["의류", "전자제품"],
     phone: "031-1234-5678",
     email: "contact@gglogistics.com",
-    isPremium: true,
+    isPremium: false,
     premiumLevel: 3,
     description: "경기도 내 최대 규모의 물류센터입니다."
   },
@@ -353,7 +353,7 @@ export const customerData = [
     email: "contact@daehan.test",
     desiredDelivery: ["CJ", "롯데", "우체국"],
     description: "국내 1위 글로벌 브랜드 유통사 (프리미엄 샘플)",
-    isPremium: true,
+    isPremium: false,
     premiumLevel: 3
   },
   {
@@ -369,7 +369,7 @@ export const customerData = [
     email: "manager@starmart.test",
     desiredDelivery: ["CJ", "쿠팡"],
     description: "전국구 신선식품 당일배송 전문 (프리미엄 샘플)",
-    isPremium: true,
+    isPremium: false,
     premiumLevel: 2
   },
   {
@@ -385,7 +385,7 @@ export const customerData = [
     email: "hello@ecofarms.test",
     desiredDelivery: ["로젠", "우체국"],
     description: "친환경 유기농 전문 산지직송 브랜드 (프리미엄 샘플)",
-    isPremium: true,
+    isPremium: false,
     premiumLevel: 1
   },
   {

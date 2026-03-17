@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, X, CheckCircle, AlertCircle, CreditCard, Building2, Users } from 'lucide-react';
+import { Bell, X, CheckCircle, AlertCircle, CreditCard, Building2, Users, Gift } from 'lucide-react';
+import { supabase } from '../utils/supabaseClient';
 
 const NotificationCenter = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
@@ -10,19 +11,78 @@ const NotificationCenter = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  const loadNotifications = () => {
+  const loadNotifications = async () => {
     const stored = JSON.parse(localStorage.getItem('notifications') || '[]');
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
     
+    console.log('[NotificationCenter] Current User:', currentUser);
+    console.log('[NotificationCenter] Local Stored Notifications:', stored);
+
     if (currentUser) {
-      const userNotifications = stored
+      // 1. 로컬 저장소 알림
+      const localNotifications = stored
         .filter(n => n.userId === currentUser.id)
+        .map(n => ({ ...n, source: 'local' }));
+
+      // 2. [신규] 클라우드 DB (지급 히스토리) 알림 연동
+      let dbNotifications = [];
+      try {
+        const { data: dbHistory, error } = await supabase
+          .from('payment_history')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .eq('amount', 0) // 선물 지급 내역만
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+        const deletedIds = JSON.parse(localStorage.getItem('deletedNotifications') || '[]');
+
+        dbNotifications = (dbHistory || [])
+          .filter(h => !deletedIds.includes(`db-${h.id}`)) // 삭제된 알림 제외
+          .map(h => {
+            const isPremium = h.package_type?.includes('프리미엄') || h.package_type?.includes('custom');
+            
+            return {
+              id: `db-${h.id}`,
+              userId: h.user_id,
+              type: 'purchase',
+              title: isPremium ? '👑 프리미엄 혜택 특별 지급' : '🎁 열람권 특별 지급 안내',
+              message: isPremium 
+                ? `관리자가 프리미엄 서비스를 특별 지급했습니다. (${(h.package_type || '').replace(' - ', ' : ')})` 
+                : `관리자가 열람권을 특별 지급했습니다. (${(h.package_type || '').replace(' - ', ' : ')})`,
+              read: readIds.includes(`db-${h.id}`), // 로컬 동기화 읽음 여부 판단
+              createdAt: h.created_at,
+              source: 'db'
+            };
+          });
+
+        console.log('[NotificationCenter] Cloud DB Notifications loaded:', dbNotifications.length);
+      } catch (err) {
+        console.warn('DB 알림 수신 실패:', err);
+      }
+
+      // 3. 하이브리드 병합 및 정렬
+      const merged = [...localNotifications, ...dbNotifications]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setNotifications(userNotifications);
+      
+      console.log('[NotificationCenter] Hybrid Merged list:', merged);
+      setNotifications(merged);
     }
   };
 
   const markAsRead = (notificationId) => {
+    if (notificationId.startsWith('db-')) {
+      const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+      if (!readIds.includes(notificationId)) {
+        readIds.push(notificationId);
+        localStorage.setItem('readNotifications', JSON.stringify(readIds));
+      }
+      loadNotifications();
+      return;
+    }
+
     const stored = JSON.parse(localStorage.getItem('notifications') || '[]');
     const updated = stored.map(n => 
       n.id === notificationId ? { ...n, read: true } : n
@@ -32,6 +92,16 @@ const NotificationCenter = ({ isOpen, onClose }) => {
   };
 
   const deleteNotification = (notificationId) => {
+    if (notificationId.startsWith('db-')) {
+      const deletedIds = JSON.parse(localStorage.getItem('deletedNotifications') || '[]');
+      if (!deletedIds.includes(notificationId)) {
+        deletedIds.push(notificationId);
+        localStorage.setItem('deletedNotifications', JSON.stringify(deletedIds));
+      }
+      loadNotifications();
+      return;
+    }
+
     const stored = JSON.parse(localStorage.getItem('notifications') || '[]');
     const updated = stored.filter(n => n.id !== notificationId);
     localStorage.setItem('notifications', JSON.stringify(updated));

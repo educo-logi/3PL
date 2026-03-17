@@ -65,8 +65,9 @@ const Header = () => {
 
   // 알림 개수 확인
   useEffect(() => {
-    const updateUnreadCount = () => {
-      setUnreadCount(getUnreadNotificationCount());
+    const updateUnreadCount = async () => {
+      const count = await getUnreadNotificationCount();
+      setUnreadCount(count || 0);
     };
 
     updateUnreadCount();

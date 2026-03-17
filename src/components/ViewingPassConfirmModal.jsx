@@ -32,7 +32,7 @@ const ViewingPassConfirmModal = ({
         <div className="p-6">
           <div className="mb-4">
             <p className="text-gray-700 mb-2">
-              <strong className="text-gray-900">{itemName}</strong> ({itemTypeName})의 상세 정보를 보시려면
+              <strong className="text-gray-900">해당 {itemTypeName}</strong>의 상세 정보를 보시려면
             </p>
             <p className="text-lg font-semibold text-primary-600">
               열람권 1회가 소진됩니다.

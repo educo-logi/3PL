@@ -18,8 +18,8 @@ const WarehouseSearch = () => {
     areaRange: '',
     palletRange: ''
   });
-  const [allWarehouses, setAllWarehouses] = useState(warehouseData);
-  const [filteredWarehouses, setFilteredWarehouses] = useState(warehouseData);
+  const [allWarehouses, setAllWarehouses] = useState(() => warehouseData.map(w => ({ ...w, rnd: Math.random() })));
+  const [filteredWarehouses, setFilteredWarehouses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -59,8 +59,12 @@ const WarehouseSearch = () => {
         // sampleData와 Supabase 데이터 합치기 (중복 제거)
         const existingIds = warehouseData.map(w => w.id);
         const newWarehouses = mappedWarehouses.filter(w => !existingIds.includes(w.id));
+        const randomizedNew = newWarehouses.map(w => ({ ...w, rnd: Math.random() }));
 
-        setAllWarehouses([...warehouseData, ...newWarehouses]);
+        setAllWarehouses(prev => {
+          const randomizedExisting = prev.map(p => ({ ...p, rnd: p.rnd || Math.random() }));
+          return [...randomizedExisting, ...randomizedNew];
+        });
       } catch (error) {
         console.error('Error fetching warehouses:', error);
       }
@@ -173,26 +177,25 @@ const WarehouseSearch = () => {
   // 프리미엄 상태를 비동기로 미리 한 번씩 모두 가져와 확정 짓는 로직 (우선 기존 로컬 스토리지 또는 DB의 isPremium 뷰 필드 의존)
   // 프리미엄 창고 (활성 프리미엄만, 최근 신청 순이 아닌 최초 결제 시간 우선 오름차순)
   const premiumWarehouses = filteredWarehouses
-    .filter(w => w.isPremium || w.is_premium)
-    .sort((a, b) => {
-      // 1순위: 프리미엄 결제일자 (최초 결제일자 오름차순 = 먼저 신청한 사람이 왼쪽(최상단))
-      const aApps = getItemPremiumApplications(a.id, 'warehouse');
-      const bApps = getItemPremiumApplications(b.id, 'warehouse');
-
-      const aDate = aApps.length > 0 ? new Date(aApps[0].createdAt).getTime() : 0;
-      const bDate = bApps.length > 0 ? new Date(bApps[0].createdAt).getTime() : 0;
-
-      if (aDate && bDate) return aDate - bDate; // 먼저 신청한 사람 우선
-      if (aDate) return -1;
-      if (bDate) return 1;
-
-      // 2순위: 가입/승인일자 최신순
-      return getSortDate(b) - getSortDate(a);
-    });
+    .filter(w => {
+      // DB의 is_premium 필드뿐만 아니라, 로컬 스토리지의 결제 내역도 즉시 반영되도록 체크
+      const premiumItems = JSON.parse(localStorage.getItem('premiumItems') || '[]');
+      const isLocalPremium = premiumItems.some(item => 
+        item.itemId === w.id && item.itemType === 'warehouse' && item.isPremium
+      );
+      return w.is_premium || isLocalPremium;
+    })
+    .sort((a, b) => (a.rnd || 0) - (b.rnd || 0));
 
   // 일반 창고
   const regularWarehouses = filteredWarehouses
-    .filter(w => !(w.isPremium || w.is_premium))
+    .filter(w => {
+      const premiumItems = JSON.parse(localStorage.getItem('premiumItems') || '[]');
+      const isLocalPremium = premiumItems.some(item => 
+        item.itemId === w.id && item.itemType === 'warehouse' && item.isPremium
+      );
+      return w.is_premium !== true && !isLocalPremium;
+    })
     .sort((a, b) => getSortDate(b) - getSortDate(a));
 
   // 페이지네이션

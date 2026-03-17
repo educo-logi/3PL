@@ -61,11 +61,13 @@ const Home = () => {
           return getSortDate(b) - getSortDate(a);
         });
 
-        // Add premium details
-        const warehousesWithPremium = sortedWarehouses.map(w => ({
-          ...w,
-          isPremium: isPremiumActive(w.id, 'warehouse') || w.isPremium
-        }));
+        // Add premium details (Async fix)
+        const warehousesWithPremium = await Promise.all(
+          sortedWarehouses.map(async (w) => ({
+            ...w,
+            isPremium: await isPremiumActive(w.id, 'warehouse')
+          }))
+        );
 
         setRecentWarehouses(warehousesWithPremium.slice(0, 4));
 
@@ -119,11 +121,13 @@ const Home = () => {
           return getSortDate(b) - getSortDate(a);
         });
 
-        // Add premium details
-        const customersWithPremium = sortedCustomers.map(c => ({
-          ...c,
-          isPremium: isPremiumActive(c.id, 'customer') || c.isPremium
-        }));
+        // Add premium details (Async fix)
+        const customersWithPremium = await Promise.all(
+          sortedCustomers.map(async (c) => ({
+            ...c,
+            isPremium: await isPremiumActive(c.id, 'customer')
+          }))
+        );
 
         setRecentCustomers(customersWithPremium.slice(0, 4));
 
@@ -251,7 +255,7 @@ const Home = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {recentWarehouses.map(warehouse => (
-                <WarehouseCard key={warehouse.id} warehouse={warehouse} />
+                <WarehouseCard key={warehouse.id} warehouse={warehouse} isPremium={warehouse.isPremium} />
               ))}
             </div>
           </div>
@@ -272,7 +276,7 @@ const Home = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {recentCustomers.map(customer => (
-                <CustomerCard key={customer.id} customer={customer} />
+                <CustomerCard key={customer.id} customer={customer} isPremium={customer.isPremium} />
               ))}
             </div>
           </div>

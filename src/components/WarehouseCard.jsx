@@ -9,6 +9,7 @@ import ViewingPassConfirmModal from './ViewingPassConfirmModal';
 import ViewingPassExpiredModal from './ViewingPassExpiredModal';
 import NoViewingPassModal from './NoViewingPassModal';
 import DetailModal from './DetailModal';
+import NudgePopup from './NudgePopup';
 import { useNavigate } from 'react-router-dom';
 import {
   checkViewingPass,
@@ -17,7 +18,8 @@ import {
   useViewingPass,
   getViewingPassInfo,
   canCompare,
-  getDisplayNameHelper
+  getDisplayNameHelper,
+  checkEventEligibility
 } from '../utils/viewingPassUtils';
 import CompareNotAvailableModal from './CompareNotAvailableModal';
 
@@ -29,6 +31,7 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
   const [isNoPassModalOpen, setIsNoPassModalOpen] = useState(false);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  const [isNudgePopupOpen, setIsNudgePopupOpen] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [isViewed, setIsViewed] = useState(false);
   const [currentPassInfo, setCurrentPassInfo] = useState(null);
@@ -71,6 +74,13 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
       return;
     }
 
+    // 본인 업체 확인
+    const isOwner = user.id === warehouse.id;
+    if (isOwner) {
+      setIsDetailModalOpen(true);
+      return;
+    }
+
     // 유효기간 확인
     const passInfo = await getViewingPassInfo();
     if (passInfo && isExpired(passInfo)) {
@@ -107,7 +117,20 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
     if (result.success) {
       setIsViewed(true); // Update UI immediately
       setIsConfirmModalOpen(false);
-      setIsDetailModalOpen(true);
+      
+      // 넛지 팝업 조건 확인: 잔여 1회 & 무료 패키지 & 유료 패키지 없음
+      if (result.remainingCount === 1 && result.packageType === 'welcome_free') {
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        checkEventEligibility(user?.id).then(isEligible => {
+          if (isEligible) {
+            setIsNudgePopupOpen(true);
+          } else {
+            setIsDetailModalOpen(true);
+          }
+        });
+      } else {
+        setIsDetailModalOpen(true);
+      }
     } else {
       alert(result.message);
       if (result.expired) {
@@ -133,6 +156,8 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
 
   // Display Name Helper (using sync logic for masking based on isViewed state)
   const displayName = getDisplayNameHelper(warehouse, 'warehouse', isViewed);
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  const isOwner = currentUser && currentUser.id === warehouse.id;
 
   return (
     <>
@@ -160,7 +185,12 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-bold text-gray-900">{displayName}</h3>
-            {isViewed && (
+            {isOwner && (
+              <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+                My
+              </span>
+            )}
+            {isViewed && !isOwner && (
               <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
                 <Eye className="w-3 h-3" />
                 열람
@@ -196,15 +226,15 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
             </span>
           </div>
 
-          <div className="flex items-center text-gray-600">
-            <Square className="w-4 h-4 mr-2" />
-            <span>이용가능: {formatArea(warehouse.availableArea)} / 이용가능 팔레트: {warehouse.palletCount}개</span>
+          <div className="flex items-start text-gray-600">
+            <Square className="w-4 h-4 mr-2 mt-1" />
+            <div className="flex flex-col">
+              <span>이용가능: {formatArea(warehouse.availableArea)}</span>
+              <span>이용가능 팔레트: {warehouse.palletCount}개</span>
+            </div>
           </div>
 
-          <div className="flex items-center text-gray-600">
-            <Thermometer className="w-4 h-4 mr-2" />
-            <span>보관방식: {warehouse.temperature}</span>
-          </div>
+
 
           <div className="flex items-center text-gray-600">
             <Truck className="w-4 h-4 mr-2" />
@@ -212,13 +242,9 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
           </div>
         </div>
 
-        {isPremium && (
-          <div className="space-y-2 text-sm text-gray-600 mb-4">
-            <p><span className="font-semibold">경력:</span> {warehouse.experience}</p>
-            <p><span className="font-semibold">취급물품:</span> {warehouse.products.join(', ')}</p>
-            <p><span className="font-semibold">솔루션:</span> {warehouse.solution}</p>
-          </div>
-        )}
+        <div className="space-y-2 text-sm text-gray-600 mb-4">
+          <p><span className="font-semibold">취급물품:</span> {warehouse.products && warehouse.products.length > 0 ? warehouse.products.join(', ') : '전체 취급'}</p>
+        </div>
 
         <button
           onClick={handleDetailClick}
@@ -286,6 +312,16 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
           type: 'warehouse'
         }] : []}
       />
+
+      {/* 넛지 팝업 */}
+      {isNudgePopupOpen && (
+        <NudgePopup 
+          onClose={() => {
+            setIsNudgePopupOpen(false);
+            setIsDetailModalOpen(true); // 넛지 닫으면 상세페이지는 보여줘야함
+          }} 
+        />
+      )}
     </>
   );
 };

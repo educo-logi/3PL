@@ -41,38 +41,7 @@ const PaymentHistoryPage = () => {
                     userName: user.company_name || user.companyName || user.name || '알 수 없는 사용자'
                 }));
 
-                // 더미 데이터(임시) 추가 - 추후 삭제 예정
-                const dummyPayments = [
-                    {
-                        id: 'dummy-1',
-                        created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3일 전
-                        package_type: '5일 프리미엄',
-                        amount: 50000,
-                        status: 'success',
-                        user_id: user.id,
-                        userName: user.company_name || user.companyName || user.name || '알 수 없는 사용자'
-                    },
-                    {
-                        id: 'dummy-2',
-                        created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(), // 10일 전
-                        package_type: '1개월 열람권',
-                        amount: 99000,
-                        status: 'success',
-                        user_id: user.id,
-                        userName: user.company_name || user.companyName || user.name || '알 수 없는 사용자'
-                    },
-                    {
-                        id: 'dummy-3',
-                        created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(), // 15일 전
-                        package_type: '10일 프리미엄',
-                        amount: 80000,
-                        status: 'success',
-                        user_id: user.id,
-                        userName: user.company_name || user.companyName || user.name || '알 수 없는 사용자'
-                    }
-                ];
-
-                setPayments([...dummyPayments, ...mappedData]);
+                setPayments([...mappedData]);
             } catch (err) {
                 console.error('Failed to load payment history:', err);
             } finally {
@@ -154,7 +123,13 @@ const PaymentHistoryPage = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
                                                 <button
-                                                    onClick={() => handleOpenReceipt(payment)}
+                                                    onClick={() => {
+                                                        if (payment.receipt_url) {
+                                                            window.open(payment.receipt_url, '_blank', 'width=800,height=900,scrollbars=yes');
+                                                        } else {
+                                                            handleOpenReceipt(payment);
+                                                        }
+                                                    }}
                                                     className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                                                 >
                                                     <ExternalLink className="w-4 h-4 mr-1.5" />

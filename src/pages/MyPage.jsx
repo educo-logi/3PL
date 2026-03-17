@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Building2, Users, Edit, LogOut, ArrowLeft, Save, X, CreditCard, Calendar, Eye, Map, Phone, Mail, Package, Truck, Monitor, Box, Snowflake, Thermometer, CheckCircle2, Layers, Archive, Activity, Briefcase, MapPin } from 'lucide-react';
 import { regions, detailedRegions, dongData } from '../data/sampleData';
-import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatistics, getItemDetail } from '../utils/viewingPassUtils';
+import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatistics, getItemDetail, checkAndGrantWelcomePass, checkEventEligibility } from '../utils/viewingPassUtils';
 
 import DetailModal from '../components/DetailModal';
 import ProfileEditModal from '../components/mypage/ProfileEditModal';
+import WelcomeEventPopup from '../components/WelcomeEventPopup';
 import UserInfoCard from '../components/mypage/UserInfoCard';
 import { supabase } from '../utils/supabaseClient';
 import { Star, Clock } from 'lucide-react';
@@ -22,6 +23,15 @@ const MyPage = () => {
   // 상세 모달 상태
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
+  // 웰컴 이벤트 모달 상태
+  const [isWelcomeEventModalOpen, setIsWelcomeEventModalOpen] = useState(false);
+  const [isEventEligible, setIsEventEligible] = useState(false);
+
+  // [신규] 전체 열람 내역 모달 상태
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const itemsPerPage = 10;
 
   const navigate = useNavigate();
 
@@ -53,13 +63,34 @@ const MyPage = () => {
     };
     fetchFreshUserData();
 
-    // 열람권 정보 로드
+    // 열람권 정보 로드 및 웰컴 이벤트 체크
     const loadData = async () => {
+      // 1. 웰컴 이벤트 발급 검사 (최초 로그인 시 3장 지급 로직)
+      const welcomeResult = await checkAndGrantWelcomePass();
+      if (welcomeResult.success) {
+        setIsWelcomeEventModalOpen(true); // 지급 성공 시 팝업 노출
+      }
+
+      const eligible = await checkEventEligibility(user.id);
+      setIsEventEligible(eligible);
+
       const passInfo = await getViewingPassInfo();
       setViewingPassInfo(passInfo);
       const history = await getUsageHistory();
       setUsageHistory(history);
-      setUsageStatistics(getUsageStatistics());
+
+      // [통계 직접 계산] 외부 유틸에 의존하지 않고 로드된 history 기반으로 집계
+      const totalUsed = history.length;
+      const now = new Date();
+      const thisMonthCount = history.filter(h => {
+        const d = new Date(h.date || h.viewed_at);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      }).length;
+
+      setUsageStatistics({
+        totalUsed,
+        monthlyUsage: [{ count: thisMonthCount }] // UI 노출용 호환 구조
+      });
     };
     loadData();
   }, [navigate]);
@@ -70,7 +101,18 @@ const MyPage = () => {
     setViewingPassInfo(passInfo);
     const history = await getUsageHistory();
     setUsageHistory(history);
-    setUsageStatistics(getUsageStatistics());
+
+    const totalUsed = history.length;
+    const now = new Date();
+    const thisMonthCount = history.filter(h => {
+      const d = new Date(h.date || h.viewed_at);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
+
+    setUsageStatistics({
+      totalUsed,
+      monthlyUsage: [{ count: thisMonthCount }]
+    });
   };
 
   const handleLogout = () => {
@@ -391,7 +433,13 @@ const MyPage = () => {
                       </div>
                     ))}
                     {usageHistory.length > 5 && (
-                      <button className="ml-4 text-xs text-primary-600 hover:text-primary-700 font-medium">
+                      <button 
+                        onClick={() => {
+                          setHistoryPage(1);
+                          setIsHistoryModalOpen(true);
+                        }}
+                        className="ml-4 text-xs text-primary-600 hover:text-primary-700 font-medium"
+                      >
                         + 더보기
                       </button>
                     )}
@@ -406,6 +454,36 @@ const MyPage = () => {
 
           {/* Right Column (Usage History, Stats, Details) */}
           <div className="lg:col-span-2 space-y-6">
+
+            {isEventEligible && (
+              <div 
+                onClick={() => navigate('/payment')}
+                className="bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl p-5 text-white shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 flex items-center justify-between group overflow-hidden relative"
+              >
+                <div className="absolute -right-6 -top-6 w-24 h-24 bg-rose-400 rounded-full opacity-30 blur-2xl group-hover:scale-125 transition-transform duration-300"></div>
+                <div className="absolute right-12 bottom-0 w-20 h-20 bg-pink-400 rounded-full opacity-30 blur-xl"></div>
+                
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl">
+                    🌸
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="bg-white/20 backdrop-blur-sm text-[11px] font-bold px-1.5 py-0.5 rounded text-white">첫 구매 한정</span>
+                      <p className="text-xs font-semibold text-rose-100">지금 결제하면 1년 내내 든든하게!</p>
+                    </div>
+                    <p className="text-lg font-black tracking-tight leading-snug">
+                      처음 봄 이벤트 10회권 <span className="text-yellow-300">9,900원</span> 특가 보러가기
+                    </p>
+                  </div>
+                </div>
+                
+                <button className="bg-white text-rose-600 px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-rose-50 transition-colors flex items-center shrink-0 ml-4 group-hover:scale-105 duration-200">
+                  혜택 보기
+                  <ArrowLeft className="w-4 h-4 ml-1 rotate-180 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            )}
 
 
             <div className="bg-white rounded-lg shadow-lg p-6">
@@ -753,6 +831,75 @@ const MyPage = () => {
             window.location.reload();
           }}
         />
+
+        {/* 웰컴 이벤트 팝업 */}
+        <WelcomeEventPopup
+          isOpen={isWelcomeEventModalOpen}
+          onClose={() => {
+            setIsWelcomeEventModalOpen(false);
+            refreshViewingPassInfo(); // 팝업 닫을 때 갱신된 내역(3회 추가)을 화면에 반영
+          }}
+        />
+
+        {/* [신규] 전체 열람 내역 모달 */}
+        {isHistoryModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-6">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 flex flex-col h-[70vh]">
+              <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                  <Activity className="w-5 h-5 text-primary-600 mr-2" />
+                  전체 열람 내역
+                </h3>
+                <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 리스트 영역 (스크롤 가능) */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
+                {usageHistory
+                  .slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage)
+                  .map((item, index) => (
+                    <div 
+                      key={index} 
+                      className="p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+                      onClick={() => {
+                        handleHistoryItemClick(item);
+                        setIsHistoryModalOpen(false); // 상세 모달 열면서 목록 닫기
+                      }}
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">{item.itemName}</p>
+                        <span className="text-xs text-gray-400">{new Date(item.date).toLocaleDateString('ko-KR')}</span>
+                      </div>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
+                        - {item.countUsed}
+                      </span>
+                    </div>
+                ))}
+              </div>
+
+              {/* 페이지네이션 (하단 영역) */}
+              <div className="flex justify-center items-center gap-4 mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
+                <button 
+                  disabled={historyPage === 1} 
+                  onClick={() => setHistoryPage(p => p - 1)}
+                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm disabled:opacity-50"
+                >
+                  이전
+                </button>
+                <span className="text-sm font-medium text-gray-600">{historyPage} / {Math.ceil(usageHistory.length / itemsPerPage)}</span>
+                <button 
+                  disabled={historyPage >= Math.ceil(usageHistory.length / itemsPerPage)} 
+                  onClick={() => setHistoryPage(p => p + 1)}
+                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm disabled:opacity-50"
+                >
+                  다음
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

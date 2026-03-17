@@ -15,25 +15,24 @@ export const premiumPackages = {
 /**
  * 프리미엄 신청 생성 (Supabase 연동)
  */
-export const createPremiumApplication = async (userId, userType, itemId, itemType, packageType) => {
+export const createPremiumApplication = async (userId, userType, itemId, itemType, packageType, orderId = null, receiptUrl = null, customDays = null) => {
   // 날짜 계산: 결제일은 0일, 다음날 00시부터 1일 계산
   const now = new Date();
 
-  // 시작일: 결제 익일 00:00:00
+  // 시작일: 결제 즉시 (익일 00시 정책에서 즉시 적용 정책으로 변경)
   const startDate = new Date(now);
-  startDate.setDate(startDate.getDate() + 1);
-  startDate.setHours(0, 0, 0, 0);
 
   // 종료일: 시작일 + 패키지일수 (수식 상 startDate + days)
-  const days = premiumPackages[packageType].days;
+  const days = customDays !== null ? customDays : (premiumPackages[packageType] ? premiumPackages[packageType].days : 0);
   const endDate = new Date(startDate);
   endDate.setDate(endDate.getDate() + days);
 
-  const amount = premiumPackages[packageType].price;
+  const amount = customDays !== null ? 0 : (premiumPackages[packageType] ? premiumPackages[packageType].price : 0);
 
+  // 1. premium_applications 테이블에 인서트 시도
+  let appData = null;
   try {
-    // 1. premium_applications 테이블에 인서트 시도
-    const { data: appData, error: appError } = await supabase
+    const { data, error: appError } = await supabase
       .from('premium_applications')
       .insert({
         user_id: userId,
@@ -50,33 +49,46 @@ export const createPremiumApplication = async (userId, userType, itemId, itemTyp
       .single();
 
     if (appError) {
-      // 테이블이 없을 경우를 대비한 로컬 스토리지 Fallback
-      console.warn('Supabase insert failed, falling back to localStorage:', appError);
-      return createPremiumApplicationLocal(userId, userType, itemId, itemType, packageType, startDate, endDate, amount);
+      console.warn('Supabase premium_applications insert failed:', appError);
+      appData = createPremiumApplicationLocal(userId, userType, itemId, itemType, packageType, startDate, endDate, amount, orderId, receiptUrl).data;
+    } else {
+      appData = data;
     }
+  } catch (error) {
+    console.warn('Error inserting premium_applications:', error);
+    appData = createPremiumApplicationLocal(userId, userType, itemId, itemType, packageType, startDate, endDate, amount, orderId, receiptUrl).data;
+  }
 
-    // 2. 창고/고객사 테이블에 is_premium 연동 업데이트
-    await updateItemPremiumStatusDb(itemId, itemType, true, endDate);
+  // 2. 창고/고객사 테이블에 is_premium 연동 업데이트
+  await updateItemPremiumStatusDb(itemId, itemType, true, endDate);
 
-    // 3. 결제 내역 관리자용 payment_history 인서트
-    await supabase.from('payment_history').insert({
+  // 3. 결제 내역 관리자용 payment_history 인서트 (가장 중요)
+  try {
+    const { error: historyError } = await supabase.from('payment_history').insert({
       user_id: userId,
       amount: amount,
-      package_type: premiumPackages[packageType].name,
-      status: 'success'
+      package_type: premiumPackages[packageType] 
+        ? premiumPackages[packageType].name 
+        : `관리자 프리미엄 특별 지급 (${customDays ? customDays + '일' : '선물'})`,
+      status: 'success',
+      order_id: orderId,
+      receipt_url: receiptUrl
     });
-
-    return { success: true, data: appData };
-  } catch (error) {
-    console.error('Error in createPremiumApplication:', error);
-    return { success: false, message: error.message };
+    
+    if (historyError) {
+      console.error('Failed to save payment history:', historyError);
+    }
+  } catch (err) {
+    console.error('Critical error saving payment history:', err);
   }
+
+  return { success: true, data: appData };
 };
 
 /**
  * 로컬 스토리지 Fallback (createPremiumApplication)
  */
-const createPremiumApplicationLocal = (userId, userType, itemId, itemType, packageType, startDate, endDate, amount) => {
+const createPremiumApplicationLocal = (userId, userType, itemId, itemType, packageType, startDate, endDate, amount, orderId, receiptUrl) => {
   const applications = JSON.parse(localStorage.getItem(PREMIUM_APPLICATIONS_KEY) || '[]');
 
   const application = {
@@ -91,7 +103,9 @@ const createPremiumApplicationLocal = (userId, userType, itemId, itemType, packa
     endDate: endDate.toISOString(),
     status: 'active',
     createdAt: new Date().toISOString(),
-    paymentDate: new Date().toISOString()
+    paymentDate: new Date().toISOString(),
+    orderId,
+    receiptUrl
   };
 
   applications.push(application);
@@ -108,13 +122,19 @@ export const updateItemPremiumStatusDb = async (itemId, itemType, isPremium, end
   try {
     const table = itemType === 'warehouse' ? 'warehouses' : 'customers';
 
-    await supabase.from(table).update({
+    const { error } = await supabase.from(table).update({
       is_premium: isPremium,
       premium_end_date: endDate ? new Date(endDate).toISOString() : null
     }).eq('id', itemId);
 
-    // Fallback: 로컬 스토리지도 같이 업데이트
-    updateItemPremiumStatusLocal(itemId, itemType, isPremium, endDate);
+    if (error) {
+      console.error(`Supabase update ${table} failed:`, error);
+      // DB 실패 시 로컬이라도 확실하게 업데이트
+      updateItemPremiumStatusLocal(itemId, itemType, isPremium, endDate);
+    } else {
+      // 성공 시에도 로컬 스토리지 동기화 (내꺼 결제니까)
+      updateItemPremiumStatusLocal(itemId, itemType, isPremium, endDate);
+    }
   } catch (error) {
     console.error('Error updating premium status DB:', error);
     updateItemPremiumStatusLocal(itemId, itemType, isPremium, endDate);
@@ -166,12 +186,12 @@ export const isPremiumActive = async (itemId, itemType, forceCheckDb = false) =>
   try {
     if (forceCheckDb) {
       const table = itemType === 'warehouse' ? 'warehouses' : 'customers';
-      const { data, error } = await supabase.from(table).select('is_premium, premium_end_date').eq('id', itemId).single();
+      const { data, error } = await supabase.from(table).select('is_premium, premium_end_date').eq('id', itemId).maybeSingle();
 
       if (!error && data) {
         if (!data.is_premium) return false;
         if (data.premium_end_date && new Date(data.premium_end_date) < now) {
-          // 만료되었으면 DB 업데이트
+          // 만료되었으면 DB 업데이트 (이건 관리자나 시스템이 해야하지만 체크 시점마다 보정)
           await updateItemPremiumStatusDb(itemId, itemType, false, null);
           return false;
         }

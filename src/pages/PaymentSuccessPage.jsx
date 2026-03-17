@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import { purchaseViewingPass, extendViewingPass } from '../utils/viewingPassUtils';
 import { createNotification } from '../utils/notificationUtils';
 import { createPremiumApplication, premiumPackages } from '../utils/premiumUtils';
+import { confirmTossPayment } from '../api/tossApi';
 
 const PaymentSuccessPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState(null);
+  const isConfirming = useRef(false);
 
   // 토스페이먼츠에서 반환되는 파라미터 및 커스텀 파라미터
   const orderId = searchParams.get('orderId');
@@ -26,12 +28,27 @@ const PaymentSuccessPage = () => {
 
   useEffect(() => {
     const processPayment = async () => {
+      if (isConfirming.current) return;
+      isConfirming.current = true;
+
       try {
         const userStr = localStorage.getItem('currentUser');
         if (!userStr) {
           throw new Error('로그인이 필요합니다.');
         }
         const currentUser = JSON.parse(userStr);
+
+        let receiptUrl = null;
+
+        // 토스 결제 승인 통신 로직 추가
+        if (!freePass && paymentKey && orderId && amount) {
+          const confirmResult = await confirmTossPayment(paymentKey, orderId, amount);
+          if (!confirmResult.success) {
+            throw new Error(confirmResult.message);
+          }
+          receiptUrl = confirmResult.data.receipt?.url;
+        }
+
         // 프리미엄 신청 처리
         if (isPremium) {
           const result = await createPremiumApplication(
@@ -39,7 +56,9 @@ const PaymentSuccessPage = () => {
             currentUser.userType,
             itemId,
             itemType,
-            packageType
+            packageType,
+            orderId,
+            receiptUrl
           );
 
           if (result.success) {
@@ -59,7 +78,7 @@ const PaymentSuccessPage = () => {
           const passInfoStr = localStorage.getItem(`viewingPass_${currentUser.id}`);
           const passInfo = passInfoStr ? JSON.parse(passInfoStr) : null;
           
-          const extended = await extendViewingPass(passInfo?.id, 3);
+          const extended = await extendViewingPass(passInfo?.id, 3, amount, orderId, receiptUrl);
           if (extended) {
             createNotification(
               currentUser.id,
@@ -75,7 +94,7 @@ const PaymentSuccessPage = () => {
         else {
           // 구매 처리
           const type = (isEvent && packageType === 'basic') ? 'basic_event' : packageType;
-          const result = await purchaseViewingPass(type);
+          const result = await purchaseViewingPass(type, orderId, receiptUrl);
           
           if (result.success) {
             createNotification(
@@ -90,9 +109,10 @@ const PaymentSuccessPage = () => {
         }
         
         setIsProcessing(false);
+        setIsProcessing(false);
       } catch (err) {
-        console.error(err);
-        setError(err.message);
+        console.error('Payment Processing Error:', err);
+        setError(err.message || '결제 처리 중 오류가 발생했습니다.');
         setIsProcessing(false);
       }
     };
@@ -139,7 +159,7 @@ const PaymentSuccessPage = () => {
         {isPremium ? (
           <p className="text-gray-600 mb-6">
             프리미엄 신청이 완료되었습니다.<br />
-            내일 00:00부터 상단에 노출됩니다.
+            지금부터 상단 프리미엄 영역에 노출됩니다.
           </p>
         ) : (
           <p className="text-gray-600 mb-6">
