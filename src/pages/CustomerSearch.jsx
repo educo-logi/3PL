@@ -59,11 +59,10 @@ const CustomerSearch = () => {
         const existingIds = customerData.map(c => c.id);
         const newCustomers = mappedCustomers.filter(c => !existingIds.includes(c.id));
         const randomizedNew = newCustomers.map(c => ({ ...c, rnd: Math.random() }));
-        setAllCustomers(prev => {
-          // 기존에 없는 것만 추가
-          const randomizedExisting = prev.map(p => ({ ...p, rnd: p.rnd || Math.random() }));
-          return [...randomizedExisting, ...randomizedNew];
-        });
+        setAllCustomers([
+          ...customerData.map(c => ({ ...c, rnd: Math.random() })),
+          ...mappedCustomers.map(c => ({ ...c, rnd: Math.random() }))
+        ]);
       } catch (error) {
         console.error('Error fetching customers:', error);
       }

@@ -61,10 +61,10 @@ const WarehouseSearch = () => {
         const newWarehouses = mappedWarehouses.filter(w => !existingIds.includes(w.id));
         const randomizedNew = newWarehouses.map(w => ({ ...w, rnd: Math.random() }));
 
-        setAllWarehouses(prev => {
-          const randomizedExisting = prev.map(p => ({ ...p, rnd: p.rnd || Math.random() }));
-          return [...randomizedExisting, ...randomizedNew];
-        });
+        setAllWarehouses([
+          ...warehouseData.map(w => ({ ...w, rnd: Math.random() })),
+          ...mappedWarehouses.map(w => ({ ...w, rnd: Math.random() }))
+        ]);
       } catch (error) {
         console.error('Error fetching warehouses:', error);
       }
