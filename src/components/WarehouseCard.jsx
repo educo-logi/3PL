@@ -23,7 +23,7 @@ import {
 } from '../utils/viewingPassUtils';
 import CompareNotAvailableModal from './CompareNotAvailableModal';
 
-const WarehouseCard = ({ warehouse, isPremium = false }) => {
+const WarehouseCard = ({ warehouse, isPremium = false, isPremiumSection = false }) => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -161,9 +161,9 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
 
   return (
     <>
-      <div className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${isPremium ? 'border-2 border-secondary-500' : ''
+      <div className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${isPremium && isPremiumSection ? 'border-2 border-secondary-500' : ''
         }`}>
-        {isPremium && (
+        {isPremium && isPremiumSection && (
           <div className="flex items-center justify-start mb-4">
             <button
               onClick={(e) => {
@@ -182,7 +182,7 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-bold text-gray-900">{displayName}</h3>
             {isOwner && (
@@ -198,7 +198,8 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
             )}
           </div>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               const user = JSON.parse(localStorage.getItem('currentUser'));
               if (!user) {
                 setIsLoginModalOpen(true);
@@ -215,15 +216,22 @@ const WarehouseCard = ({ warehouse, isPremium = false }) => {
         </div>
 
         <div className="space-y-3 mb-4">
-          <div className="flex items-center text-gray-600">
-            <MapPin className="w-4 h-4 mr-2" />
-            {/* 주소 마스킹 처리: isViewed가 false면 지역만 표시 */}
-            <span>
-              {isViewed || localStorage.getItem('adminAuth') === 'true'
-                ? `${warehouse.location} ${warehouse.city} ${warehouse.dong}`
-                : `${warehouse.location} ${warehouse.city || ''}`
-              }
-            </span>
+          <div className="flex items-center justify-between text-gray-600">
+            <div className="flex items-center">
+              <MapPin className="w-4 h-4 mr-2" />
+              {/* 주소 마스킹 처리: isViewed가 false면 지역만 표시 */}
+              <span>
+                {isViewed || localStorage.getItem('adminAuth') === 'true'
+                  ? `${warehouse.location} ${warehouse.city} ${warehouse.dong}`
+                  : `${warehouse.location} ${warehouse.city || ''}`
+                }
+              </span>
+            </div>
+            {isPremium && !isPremiumSection && (
+              <span className="bg-secondary-50 text-secondary-600 border border-secondary-100 px-1.5 py-0.5 rounded text-[11px] font-bold">
+                프리미엄
+              </span>
+            )}
           </div>
 
           <div className="flex items-start text-gray-600">

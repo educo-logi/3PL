@@ -144,7 +144,7 @@ const Home = () => {
     <div className="flex flex-col min-h-[calc(100vh-64px)]">
       {/* Hero Section */}
       <section
-        className="relative hero-bg-force text-white py-20 lg:py-32 overflow-hidden"
+        className="relative hero-bg-force text-white py-16 lg:py-24 overflow-hidden"
       >
         <div
           className="absolute inset-0 bg-gradient-to-r from-[#1e3a8a] via-[#1e40af] to-[#1e3a8a] opacity-90 hero-bg-force"
@@ -185,8 +185,38 @@ const Home = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-white">
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* 처음봄 이벤트 배너 */}
+          <div 
+            onClick={() => navigate('/login')}
+            className="mb-12 bg-gradient-to-r from-rose-500 to-pink-500 rounded-3xl p-8 text-white shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 flex flex-col md:flex-row items-center justify-between group overflow-hidden relative"
+          >
+            {/* Background Details */}
+            <div className="absolute -right-10 -top-10 w-40 h-40 bg-rose-400 rounded-full opacity-30 blur-3xl group-hover:scale-125 transition-transform duration-500"></div>
+            <div className="absolute right-20 bottom-0 w-32 h-32 bg-pink-400 rounded-full opacity-30 blur-xl"></div>
+            
+            <div className="flex items-center gap-6 relative z-10 w-full md:w-auto">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-4xl shadow-inner">
+                🎁
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-white/20 backdrop-blur-sm text-xs font-bold px-3 py-1 rounded-full text-white">웰컴 이벤트</span>
+                  <p className="text-sm font-semibold text-rose-100">간단한 가입으로 물류 매칭 서비스를 시작해 보세요!</p>
+                </div>
+                <p className="text-2xl md:text-3xl font-black tracking-tight leading-snug">
+                  지금 로그인/가입하고 <span className="text-yellow-300">3회 무료 열람권</span> 받기
+                </p>
+              </div>
+            </div>
+            
+            <button className="mt-4 md:mt-0 bg-white text-rose-600 px-8 py-4 rounded-xl font-bold text-lg shadow-md hover:bg-rose-50 transition-all flex items-center shrink-0 w-full md:w-auto justify-center group-hover:scale-105 duration-300">
+              무료로 시작하기
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Feature 1 */}
@@ -235,12 +265,12 @@ const Home = () => {
       </section>
 
       {/* Recent Registrations Section */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
 
           {/* Recent Warehouses */}
-          <div className="mb-20">
+          <div className="mb-12">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-2xl font-bold text-gray-900 flex items-center">
                 <Building2 className="w-6 h-6 mr-3 text-primary-600" />

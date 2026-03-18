@@ -6,11 +6,13 @@ import { hashPassword } from '../utils/passwordHash';
 
 import { supabase } from '../utils/supabaseClient';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
+import { checkEmailDuplicate } from '../utils/authUtils';
 
 const CustomerRegister = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     companyName: '',
+    businessNumber: '', // 사업자등록번호 추가
     location: '',
     city: '',
     dong: '',
@@ -94,11 +96,19 @@ const CustomerRegister = () => {
     const hashedPassword = hashPassword(formData.password);
 
     try {
+      // 웰컴 이벤트 지급 등과 호환되는 이메일 중복 체크
+      const dupCheck = await checkEmailDuplicate(formData.email);
+      if (dupCheck.isDuplicate) {
+        alert(dupCheck.message + '\n다른 이메일을 사용해주세요.');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('customers')
         .insert([
           {
             company_name: formData.companyName,
+            business_number: formData.businessNumber, // DB 연동용 컬럼
             representative: formData.representative,
             location: formData.location,
             city: formData.city,
@@ -181,75 +191,19 @@ const CustomerRegister = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        지역 *
-                      </label>
-                      <select
-                        name="location"
-                        value={formData.location}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      >
-                        <option value="">지역을 선택하세요</option>
-                        {regions.map(region => (
-                          <option key={region} value={region}>{region}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        시 군 구 *
-                      </label>
-                      <select
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        required
-                        disabled={!formData.location}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
-                      >
-                        <option value="">시 군 구를 선택하세요</option>
-                        {formData.location && detailedRegions[formData.location]?.map(city => (
-                          <option key={city} value={city}>{city}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        동 *
-                      </label>
-                      <select
-                        name="dong"
-                        value={formData.dong}
-                        onChange={handleInputChange}
-                        required
-                        disabled={!formData.city}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
-                      >
-                        <option value="">동을 선택하세요</option>
-                        {formData.location && formData.city && dongData[formData.location]?.[formData.city]?.map(dong => (
-                          <option key={dong} value={dong}>{dong}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="md:col-span-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        나머지 주소
-                      </label>
-                      <input
-                        type="text"
-                        name="detailAddress"
-                        value={formData.detailAddress}
-                        onChange={handleInputChange}
-                        placeholder="상세 주소를 입력하세요 (선택)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    사업자 등록번호 *
+                  </label>
+                  <input
+                    type="text"
+                    name="businessNumber"
+                    value={formData.businessNumber}
+                    onChange={handleInputChange}
+                    placeholder="000-00-00000"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -334,6 +288,80 @@ const CustomerRegister = () => {
                 </div>
               </div>
             </div>
+
+            {/* 주소 정보 */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">주소 정보</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    지역 *
+                  </label>
+                  <select
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">지역을 선택하세요</option>
+                    {regions.map(region => (
+                      <option key={region} value={region}>{region}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    시 군 구 *
+                  </label>
+                  <select
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    required
+                    disabled={!formData.location}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
+                  >
+                    <option value="">시 군 구를 선택하세요</option>
+                    {formData.location && detailedRegions[formData.location]?.map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    동 *
+                  </label>
+                  <select
+                    name="dong"
+                    value={formData.dong}
+                    onChange={handleInputChange}
+                    required
+                    disabled={!formData.city}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
+                  >
+                    <option value="">동을 선택하세요</option>
+                    {formData.location && formData.city && dongData[formData.location]?.[formData.city]?.map(dong => (
+                      <option key={dong} value={dong}>{dong}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    나머지 주소
+                  </label>
+                  <input
+                    type="text"
+                    name="detailAddress"
+                    value={formData.detailAddress}
+                    onChange={handleInputChange}
+                    placeholder="상세 주소를 입력하세요 (선택)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+            </div>
+
 
             {/* 물류 요구사항 */}
             <div>

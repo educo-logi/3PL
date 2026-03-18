@@ -5,6 +5,7 @@ import { regions, detailedRegions, dongData, productTypes, storageTypes, deliver
 import { hashPassword } from '../utils/passwordHash';
 import { supabase } from '../utils/supabaseClient';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
+import { checkEmailDuplicate } from '../utils/authUtils';
 
 const WarehouseRegister = () => {
   const navigate = useNavigate();
@@ -122,6 +123,13 @@ const WarehouseRegister = () => {
     const hashedPassword = hashPassword(formData.password);
 
     try {
+      // 웰컴 이벤트 지급 등과 호환되는 이메일 중복 체크
+      const dupCheck = await checkEmailDuplicate(formData.email);
+      if (dupCheck.isDuplicate) {
+        alert(dupCheck.message + '\n다른 이메일을 사용해주세요.');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('warehouses')
         .insert([

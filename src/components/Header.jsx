@@ -3,6 +3,8 @@ import { Menu, X, LogIn, UserPlus, Search, Building2, UserCheck, Plus, User, Log
 import { useNavigate, Link } from 'react-router-dom';
 import SignupModal from './SignupModal';
 import NotificationCenter from './NotificationCenter';
+import WelcomeEventPopup from './WelcomeEventPopup';
+import { checkAndGrantWelcomePass } from '../utils/viewingPassUtils';
 import { getUnreadNotificationCount } from '../utils/notificationUtils';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
 
@@ -10,6 +12,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const [isWelcomePopupOpen, setIsWelcomePopupOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -50,8 +53,17 @@ const Header = () => {
     window.addEventListener('userLogout', handleUserLogout);
 
     // 커스텀 로그인 이벤트 감지
-    const handleUserLogin = () => {
+    const handleUserLogin = async () => {
       checkUserStatus();
+      
+      try {
+        const welcomeResult = await checkAndGrantWelcomePass();
+        if (welcomeResult && welcomeResult.success) {
+          setIsWelcomePopupOpen(true);
+        }
+      } catch (err) {
+        console.error('Welcome pass grant error on login:', err);
+      }
     };
     window.addEventListener('userLogin', handleUserLogin);
 
@@ -122,7 +134,8 @@ const Header = () => {
   ];
 
   return (
-    <header className="bg-white/95 backdrop-blur-sm shadow-lg sticky top-0 z-50 border-b border-gray-100">
+    <>
+      <header className="bg-white/95 backdrop-blur-sm shadow-lg sticky top-0 z-50 border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* 로고 */}
@@ -215,6 +228,12 @@ const Header = () => {
               </>
             ) : (
               <>
+                <button
+                  onClick={() => setIsWelcomePopupOpen(true)}
+                  className="group flex items-center px-3 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg shadow-sm hover:bg-amber-100 transition-all duration-200 hover:-translate-y-0.5"
+                >
+                  🎁 팝업(임시)
+                </button>
                 <button
                   onClick={handleLoginClick}
                   className="group flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-200"
@@ -331,6 +350,8 @@ const Header = () => {
         )}
       </div>
 
+      </header>
+
       {/* 회원가입 모달 */}
       <SignupModal
         isOpen={isSignupModalOpen}
@@ -344,7 +365,13 @@ const Header = () => {
         isOpen={isNotificationCenterOpen}
         onClose={() => setIsNotificationCenterOpen(false)}
       />
-    </header>
+
+      {/* 웰컴 이벤트 팝업 (임시) */}
+      <WelcomeEventPopup 
+        isOpen={isWelcomePopupOpen} 
+        onClose={() => setIsWelcomePopupOpen(false)} 
+      />
+    </>
   );
 };
 

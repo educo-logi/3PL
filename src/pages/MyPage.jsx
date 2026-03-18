@@ -63,14 +63,8 @@ const MyPage = () => {
     };
     fetchFreshUserData();
 
-    // 열람권 정보 로드 및 웰컴 이벤트 체크
+    // 열람권 정보 로드
     const loadData = async () => {
-      // 1. 웰컴 이벤트 발급 검사 (최초 로그인 시 3장 지급 로직)
-      const welcomeResult = await checkAndGrantWelcomePass();
-      if (welcomeResult.success) {
-        setIsWelcomeEventModalOpen(true); // 지급 성공 시 팝업 노출
-      }
-
       const eligible = await checkEventEligibility(user.id);
       setIsEventEligible(eligible);
 
@@ -832,14 +826,7 @@ const MyPage = () => {
           }}
         />
 
-        {/* 웰컴 이벤트 팝업 */}
-        <WelcomeEventPopup
-          isOpen={isWelcomeEventModalOpen}
-          onClose={() => {
-            setIsWelcomeEventModalOpen(false);
-            refreshViewingPassInfo(); // 팝업 닫을 때 갱신된 내역(3회 추가)을 화면에 반영
-          }}
-        />
+
 
         {/* [신규] 전체 열람 내역 모달 */}
         {isHistoryModalOpen && (

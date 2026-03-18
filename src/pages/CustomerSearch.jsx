@@ -155,14 +155,14 @@ const CustomerSearch = () => {
     })
     .sort((a, b) => (a.rnd || 0) - (b.rnd || 0));
 
-  // 일반 고객사
+  // 일반 고객사 (중복 노출을 위해 필터링 제거 및 isPremium 플래그 계산 강화)
   const regularCustomers = filteredCustomers
-    .filter(c => {
+    .map(c => {
       const premiumItems = JSON.parse(localStorage.getItem('premiumItems') || '[]');
       const isLocalPremium = premiumItems.some(item => 
         item.itemId === c.id && item.itemType === 'customer' && item.isPremium
       );
-      return c.is_premium !== true && !isLocalPremium;
+      return { ...c, isPremium: c.is_premium || isLocalPremium };
     })
     .sort((a, b) => getSortDate(b) - getSortDate(a));
 
@@ -236,6 +236,7 @@ const CustomerSearch = () => {
                       key={customer.id}
                       customer={customer}
                       isPremium={true}
+                      isPremiumSection={true}
                     />
                   ))}
                 </div>
@@ -256,7 +257,8 @@ const CustomerSearch = () => {
                       <CustomerCard
                         key={customer.id}
                         customer={customer}
-                        isPremium={false}
+                        isPremium={customer.isPremium}
+                        isPremiumSection={false}
                       />
                     ))}
                   </div>

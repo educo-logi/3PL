@@ -333,6 +333,99 @@ const AdminDashboard = () => {
     }
   };
 
+  // --- [신규] CSV 다운로드 기능 ---
+  const generateCSV = (headers, rows, filenameTitle) => {
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(v => `"${(v === null || v === undefined ? '' : '' + v).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filenameTitle}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadWarehouseCSV = () => {
+    const headers = [
+      '가입일', '승인일', '회사명', '사업자등록번호', '대표자명', '전화번호', 
+      '담당자명', '담당자 연락처', '이메일', '지역', '시군구', '동', '상세주소', 
+      '대지면적', '대지면적단위', '창고개수', '창고총면적', '총면적단위', 
+      '계약가능면적', '계약단위', '팔레트수', '경력', '보관방식', '배송사', 
+      '기타배송사', '솔루션', '기타솔루션', '취급종류', '상태'
+    ];
+    
+    const rows = warehouses.map(w => [
+      formatDate(w.submittedAt),
+      formatDate(w.approvedAt),
+      w.companyName,
+      w.business_number || w.businessNumber || '-',
+      w.representative,
+      w.phone,
+      w.contact_person || '-',
+      w.contact_phone || '-',
+      w.email,
+      w.location,
+      w.city,
+      w.dong,
+      w.detail_address || '-',
+      w.total_area,
+      w.total_area_unit,
+      w.warehouse_count,
+      w.warehouse_area,
+      w.warehouse_area_unit,
+      w.available_area,
+      w.available_area_unit,
+      w.pallet_count,
+      w.experience,
+      w.storage_types ? w.storage_types.join(' | ') : '',
+      w.delivery_companies ? w.delivery_companies.join(' | ') : '',
+      w.other_delivery_company || '-',
+      w.solutions ? w.solutions.join(' | ') : '',
+      w.other_solution || '-',
+      w.products ? w.products.join(' | ') : '',
+      w.status
+    ]);
+
+    generateCSV(headers, rows, '창고_회원목록');
+  };
+
+  const handleDownloadCustomerCSV = () => {
+    const headers = [
+      '가입일', '승인일', '회사명', '사업자등록번호', '대표자명', '전화번호', 
+      '담당자명', '담당자 연락처', '이메일', '지역', '시군구', '동', '상세주소', 
+      '필요면적', '면적단위', '팔레트수', '월물동량', '원하는배송사', '취급종류', '상태'
+    ];
+    
+    const rows = customers.map(c => [
+      formatDate(c.submittedAt),
+      formatDate(c.approvedAt),
+      c.companyName,
+      c.business_number || c.businessNumber || '-',
+      c.representative,
+      c.phone,
+      c.contact_person || '-',
+      c.contact_phone || '-',
+      c.email,
+      c.location,
+      c.city,
+      c.dong,
+      c.detail_address || '-',
+      c.required_area || c.requiredArea,
+      c.required_area_unit || c.requiredAreaUnit,
+      c.pallet_count || c.palletCount,
+      c.monthlyVolume,
+      c.desired_delivery ? c.desired_delivery.join(' | ') : (c.desiredDelivery ? c.desiredDelivery.join(' | ') : ''),
+      c.products ? c.products.join(' | ') : '',
+      c.status
+    ]);
+
+    generateCSV(headers, rows, '고객사_회원목록');
+  };
+
   // --- Stats Calculation ---
   const totalRevenue = payments.reduce((sum, p) => sum + (p.status === 'success' ? Number(p.amount) : 0), 0);
   const pendingCount = pendingWarehouseList.length + pendingCustomerList.length;
@@ -637,12 +730,22 @@ const AdminDashboard = () => {
 
         {/* 2. Warehouses */}
         {activeTab === 'warehouses' && (
-          <DataTable
-            headers={['이메일', '회사명', '지역', '면적', '연락처', '가입일', '승인일', '액션']}
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={handleDownloadWarehouseCSV}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 font-bold text-sm transition-colors"
+              >
+                📥 CSV 다운받기
+              </button>
+            </div>
+            <DataTable
+            headers={['가입일', '승인일', '회사명', '사업자등록번호', '이메일', '지역', '면적', '연락처', '액션']}
             data={warehouses}
             renderRow={(w) => (
               <>
-                <td className="px-6 py-4 text-sm text-gray-600 break-all">{w.email}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.submittedAt)}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.approvedAt)}</td>
                 <td className="px-6 py-4">
                   <button
                     onClick={() => handleViewDetails(w, 'warehouse')}
@@ -651,11 +754,11 @@ const AdminDashboard = () => {
                     {w.companyName}
                   </button>
                 </td>
+                <td className="px-6 py-4 text-sm">{w.business_number || w.businessNumber || '-'}</td>
+                <td className="px-6 py-4 text-sm text-gray-600 break-all">{w.email}</td>
                 <td className="px-6 py-4 text-sm">{w.location}</td>
                 <td className="px-6 py-4 text-sm">{w.availableArea ? w.availableArea.toLocaleString() : ''} / {w.totalArea ? w.totalArea.toLocaleString() : ''}</td>
                 <td className="px-6 py-4 text-sm">{w.phone}</td>
-                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.submittedAt)}</td>
-                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.approvedAt)}</td>
                 <td className="px-6 py-4 flex gap-2">
                   <ActionButton icon={Eye} onClick={() => handleViewDetails(w, 'warehouse')} title="상세보기" />
                   <ActionButton icon={Gift} color="blue" onClick={() => handleOpenGrantModal(w, 'warehouse')} title="열람권 지급" />
@@ -665,16 +768,27 @@ const AdminDashboard = () => {
               </>
             )}
           />
+          </div>
         )}
 
         {/* 3. Customers */}
         {activeTab === 'customers' && (
-          <DataTable
-            headers={['이메일', '회사명', '지역', '월 물동량', '연락처', '가입일', '승인일', '액션']}
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={handleDownloadCustomerCSV}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 font-bold text-sm transition-colors"
+              >
+                📥 CSV 다운받기
+              </button>
+            </div>
+            <DataTable
+            headers={['가입일', '승인일', '회사명', '사업자등록번호', '이메일', '지역', '월 물동량', '연락처', '액션']}
             data={customers}
             renderRow={(c) => (
               <>
-                <td className="px-6 py-4 text-sm text-gray-600 break-all">{c.email}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.submittedAt)}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.approvedAt)}</td>
                 <td className="px-6 py-4">
                   <button
                     onClick={() => handleViewDetails(c, 'customer')}
@@ -683,11 +797,11 @@ const AdminDashboard = () => {
                     {c.companyName}
                   </button>
                 </td>
+                <td className="px-6 py-4 text-sm">{c.business_number || c.businessNumber || '-'}</td>
+                <td className="px-6 py-4 text-sm text-gray-600 break-all">{c.email}</td>
                 <td className="px-6 py-4 text-sm">{c.location}</td>
                 <td className="px-6 py-4 text-sm">{c.monthlyVolume ? c.monthlyVolume.toLocaleString() : ''}</td>
                 <td className="px-6 py-4 text-sm">{c.phone}</td>
-                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.submittedAt)}</td>
-                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.approvedAt)}</td>
                 <td className="px-6 py-4 flex gap-2">
                   <ActionButton icon={Eye} onClick={() => handleViewDetails(c, 'customer')} title="상세보기" />
                   <ActionButton icon={Gift} color="blue" onClick={() => handleOpenGrantModal(c, 'customer')} title="열람권 지급" />
@@ -697,6 +811,7 @@ const AdminDashboard = () => {
               </>
             )}
           />
+          </div>
         )}
 
         {/* 4. Payments (New) */}

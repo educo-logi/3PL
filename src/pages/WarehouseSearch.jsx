@@ -187,14 +187,14 @@ const WarehouseSearch = () => {
     })
     .sort((a, b) => (a.rnd || 0) - (b.rnd || 0));
 
-  // 일반 창고
+  // 일반 창고 (중복 노출을 위해 필터링 제거 및 isPremium 플래그 계산 강화)
   const regularWarehouses = filteredWarehouses
-    .filter(w => {
+    .map(w => {
       const premiumItems = JSON.parse(localStorage.getItem('premiumItems') || '[]');
       const isLocalPremium = premiumItems.some(item => 
         item.itemId === w.id && item.itemType === 'warehouse' && item.isPremium
       );
-      return w.is_premium !== true && !isLocalPremium;
+      return { ...w, isPremium: w.is_premium || isLocalPremium };
     })
     .sort((a, b) => getSortDate(b) - getSortDate(a));
 
@@ -269,6 +269,7 @@ const WarehouseSearch = () => {
                       key={warehouse.id}
                       warehouse={warehouse}
                       isPremium={true}
+                      isPremiumSection={true}
                     />
                   ))}
                 </div>
@@ -286,7 +287,8 @@ const WarehouseSearch = () => {
                       <WarehouseCard
                         key={warehouse.id}
                         warehouse={warehouse}
-                        isPremium={false}
+                        isPremium={warehouse.isPremium}
+                        isPremiumSection={false}
                       />
                     ))}
                   </div>
