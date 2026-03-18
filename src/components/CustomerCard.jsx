@@ -80,6 +80,12 @@ const CustomerCard = ({ customer, isPremium = false, isPremiumSection = false })
       return;
     }
 
+    // 관리자 승인 전 확인
+    if (customer.status === 'pending') {
+      alert('아직 관리자의 승인 전입니다.');
+      return;
+    }
+
     // 유효기간 확인
     const passInfo = await getViewingPassInfo();
     if (passInfo && isExpired(passInfo)) {
