@@ -362,7 +362,7 @@ const MyPage = () => {
                     <h4 className="text-sm font-semibold text-gray-900 mb-2">안내사항</h4>
                     <ul className="text-xs text-gray-600 space-y-1">
                       <li>• 한번 본 업체는 다시 봐도 열람권이 소진되지 않습니다.</li>
-                      <li>• 유효기간(3개월)이 지나면 열람권이 만료됩니다.</li>
+                      <li>• 유효기간이 지나면 열람권이 만료됩니다.</li>
                       <li>• 만료된 열람권은 사용할 수 없습니다.</li>
                     </ul>
                   </div>
