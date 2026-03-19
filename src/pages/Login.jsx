@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
 import SignupModal from '../components/SignupModal';
+import FindAccountModal from '../components/FindAccountModal';
 import { comparePassword } from '../utils/passwordHash';
 import { supabase } from '../utils/supabaseClient';
 
@@ -14,6 +15,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [isFindModalOpen, setIsFindModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -190,6 +192,18 @@ const Login = () => {
               </div>
             </div>
 
+            <div className="flex items-center justify-end">
+              <div className="text-sm">
+                <button
+                  type="button"
+                  onClick={() => setIsFindModalOpen(true)}
+                  className="font-medium text-primary-600 hover:text-primary-500"
+                >
+                  아이디/비밀번호 찾기
+                </button>
+              </div>
+            </div>
+
             {error && (
               <div className="text-red-600 text-sm text-center leading-relaxed">
                 <p>창고업체 또는 고객사 선택을 확인해주세요.</p>
@@ -234,6 +248,11 @@ const Login = () => {
         onClose={() => setIsSignupModalOpen(false)}
         onSelectWarehouse={handleWarehouseSignup}
         onSelectCustomer={handleCustomerSignup}
+      />
+
+      <FindAccountModal
+        isOpen={isFindModalOpen}
+        onClose={() => setIsFindModalOpen(false)}
       />
     </div>
   );
