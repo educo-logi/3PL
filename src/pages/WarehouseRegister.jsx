@@ -382,14 +382,15 @@ const WarehouseRegister = () => {
                 </div>
                 <div className="md:col-span-3">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    나머지 주소
+                    나머지 주소 *
                   </label>
                   <input
                     type="text"
                     name="detailAddress"
                     value={formData.detailAddress}
                     onChange={handleInputChange}
-                    placeholder="상세 주소를 입력하세요 (선택)"
+                    placeholder="상세 주소를 입력하세요."
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
@@ -466,7 +467,6 @@ const WarehouseRegister = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
                   >
-                    <option value="">창고 개수를 선택하세요</option>
                     {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
                       <option key={num} value={num}>{num}개</option>
                     ))}
@@ -572,14 +572,14 @@ const WarehouseRegister = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    계약가능 팔레트 수 *<br />
-                    <span className="text-xs text-gray-500 font-normal">(1100x1100 사이즈 기준)</span>
+                    계약가능 팔레트 수 *
                   </label>
                   <input
                     type="number"
                     name="palletCount"
                     value={formData.palletCount}
                     onChange={handleInputChange}
+                    placeholder="1100 x 1100 사이즈 기준"
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
