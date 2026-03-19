@@ -149,9 +149,7 @@ const CustomerRegister = () => {
           <p className="text-gray-600 mb-2">
             고객사 등록이 성공적으로 완료되었습니다.
           </p>
-          <p className="text-lg font-bold text-primary-600 mb-6">
-            검토 후 승인되면 플랫폼에 노출됩니다.
-          </p>
+
           <button
             onClick={() => navigate('/')}
             className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors"
