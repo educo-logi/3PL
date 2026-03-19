@@ -3,7 +3,7 @@ import { Menu, X, LogIn, UserPlus, Search, Building2, UserCheck, Plus, User, Log
 import { useNavigate, Link } from 'react-router-dom';
 import SignupModal from './SignupModal';
 import NotificationCenter from './NotificationCenter';
-import WelcomeEventPopup from './WelcomeEventPopup';
+
 import { checkAndGrantWelcomePass } from '../utils/viewingPassUtils';
 import { getUnreadNotificationCount } from '../utils/notificationUtils';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
@@ -12,7 +12,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
-  const [isWelcomePopupOpen, setIsWelcomePopupOpen] = useState(false);
+
   const [currentUser, setCurrentUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -228,12 +228,7 @@ const Header = () => {
               </>
             ) : (
               <>
-                <button
-                  onClick={() => setIsWelcomePopupOpen(true)}
-                  className="group flex items-center px-3 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg shadow-sm hover:bg-amber-100 transition-all duration-200 hover:-translate-y-0.5"
-                >
-                  🎁 팝업(임시)
-                </button>
+
                 <button
                   onClick={handleLoginClick}
                   className="group flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-200"
@@ -366,11 +361,7 @@ const Header = () => {
         onClose={() => setIsNotificationCenterOpen(false)}
       />
 
-      {/* 웰컴 이벤트 팝업 (임시) */}
-      <WelcomeEventPopup 
-        isOpen={isWelcomePopupOpen} 
-        onClose={() => setIsWelcomePopupOpen(false)} 
-      />
+
     </>
   );
 };
