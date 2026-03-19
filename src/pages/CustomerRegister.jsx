@@ -445,10 +445,9 @@ const CustomerRegister = () => {
 
             {/* 원하는 배송사 */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">원하는 배송사 *</h2>
-              <p className="text-sm text-gray-600 mb-4">(상관없을 시 모두 선택해주세요)</p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">원하는 배송사 *</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {deliveryCompanies.map(company => (
+                {[...deliveryCompanies, '무관'].map(company => (
                   <label key={company} className="flex items-center">
                     <input
                       type="checkbox"

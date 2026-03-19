@@ -421,7 +421,7 @@ const WarehouseRegister = () => {
                           onChange={() => handleAreaUnitChange('totalAreaUnit', 'sqm')}
                           className="mr-2"
                         />
-                        <span className="text-sm">제곱미터(㎡)</span>
+                        <span className="text-sm">제곱미터</span>
                       </label>
                       <label className="flex items-center">
                         <input
@@ -487,7 +487,7 @@ const WarehouseRegister = () => {
                           onChange={() => handleAreaUnitChange('warehouseAreaUnit', 'sqm')}
                           className="mr-2"
                         />
-                        <span className="text-sm">제곱미터(㎡)</span>
+                        <span className="text-sm">제곱미터</span>
                       </label>
                       <label className="flex items-center">
                         <input
@@ -536,7 +536,7 @@ const WarehouseRegister = () => {
                           onChange={() => handleAreaUnitChange('availableAreaUnit', 'sqm')}
                           className="mr-2"
                         />
-                        <span className="text-sm">제곱미터(㎡)</span>
+                        <span className="text-sm">제곱미터</span>
                       </label>
                       <label className="flex items-center">
                         <input
@@ -572,7 +572,8 @@ const WarehouseRegister = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    계약가능 팔레트 수 (1100x1100 사이즈 기준) *
+                    계약가능 팔레트 수 *<br />
+                    <span className="text-xs text-gray-500 font-normal">(1100x1100 사이즈 기준)</span>
                   </label>
                   <input
                     type="number"
