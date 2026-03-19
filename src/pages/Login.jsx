@@ -191,8 +191,9 @@ const Login = () => {
             </div>
 
             {error && (
-              <div className="text-red-600 text-sm text-center">
-                {error}
+              <div className="text-red-600 text-sm text-center leading-relaxed">
+                <p>창고업체 또는 고객사 선택을 확인해주세요.</p>
+                <p>{error}</p>
               </div>
             )}
 
