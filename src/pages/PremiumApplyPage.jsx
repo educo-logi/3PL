@@ -183,10 +183,12 @@ const PremiumApplyPage = () => {
     const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
     const latestUser = allUsers.find(u => u.id === currentUser.id) || currentUser;
 
+/*
     if (latestUser.status === 'pending' || !latestUser.status) {
       alert('결제를 진행하려면 먼저 관리자의 승인이 필요합니다.\n관리자 승인 후 다시 시도해주세요.');
       return;
     }
+*/
 
     setIsProcessing(true);
 
@@ -335,7 +337,8 @@ const PremiumApplyPage = () => {
               </div>
             </div>
 
-            {/* 승인 대기 안내 */}
+            {/* 승인 대기 안내 (임시 해제) */}
+            {/*
             {isPending && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-start">
@@ -348,6 +351,7 @@ const PremiumApplyPage = () => {
                 </div>
               </div>
             )}
+            */}
 
 
             {/* 테스트 모드 안내 */}
@@ -367,8 +371,8 @@ const PremiumApplyPage = () => {
             <div className="pt-4">
               <button
                 onClick={handlePayment}
-                disabled={isProcessing || isPending}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center ${isProcessing || isPending
+                disabled={isProcessing}
+                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center ${isProcessing
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-primary-600 text-white hover:bg-primary-700'
                   }`}
@@ -377,11 +381,6 @@ const PremiumApplyPage = () => {
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                     결제 처리 중...
-                  </>
-                ) : isPending ? (
-                  <>
-                    <AlertCircle className="w-5 h-5 mr-2" />
-                    승인 대기 중 (결제 불가)
                   </>
                 ) : (
                   <>
