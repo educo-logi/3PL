@@ -19,8 +19,8 @@ const Home = () => {
       try {
         const { data: wData, error: wError } = await supabase
           .from('warehouses')
-          .select('*')
-          .eq('status', 'approved');
+          .select('*');
+          // .eq('status', 'approved');
 
         let allWarehouses = [...warehouseData];
         if (!wError && wData) {
@@ -80,8 +80,8 @@ const Home = () => {
       try {
         const { data: cData, error: cError } = await supabase
           .from('customers')
-          .select('*')
-          .eq('status', 'approved');
+          .select('*');
+          // .eq('status', 'approved');
 
         let allCustomers = [...customerData];
         if (!cError && cData) {

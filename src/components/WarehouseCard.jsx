@@ -74,11 +74,13 @@ const WarehouseCard = ({ warehouse, isPremium = false, isPremiumSection = false 
       return;
     }
 
-    // 관리자 승인 전 확인
+    // 관리자 승인 전 확인 (임시 해제)
+    /*
     if (warehouse.status === 'pending') {
       alert('아직 관리자의 승인 전입니다.');
       return;
     }
+    */
 
     // 본인 업체 확인
     const isOwner = user.id === warehouse.id;

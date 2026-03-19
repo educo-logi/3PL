@@ -29,8 +29,8 @@ const WarehouseSearch = () => {
       try {
         const { data, error } = await supabase
           .from('warehouses')
-          .select('*')
-          .eq('status', 'approved');
+          .select('*');
+          // .eq('status', 'approved');
 
         if (error) throw error;
 

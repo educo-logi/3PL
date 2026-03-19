@@ -29,8 +29,8 @@ const CustomerSearch = () => {
       try {
         const { data, error } = await supabase
           .from('customers')
-          .select('*')
-          .eq('status', 'approved');
+          .select('*');
+          // .eq('status', 'approved');
 
         if (error) throw error;
 
