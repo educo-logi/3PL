@@ -492,8 +492,11 @@ const CustomerRegister = () => {
                   <p className="mt-3"><strong>3. 개인정보의 보유 및 이용 기간</strong></p>
                   <p className="ml-4">- 회원 탈퇴 시까지 (단, 관련 법령에 따라 보관이 필요한 경우 해당 기간 동안 보관)</p>
                   <p className="mt-3"><strong>4. 개인정보의 제3자 제공</strong></p>
-                  <p className="ml-4">- 서비스 운영 및 관리 목적으로 관리자는 회원 정보에 접근할 수 있습니다.</p>
-                  <p className="ml-4">- 관리자는 서비스 제공, 회원 관리, 부정 이용 방지 등을 위해 필요한 범위 내에서 개인정보를 처리합니다.</p>
+                  <p className="ml-4">회사는 원칙적으로 이용자의 개인정보를 외부에 제공하지 않습니다. 다만, 플랫폼의 원활한 매칭 서비스 제공을 위해 아래와 같이 이용자의 동의 하에 개인정보를 제3자에게 제공합니다.</p>
+                  <p className="ml-8 mt-1">• 제공받는 자: 해당 업체/고객사의 상세 정보를 열람(열람권 사용 등)하는 회원</p>
+                  <p className="ml-8">• 제공 목적: 물류 대행 업체 매칭 및 계약 상담을 위한 연락처 소통</p>
+                  <p className="ml-8">• 제공 항목: 회사명, 대표자명, 담당자명, 담당자 연락처(전화번호), 이메일 및 상세 물류 요건 정보</p>
+                  <p className="ml-8">• 보유 및 이용 기간: 목적 달성 시 및 회원 탈퇴 시까지 (단, 관련 법령에 보관 의무가 있는 경우 해당 기간 동안 보관)</p>
                 </div>
                 <label className="flex items-start cursor-pointer">
                   <input
