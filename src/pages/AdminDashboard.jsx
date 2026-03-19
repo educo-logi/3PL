@@ -65,9 +65,8 @@ const AdminDashboard = () => {
         submittedAt: w.submitted_at,
         approvedAt: w.approved_at
       }));
-      const approvedWarehouses = processedWarehouses.filter(w => w.status === 'approved')
-        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-      setWarehouses(approvedWarehouses);
+      const sortedWarehouses = [...processedWarehouses].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      setWarehouses(sortedWarehouses);
       
       const pendingWarehouses = processedWarehouses.filter(w => w.status === 'pending')
         .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
@@ -85,9 +84,8 @@ const AdminDashboard = () => {
         approvedAt: c.approved_at
       }));
       
-      const approvedCustomers = processedCustomers.filter(c => c.status === 'approved')
-        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-      setCustomers(approvedCustomers);
+      const sortedCustomers = [...processedCustomers].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      setCustomers(sortedCustomers);
       
       const pendingCustomers = processedCustomers.filter(c => c.status === 'pending')
         .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
@@ -752,6 +750,7 @@ const AdminDashboard = () => {
                     className="font-medium text-primary-600 hover:text-primary-800 hover:underline text-left"
                   >
                     {w.companyName}
+                    {w.status === 'pending' && <span className="ml-1 text-xs font-bold text-red-500">(대기)</span>}
                   </button>
                 </td>
                 <td className="px-6 py-4 text-sm">{w.business_number || w.businessNumber || '-'}</td>
@@ -795,6 +794,7 @@ const AdminDashboard = () => {
                     className="font-medium text-primary-600 hover:text-primary-800 hover:underline text-left"
                   >
                     {c.companyName}
+                    {c.status === 'pending' && <span className="ml-1 text-xs font-bold text-red-500">(대기)</span>}
                   </button>
                 </td>
                 <td className="px-6 py-4 text-sm">{c.business_number || c.businessNumber || '-'}</td>
