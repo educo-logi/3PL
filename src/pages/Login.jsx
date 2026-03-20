@@ -36,6 +36,8 @@ const Login = () => {
 
     if (formData.email.toLowerCase() === adminId && formData.password === adminPw) {
       localStorage.setItem('adminAuth', 'true');
+      localStorage.removeItem('currentUser'); // 기존 일반 유저 세션 정리
+      window.dispatchEvent(new CustomEvent('userLogin')); // 헤더 상태 갱신 트리거
       navigate('/admin/dashboard');
       return;
     }
