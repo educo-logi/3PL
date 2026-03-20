@@ -69,9 +69,9 @@ const FindAccountModal = ({ isOpen, onClose }) => {
         .from(table)
         .select('email')
         .match({
-          business_number: formData.businessNumber,
+          business_number: formData.businessNumber.replace(/[^0-9]/g, ''),
           representative: formData.representative,
-          phone: formData.phone
+          phone: formData.phone.replace(/[^0-9]/g, '')
         });
 
       if (error) throw error;
@@ -100,9 +100,9 @@ const FindAccountModal = ({ isOpen, onClose }) => {
         .select('id')
         .match({
           email: formData.email,
-          business_number: formData.businessNumber,
+          business_number: formData.businessNumber.replace(/[^0-9]/g, ''),
           representative: formData.representative,
-          phone: formData.phone
+          phone: formData.phone.replace(/[^0-9]/g, '')
         });
 
       if (error) throw error;
@@ -218,7 +218,7 @@ const FindAccountModal = ({ isOpen, onClose }) => {
                 value={formData.businessNumber}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="예) 123-45-67890"
+                placeholder="예) 1234567890"
                 required
               />
             </div>
@@ -242,7 +242,7 @@ const FindAccountModal = ({ isOpen, onClose }) => {
                 value={formData.phone}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="010-1234-5678"
+                placeholder="01012345678"
                 required
               />
             </div>
@@ -290,7 +290,7 @@ const FindAccountModal = ({ isOpen, onClose }) => {
                     value={formData.businessNumber}
                     onChange={handleInputChange}
                     className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="예) 123-45-67890"
+                    placeholder="예) 1234567890"
                     required
                   />
                 </div>
@@ -314,7 +314,7 @@ const FindAccountModal = ({ isOpen, onClose }) => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="010-1234-5678"
+                    placeholder="01012345678"
                     required
                   />
                 </div>
