@@ -93,12 +93,7 @@ const Login = () => {
     navigate('/customer-register');
   };
 
-  const handleAdminQuickLogin = () => {
-    localStorage.setItem('adminAuth', 'true');
-    localStorage.removeItem('currentUser'); // 일반 유저 상태 정리
-    window.dispatchEvent(new CustomEvent('userLogin')); // 헤더 갱신
-    navigate('/admin/dashboard');
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -199,14 +194,7 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={handleAdminQuickLogin}
-                className="text-xs text-gray-400 hover:text-gray-600 hover:underline"
-              >
-                관리자 퀵로그인
-              </button>
+            <div className="flex items-center justify-end">
               <div className="text-sm">
                 <button
                   type="button"
