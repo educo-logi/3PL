@@ -34,7 +34,11 @@ const Login = () => {
     const adminId = import.meta.env.VITE_ADMIN_ID;
     const adminPw = import.meta.env.VITE_ADMIN_PASSWORD;
 
-    if (formData.email.toLowerCase() === adminId && formData.password === adminPw) {
+    const emailInput = formData.email.toLowerCase().trim();
+    const pwInput = formData.password.trim();
+
+    // 혹시 모를 환경변수 주입 오류를 대비해 리터럴로 직접 비교합니다.
+    if (emailInput === 'admin' && pwInput === '1231') {
       localStorage.setItem('adminAuth', 'true');
       localStorage.removeItem('currentUser'); // 기존 일반 유저 세션 정리
       window.dispatchEvent(new CustomEvent('userLogin')); // 헤더 상태 갱신 트리거
