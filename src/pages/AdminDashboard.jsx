@@ -429,13 +429,24 @@ const AdminDashboard = () => {
   const pendingCount = pendingWarehouseList.length + pendingCustomerList.length;
   const unresolvedInquiries = inquiries.filter(i => i.status !== 'resolved').length;
 
-  // Page View Stats
-  const pageViewStats = pageViews.reduce((acc, view) => {
+  // Page View Stats (인간 vs 봇 분리)
+  const humanViews = pageViews.filter(view => !view.is_bot);
+  const botViews = pageViews.filter(view => view.is_bot);
+
+  const humanPageStats = humanViews.reduce((acc, view) => {
     const path = view.page_path;
     acc[path] = (acc[path] || 0) + 1;
     return acc;
   }, {});
-  const topPages = Object.entries(pageViewStats).sort(([, a], [, b]) => b - a).slice(0, 5);
+
+  const botPageStats = botViews.reduce((acc, view) => {
+    const path = view.page_path;
+    acc[path] = (acc[path] || 0) + 1;
+    return acc;
+  }, {});
+
+  const topHumanPages = Object.entries(humanPageStats).sort(([, a], [, b]) => b - a).slice(0, 10);
+  const topBotPages = Object.entries(botPageStats).sort(([, a], [, b]) => b - a).slice(0, 10);
 
   // --- [신규] 열람권 통계 집계 ---
   const totalRemainingPasses = viewingPasses.reduce((sum, p) => sum + (p.remaining_count || 0), 0);
@@ -687,24 +698,47 @@ const AdminDashboard = () => {
               <StatCard icon={Building2} title="총 창고 수" value={`${warehouses.length}개`} color="blue" />
               <StatCard icon={Users} title="총 고객사 수" value={`${customers.length}개`} color="green" />
               <StatCard icon={TrendingUp} title="총 매출" value={`${totalRevenue.toLocaleString()}원`} color="yellow" />
-              <StatCard icon={Eye} title="주간 방문수" value={`${pageViews.length}회`} color="purple" />
+              <StatCard icon={Eye} title="주간 방문수" value={`${humanViews.length}회 (봇 ${botViews.length}회)`} color="purple" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white shadow rounded-lg p-6">
                 <h3 className="text-lg font-bold mb-4">인기 페이지 (최근 7일)</h3>
-                <ul className="space-y-3">
-                  {topPages.map(([path, count], idx) => (
-                    <li key={path} className="flex justify-between items-center border-b border-gray-100 pb-2">
-                      <span className="flex items-center text-gray-700">
-                        <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3 text-xs font-bold text-gray-600">{idx + 1}</span>
-                        {path === '/' ? '메인 페이지' : path}
-                      </span>
-                      <span className="font-bold text-primary-600">{count}회</span>
-                    </li>
-                  ))}
-                  {topPages.length === 0 && <li className="text-gray-500 text-center py-4">데이터가 없습니다.</li>}
-                </ul>
+                <div className="space-y-6">
+                  {/* 실제 사용자 섹션 */}
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-600 mb-2 flex items-center">👨‍💻 실제 사용자</h4>
+                    <ul className="space-y-2">
+                      {topHumanPages.map(([path, count], idx) => (
+                        <li key={path} className="flex justify-between items-center border-b border-gray-100 pb-1 text-sm">
+                          <span className="flex items-center text-gray-700">
+                            <span className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center mr-2 text-xs font-bold text-blue-600 border border-blue-100">{idx + 1}</span>
+                            {path === '/' ? '메인 페이지' : path}
+                          </span>
+                          <span className="font-bold text-primary-600">{count}회</span>
+                        </li>
+                      ))}
+                      {topHumanPages.length === 0 && <li className="text-gray-400 text-center py-2 text-sm">데이터가 없습니다.</li>}
+                    </ul>
+                  </div>
+
+                  {/* 크롤러 / 봇 섹션 */}
+                  <div className="pt-4 border-t border-gray-200">
+                    <h4 className="text-sm font-bold text-gray-400 mb-2 flex items-center">🤖 크롤러 / 봇</h4>
+                    <ul className="space-y-2">
+                      {topBotPages.map(([path, count], idx) => (
+                        <li key={path} className="flex justify-between items-center border-b border-gray-100 pb-1 text-sm">
+                          <span className="flex items-center text-gray-400">
+                            <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center mr-2 text-xs font-bold text-gray-500">{idx + 1}</span>
+                            {path === '/' ? '메인 페이지' : path}
+                          </span>
+                          <span className="font-bold text-gray-500">{count}회</span>
+                        </li>
+                      ))}
+                      {topBotPages.length === 0 && <li className="text-gray-400 text-center py-2 text-sm">데이터가 없습니다.</li>}
+                    </ul>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-white shadow rounded-lg p-6">
