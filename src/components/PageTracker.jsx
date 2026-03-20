@@ -8,6 +8,12 @@ const PageTracker = () => {
     useEffect(() => {
         const trackPageView = async () => {
             try {
+                // [보완] 구글/네이버 등 크롤러 및 자동화 봇 트래픽 제외
+                const botPattern = /bot|crawler|spider|slurp|naver|daum|google|headless/i;
+                if (botPattern.test(navigator.userAgent)) {
+                    return; // 봇 방문은 기록하지 않음
+                }
+
                 const userStr = localStorage.getItem('currentUser');
                 const user = userStr ? JSON.parse(userStr) : null;
 
