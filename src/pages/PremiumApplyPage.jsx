@@ -193,7 +193,7 @@ const PremiumApplyPage = () => {
     setIsProcessing(true);
 
     try {
-      const tossPayments = await loadTossPayments('test_ck_ZLKGPx4M3MGk5NPWgyaRrBaWypv1');
+      const tossPayments = await loadTossPayments(paymentConfig.clientKey);
       const orderId = `premium_${new Date().getTime()}_${currentUser.id}`;
       const orderName = `[프리미엄] ${itemInfo.name} ${selectedPackageInfo.name}`;
       

@@ -42,6 +42,7 @@ const WarehouseRegister = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [privacyError, setPrivacyError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   // 면적 환산 함수
   const convertArea = (value, fromUnit, toUnit) => {
@@ -57,6 +58,9 @@ const WarehouseRegister = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'password') {
+      setPasswordError('');
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value,
@@ -116,6 +120,14 @@ const WarehouseRegister = () => {
 
     // 면적 검증
     if (!validateAreas()) {
+      return;
+    }
+
+    // 비밀번호 검증
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,16}$/;
+    if (!passwordRegex.test(formData.password)) {
+      setPasswordError('영문, 숫자, 특수문자를 포함하여 8~16자로 입력해주세요.');
+      alert('비밀번호는 영문, 숫자, 특수문자를 포함하여 8~16자여야 합니다.');
       return;
     }
 
@@ -316,9 +328,13 @@ const WarehouseRegister = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
+                    placeholder="영문, 숫자, 특수문자를 포함하여 8~16자로 입력해주세요."
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500 ${passwordError ? 'border-red-500' : 'border-gray-300'}`}
                   />
+                  {passwordError && (
+                    <p className="mt-1 text-sm text-red-500">{passwordError}</p>
+                  )}
                 </div>
               </div>
             </div>
