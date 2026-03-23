@@ -11,11 +11,11 @@ export const paymentConfig = {
   // VITE_TEST_MODE=true
   // VITE_PAYMENT_AMOUNT=50000
   merchantId: import.meta.env.VITE_TOSS_MID || '33ply4afmm',
-  clientKey: import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_ZLKGPx4M3MGk5NPWgyaRrBaWypv1',
+  clientKey: 'live_ck_d46qopOB89zKkYkvjwWE3ZmM75y0',
   pgProvider: 'tosspayments',
   
-  // 테스트 모드 (기본값: true)
-  isTestMode: import.meta.env.VITE_TEST_MODE !== 'false',
+  // 테스트 모드 (기본값: false, 'true'일 때만 활성화)
+  isTestMode: import.meta.env.VITE_TEST_MODE === 'true',
   
   // 결제 정보
   amount: parseInt(import.meta.env.VITE_PAYMENT_AMOUNT) || 50000,
