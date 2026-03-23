@@ -34,6 +34,11 @@ const PremiumApplyPage = () => {
       if (itemId && itemType) {
         loadItemInfo(itemId, itemType).finally(() => setIsLoadingItem(false));
       } else {
+        setItemInfo({
+          id: 'admin_mock_id',
+          name: '관리자 미리보기 업체',
+          type: 'warehouse'
+        });
         setIsLoadingItem(false);
       }
       return;
