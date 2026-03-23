@@ -22,8 +22,20 @@ const PremiumApplyPage = () => {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (!user) {
+    const isAdmin = localStorage.getItem('adminAuth');
+
+    if (!user && !isAdmin) {
       navigate('/login');
+      return;
+    }
+
+    if (isAdmin && !user) {
+      setCurrentUser({ id: 'admin_preview', companyName: '관리자 (미리보기)', email: 'admin@test.com' });
+      if (itemId && itemType) {
+        loadItemInfo(itemId, itemType).finally(() => setIsLoadingItem(false));
+      } else {
+        setIsLoadingItem(false);
+      }
       return;
     }
 
