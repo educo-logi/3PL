@@ -674,6 +674,7 @@ const AdminDashboard = () => {
               { id: 'premium', label: '프리미엄 관리' },
               { id: 'inquiries', label: `문의 관리 (${unresolvedInquiries})` },
               { id: 'pending', label: `승인 대기 (${pendingCount})` },
+              { id: 'payment_pages', label: '결제 페이지' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -952,6 +953,69 @@ const AdminDashboard = () => {
             {pendingWarehouseList.length === 0 && pendingCustomerList.length === 0 && (
               <div className="text-center py-12 bg-white rounded shadow text-gray-500">대기 중인 승인 요청이 없습니다.</div>
             )}
+          </div>
+        )}
+
+        {/* 9. Payment Pages View [신규] */}
+        {activeTab === 'payment_pages' && (
+          <div className="space-y-6">
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex items-center border-b border-gray-100 pb-4 mb-6">
+                <CreditCard className="w-6 h-6 mr-2 text-primary-600" />
+                <h3 className="text-xl font-bold text-gray-900">사용자 결제 페이지 바로가기</h3>
+              </div>
+              
+              <p className="text-gray-600 mb-6 text-sm">
+                사용자가 플랫폼에서 열람권이나 프리미엄 서비스를 이용할 때 마주하는 페이지입니다.<br />
+                관리자 계정 상태에서는 실제 연동 테스트나 레이아웃 확인용으로 활용해 주세요.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 열람권 구매 페이지 */}
+                <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow bg-gradient-to-br from-white to-blue-50">
+                  <div className="flex items-center mb-4">
+                    <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                      <CreditCard className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900">열람권 구매 페이지</h4>
+                      <p className="text-xs text-gray-500">링크: /payment</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-6 h-12 flex items-center">
+                    창고 및 고객사 상세 연락처를 확인하기 위한 열람권 구매 화면입니다.
+                  </p>
+                  <button 
+                    onClick={() => window.open('/payment', '_blank')}
+                    className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-sm"
+                  >
+                    새 창으로 열기 <Eye className="w-4 h-4 ml-2" />
+                  </button>
+                </div>
+
+                {/* 프리미엄 신청 페이지 */}
+                <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow bg-gradient-to-br from-white to-purple-50">
+                  <div className="flex items-center mb-4">
+                    <div className="bg-purple-100 p-3 rounded-lg mr-4">
+                      <AlertCircle className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-900">프리미엄 신청 페이지</h4>
+                      <p className="text-xs text-gray-500">링크: /premium-apply</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-6 h-12 flex items-center">
+                    검색 결과 상단 노출 및 홍보 혜택을 제공하는 프리미엄 서비스 신청 화면입니다.
+                  </p>
+                  <button 
+                    onClick={() => window.open('/premium-apply', '_blank')}
+                    className="w-full flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-sm"
+                  >
+                    새 창으로 열기 <Eye className="w-4 h-4 ml-2" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
