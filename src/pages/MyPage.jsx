@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Building2, Users, Edit, LogOut, ArrowLeft, Save, X, CreditCard, Calendar, Eye, Map, Phone, Mail, Package, Truck, Monitor, Box, Snowflake, Thermometer, CheckCircle2, Layers, Archive, Activity, Briefcase, MapPin } from 'lucide-react';
-import { regions, detailedRegions, dongData } from '../data/sampleData';
+import { regions } from '../data/sampleData';
 import { getViewingPassInfo, getUsageHistory, getRemainingDays, getUsageStatistics, getItemDetail, checkAndGrantWelcomePass, checkEventEligibility } from '../utils/viewingPassUtils';
 
 import DetailModal from '../components/DetailModal';

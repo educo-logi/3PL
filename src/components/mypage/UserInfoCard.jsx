@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Edit, Save, X, LogOut } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
-import { regions, detailedRegions, dongData } from '../../data/sampleData';
+import { regions } from '../../data/sampleData';
 
 const UserInfoCard = ({ currentUser, isWarehouse, onEdit, onLogout }) => {
     return (
