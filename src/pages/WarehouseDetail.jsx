@@ -6,6 +6,7 @@ import ContactModal from '../components/ContactModal';
 import { formatArea } from '../utils/areaConverter';
 import { getDisplayNameHelper, isAlreadyViewed } from '../utils/viewingPassUtils';
 import AddressDisplay from '../components/AddressDisplay';
+import { getAreaDisplayValues } from '../utils/areaConverter';
 
 const WarehouseDetail = () => {
   const { id } = useParams();
@@ -14,6 +15,7 @@ const WarehouseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isViewed, setIsViewed] = useState(false);
   const [showJibun, setShowJibun] = useState(false);
+  const [showAreaPyeong, setShowAreaPyeong] = useState(false);
 
   const [warehouse, setWarehouse] = useState(null);
 
@@ -49,7 +51,9 @@ const WarehouseDetail = () => {
               roadAddress: data.road_address,
               jibunAddress: data.jibun_address,
               totalArea: data.total_area,
+              totalAreaUnit: data.total_area_unit,
               availableArea: data.available_area,
+              availableAreaUnit: data.available_area_unit,
               palletCount: data.pallet_count,
               products: data.products || [],
               temperature: (data.storage_types || []).join('/'),
@@ -185,21 +189,33 @@ const WarehouseDetail = () => {
                 <div className="space-y-6">
                   {/* 면적 정보 */}
                   <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <Square className="w-5 h-5 mr-2 text-primary-600" />
-                      면적 정보
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <Square className="w-5 h-5 mr-2 text-primary-600" />
+                        면적 정보
+                      </h3>
+                      <button 
+                        onClick={() => setShowAreaPyeong(!showAreaPyeong)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                      >
+                        {showAreaPyeong ? '㎡ 보기' : '평수 보기'}
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-600">총 면적</p>
                         <p className="text-xl font-bold text-gray-900">
-                          {formatArea(warehouse.totalArea)}
+                          {warehouse.totalArea 
+                          ? (showAreaPyeong ? `${getAreaDisplayValues(warehouse.totalArea, warehouse.totalAreaUnit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(warehouse.totalArea, warehouse.totalAreaUnit || 'sqm').sqm} ㎡`)
+                          : '-'}
                         </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">이용가능면적</p>
                         <p className="text-xl font-bold text-primary-600">
-                          {formatArea(warehouse.availableArea)}
+                          {warehouse.availableArea 
+                          ? (showAreaPyeong ? `${getAreaDisplayValues(warehouse.availableArea, warehouse.availableAreaUnit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(warehouse.availableArea, warehouse.availableAreaUnit || 'sqm').sqm} ㎡`)
+                          : '-'}
                         </p>
                       </div>
                     </div>

@@ -12,6 +12,7 @@ import { supabase } from '../utils/supabaseClient';
 import { setCurrentUser } from '../utils/authService';
 import { Star, Clock } from 'lucide-react';
 import AddressDisplay from '../components/AddressDisplay';
+import { getAreaDisplayValues } from '../utils/areaConverter';
 
 const MyPage = () => {
   const [currentUser, setCurrentUserState] = useState(null);
@@ -32,6 +33,9 @@ const MyPage = () => {
 
   // 주소 구주소 토글 상태
   const [showJibun, setShowJibun] = useState(false);
+
+  // 면적 평수 토글 상태
+  const [showAreaPyeong, setShowAreaPyeong] = useState(false);
 
   // [신규] 전체 열람 내역 모달 상태
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -58,9 +62,9 @@ const MyPage = () => {
       let selectFields = 'id, company_name, email, auth_user_id, status, user_type, location, city, dong, detail_address, representative, phone, contact_person, contact_phone, business_number, pallet_count, products, is_premium, premium_end_date';
       
       if (table === 'warehouses') {
-        selectFields += ', total_area, warehouse_area, available_area, storage_types, delivery_companies, other_delivery_company, solutions, other_solution, road_address, jibun_address';
+        selectFields += ', total_area, total_area_unit, warehouse_area, warehouse_area_unit, available_area, available_area_unit, storage_types, delivery_companies, other_delivery_company, solutions, other_solution, road_address, jibun_address';
       } else {
-        selectFields += ', required_area, monthly_volume, road_address, jibun_address';
+        selectFields += ', required_area, required_area_unit, monthly_volume, road_address, jibun_address';
       }
 
       const { data, error } = await supabase
@@ -621,10 +625,18 @@ const MyPage = () => {
                 // 창고업체 정보
                 // 창고업체 정보 (Web Graphic Style)
                 <div className="pt-6">
-                  <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                    <Building2 className="w-6 h-6 mr-2 text-primary-600" />
-                    시설 및 운영 정보
-                  </h4>
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-xl font-bold text-gray-900 flex items-center">
+                      <Building2 className="w-6 h-6 mr-2 text-primary-600" />
+                      시설 및 운영 정보
+                    </h4>
+                    <button 
+                      onClick={() => setShowAreaPyeong(!showAreaPyeong)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                      {showAreaPyeong ? '㎡ 보기' : '평수 보기'}
+                    </button>
+                  </div>
 
                   {/* 1. 시설 스펙 (4 Grid) */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -634,7 +646,9 @@ const MyPage = () => {
                       </div>
                       <p className="text-xs text-gray-500 mb-1">대지면적</p>
                       <p className="text-lg font-bold text-gray-800 group-hover:text-primary-600 transition">
-                        {currentUser.total_area || currentUser.landArea ? `${Number(currentUser.total_area || currentUser.landArea).toLocaleString()} ㎡` : '-'}
+                        {currentUser.total_area || currentUser.landArea 
+                          ? (showAreaPyeong ? `${getAreaDisplayValues(currentUser.total_area || currentUser.landArea, currentUser.total_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(currentUser.total_area || currentUser.landArea, currentUser.total_area_unit || 'sqm').sqm} ㎡`)
+                          : '-'}
                       </p>
                     </div>
                     <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50 transition duration-200 group">
@@ -643,7 +657,9 @@ const MyPage = () => {
                       </div>
                       <p className="text-xs text-gray-500 mb-1">창고 연면적</p>
                       <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition">
-                        {currentUser.warehouse_area || currentUser.totalWarehouseArea ? `${Number(currentUser.warehouse_area || currentUser.totalWarehouseArea).toLocaleString()} ㎡` : '-'}
+                        {currentUser.warehouse_area || currentUser.totalWarehouseArea 
+                          ? (showAreaPyeong ? `${getAreaDisplayValues(currentUser.warehouse_area || currentUser.totalWarehouseArea, currentUser.warehouse_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(currentUser.warehouse_area || currentUser.totalWarehouseArea, currentUser.warehouse_area_unit || 'sqm').sqm} ㎡`)
+                          : '-'}
                       </p>
                     </div>
                     <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-green-300 hover:bg-green-50 transition duration-200 group">
@@ -652,14 +668,16 @@ const MyPage = () => {
                       </div>
                       <p className="text-xs text-gray-500 mb-1">계약 가능 면적</p>
                       <p className="text-lg font-bold text-gray-800 group-hover:text-green-600 transition">
-                        {currentUser.available_area || currentUser.availableArea ? `${Number(currentUser.available_area || currentUser.availableArea).toLocaleString()} ㎡` : '-'}
+                        {currentUser.available_area || currentUser.availableArea 
+                          ? (showAreaPyeong ? `${getAreaDisplayValues(currentUser.available_area || currentUser.availableArea, currentUser.available_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(currentUser.available_area || currentUser.availableArea, currentUser.available_area_unit || 'sqm').sqm} ㎡`)
+                          : '-'}
                       </p>
                     </div>
                     <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:border-orange-300 hover:bg-orange-50 transition duration-200 group">
                       <div className="p-2 bg-gray-50 rounded-full mb-3 group-hover:bg-white transition">
                         <Layers className="w-6 h-6 text-gray-400 group-hover:text-orange-600 transition" />
                       </div>
-                      <p className="text-xs text-gray-500 mb-1">보유 파렛트</p>
+                      <p className="text-xs text-gray-500 mb-1">팔레트 기준</p>
                       <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition">
                         {currentUser.pallet_count || currentUser.palletCount ? `${Number(currentUser.pallet_count || currentUser.palletCount).toLocaleString()} PLT` : '-'}
                       </p>
@@ -759,11 +777,19 @@ const MyPage = () => {
               ) : (
                 // 고객사 정보
                 // 고객사 정보 (Web Graphic Style)
-                <div className="pt-6">
-                  <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                    <Building2 className="w-6 h-6 mr-2 text-primary-600" />
-                    물류 요구 사항
-                  </h4>
+                <div className="pt-6 border-t border-gray-100 mt-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-xl font-bold text-gray-900 flex items-center">
+                      <User className="w-6 h-6 mr-2 text-primary-600" />
+                      물류 요구 사항
+                    </h4>
+                    <button 
+                      onClick={() => setShowAreaPyeong(!showAreaPyeong)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                      {showAreaPyeong ? '㎡ 보기' : '평수 보기'}
+                    </button>
+                  </div>
 
                   {/* 1. 시설 스펙 (3 Grid) */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -773,7 +799,9 @@ const MyPage = () => {
                       </div>
                       <p className="text-sm text-gray-500 mb-1">필요 면적</p>
                       <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition">
-                        {currentUser.required_area || currentUser.requiredArea ? `${Number(currentUser.required_area || currentUser.requiredArea).toLocaleString()} ㎡` : '-'}
+                        {currentUser.required_area || currentUser.requiredArea 
+                          ? (showAreaPyeong ? `${getAreaDisplayValues(currentUser.required_area || currentUser.requiredArea, currentUser.required_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(currentUser.required_area || currentUser.requiredArea, currentUser.required_area_unit || 'sqm').sqm} ㎡`)
+                          : '-'}
                       </p>
                     </div>
 
@@ -791,7 +819,7 @@ const MyPage = () => {
                       <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
                         <Layers className="w-8 h-8 text-gray-400 group-hover:text-orange-600 transition" />
                       </div>
-                      <p className="text-sm text-gray-500 mb-1">보관 파렛트</p>
+                      <p className="text-sm text-gray-500 mb-1">팔레트 기준</p>
                       <p className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition">
                         {currentUser.pallet_count || currentUser.palletCount ? `${Number(currentUser.pallet_count || currentUser.palletCount).toLocaleString()} PLT` : '-'}
                       </p>

@@ -6,6 +6,7 @@ import ContactModal from '../components/ContactModal';
 import { formatArea } from '../utils/areaConverter';
 import { getDisplayNameHelper, isAlreadyViewed } from '../utils/viewingPassUtils';
 import AddressDisplay from '../components/AddressDisplay';
+import { getAreaDisplayValues } from '../utils/areaConverter';
 
 const CustomerDetail = () => {
   const { id } = useParams();
@@ -14,6 +15,7 @@ const CustomerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isViewed, setIsViewed] = useState(false);
   const [showJibun, setShowJibun] = useState(false);
+  const [showAreaPyeong, setShowAreaPyeong] = useState(false);
 
   const [customer, setCustomer] = useState(null);
 
@@ -44,6 +46,7 @@ const CustomerDetail = () => {
               jibunAddress: data.jibun_address,
               products: data.products || [],
               requiredArea: data.required_area,
+              requiredAreaUnit: data.required_area_unit,
               monthlyVolume: data.monthly_volume,
               desiredDelivery: data.desired_delivery || [],
             };
@@ -157,12 +160,22 @@ const CustomerDetail = () => {
                 <div className="space-y-6">
                   {/* 면적 정보 */}
                   <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <Square className="w-5 h-5 mr-2 text-primary-600" />
-                      필요 면적
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <Square className="w-5 h-5 mr-2 text-primary-600" />
+                        필요 면적
+                      </h3>
+                      <button 
+                        onClick={() => setShowAreaPyeong(!showAreaPyeong)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                      >
+                        {showAreaPyeong ? '㎡ 보기' : '평수 보기'}
+                      </button>
+                    </div>
                     <p className="text-2xl font-bold text-primary-600">
-                      {formatArea(customer.requiredArea)}
+                      {customer.requiredArea 
+                        ? (showAreaPyeong ? `${getAreaDisplayValues(customer.requiredArea, customer.requiredAreaUnit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(customer.requiredArea, customer.requiredAreaUnit || 'sqm').sqm} ㎡`)
+                        : '-'}
                     </p>
                   </div>
 

@@ -98,7 +98,7 @@ const DesignMockup = () => {
                             <div className="p-3 bg-gray-50 rounded-full mb-4 group-hover:bg-white transition">
                                 <Layers className="w-8 h-8 text-gray-400 group-hover:text-orange-600 transition" />
                             </div>
-                            <p className="text-gray-500 text-sm mb-1">보관 파렛트</p>
+                            <p className="text-gray-500 text-sm mb-1">팔레트 기준</p>
                             <p className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition">300 PLT</p>
                         </div>
                     </div>

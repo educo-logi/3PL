@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Building2, Users, MapPin, Phone, Mail, Square, Package, Calendar } from 'lucide-react';
 import AddressDisplay from './AddressDisplay';
+import { getAreaDisplayValues } from '../utils/areaConverter';
 
 // Reusable Info Card Component
 const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue-600", fullWidth = false, isHighlight = false }) => (
@@ -17,6 +18,7 @@ const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue
 
 const DetailModal = ({ isOpen, onClose, data, type }) => {
   const [showJibun, setShowJibun] = React.useState(false);
+  const [showAreaPyeong, setShowAreaPyeong] = React.useState(false);
 
   if (!isOpen || !data) return null;
 
@@ -140,18 +142,32 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
             {/* 오른쪽 컬럼: 업무/요구 정보 */}
             <div className="space-y-8">
               <section>
-                <h3 className="text-lg font-bold text-gray-900 flex items-center mb-4">
-                  <span className="w-1 h-6 bg-emerald-500 rounded-r-md mr-3"></span>
-                  {type === 'warehouse' ? '창고 스펙' : '물류 요구사항'}
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                    <span className="w-1 h-6 bg-emerald-500 rounded-r-md mr-3"></span>
+                    {type === 'warehouse' ? '창고 스펙' : '물류 요구사항'}
+                  </h3>
+                  <button 
+                    onClick={() => setShowAreaPyeong(!showAreaPyeong)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                  >
+                    {showAreaPyeong ? '㎡ 보기' : '평수 보기'}
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   {type === 'warehouse' ? (
                     <>
-                      <InfoCard icon={Square} label="총 면적" value={formatArea(data.totalArea || data.total_area)} colorClass="bg-blue-50 text-blue-600" />
-                      <InfoCard icon={Square} label="이용가능 면적" value={formatArea(data.availableArea || data.available_area)} colorClass="bg-cyan-50 text-cyan-600" />
+                      <InfoCard icon={Square} label="총 면적" value={
+                        (data.totalArea || data.total_area) ? 
+                        (showAreaPyeong ? `${getAreaDisplayValues(data.totalArea || data.total_area, data.totalAreaUnit || data.total_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.totalArea || data.total_area, data.totalAreaUnit || data.total_area_unit || 'sqm').sqm} ㎡`) : '-'
+                      } colorClass="bg-blue-50 text-blue-600" />
+                      <InfoCard icon={Square} label="이용가능 면적" value={
+                        (data.availableArea || data.available_area) ? 
+                        (showAreaPyeong ? `${getAreaDisplayValues(data.availableArea || data.available_area, data.availableAreaUnit || data.available_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.availableArea || data.available_area, data.availableAreaUnit || data.available_area_unit || 'sqm').sqm} ㎡`) : '-'
+                      } colorClass="bg-cyan-50 text-cyan-600" />
                       <InfoCard icon={Building2} label="창고 개수" value={data.warehouseCount ? `${data.warehouseCount}개` : '-'} colorClass="bg-indigo-50 text-indigo-600" />
-                      <InfoCard icon={Package} label="보유 파렛트" value={data.palletCount ? `${data.palletCount} PLT` : '-'} colorClass="bg-violet-50 text-violet-600" />
+                      <InfoCard icon={Package} label="팔레트 기준" value={data.palletCount || data.pallet_count ? `${data.palletCount || data.pallet_count} PLT` : '-'} colorClass="bg-violet-50 text-violet-600" />
 
                       <InfoCard icon={Calendar} label="업력" value={data.experience ? `${data.experience}년` : '-'} colorClass="bg-amber-50 text-amber-600" />
                       <InfoCard icon={Package} label="보관 방식" value={Array.isArray(data.storageTypes) ? data.storageTypes.join(', ') : data.temperature} colorClass="bg-rose-50 text-rose-600" fullWidth={true} />
@@ -163,8 +179,11 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                     </>
                   ) : (
                     <>
-                      <InfoCard icon={Square} label="필요 면적" value={formatArea(data.requiredArea || data.required_area)} colorClass="bg-blue-50 text-blue-600" />
-                      <InfoCard icon={Package} label="보관 파렛트" value={data.palletCount ? `${data.palletCount} PLT` : '-'} colorClass="bg-cyan-50 text-cyan-600" />
+                      <InfoCard icon={Square} label="필요 면적" value={
+                        (data.requiredArea || data.required_area) ? 
+                        (showAreaPyeong ? `${getAreaDisplayValues(data.requiredArea || data.required_area, data.requiredAreaUnit || data.required_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.requiredArea || data.required_area, data.requiredAreaUnit || data.required_area_unit || 'sqm').sqm} ㎡`) : '-'
+                      } colorClass="bg-blue-50 text-blue-600" />
+                      <InfoCard icon={Package} label="팔레트 기준" value={data.palletCount || data.pallet_count ? `${data.palletCount || data.pallet_count} PLT` : '-'} colorClass="bg-cyan-50 text-cyan-600" />
                       <InfoCard icon={Package} label="월 평균 출고량" value={data.monthlyVolume ? `${Number(data.monthlyVolume).toLocaleString()}건/월` : '-'} colorClass="bg-violet-50 text-violet-600" fullWidth={true} />
                       <InfoCard icon={Package} label="취급 물품" value={Array.isArray(data.products) ? data.products.join(', ') : data.products} colorClass="bg-rose-50 text-rose-600" fullWidth={true} />
                       <InfoCard icon={Package} label="희망 배송사" value={formatListWithOther(data.desiredDelivery, data.other_desired_delivery)} colorClass="bg-emerald-50 text-emerald-600" fullWidth={true} />
