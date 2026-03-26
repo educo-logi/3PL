@@ -17,6 +17,7 @@ const CustomerRegister = () => {
     city: '',
     dong: '',
     roadAddress: '',
+    jibunAddress: '',
     detailAddress: '',
     representative: '',
     phone: '',
@@ -55,6 +56,7 @@ const CustomerRegister = () => {
       city: data.sigungu || data.sido,
       dong: data.bname || '',
       roadAddress: data.buildingName ? `${data.roadAddress} (${data.buildingName})` : data.roadAddress,
+      jibunAddress: data.jibunAddress || data.autoJibunAddress || '',
       detailAddress: ''
     }));
   };
@@ -101,7 +103,7 @@ const CustomerRegister = () => {
       return;
     }
 
-    const combinedAddress = `${formData.roadAddress} ${formData.detailAddress}`.trim();
+    // Remove combined address combining since we now store them separately.
 
     try {
       const dupCheck = await checkEmailDuplicate(formData.email);
@@ -118,7 +120,9 @@ const CustomerRegister = () => {
         location: formData.location,
         city: formData.city,
         dong: formData.dong,
-        detail_address: combinedAddress,
+        road_address: formData.roadAddress,
+        jibun_address: formData.jibunAddress,
+        detail_address: formData.detailAddress,
         phone: formData.phone,
         contact_person: formData.contactPerson,
         contact_phone: formData.contactPhone,

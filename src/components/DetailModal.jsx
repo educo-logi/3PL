@@ -15,6 +15,8 @@ const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue
 );
 
 const DetailModal = ({ isOpen, onClose, data, type }) => {
+  const [showJibun, setShowJibun] = React.useState(false);
+
   if (!isOpen || !data) return null;
 
   const formatArea = (squareMeters) => {
@@ -109,18 +111,35 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
               </section>
 
               <section>
-                <h3 className="text-lg font-bold text-gray-900 flex items-center mb-4">
-                  <span className="w-1 h-6 bg-blue-500 rounded-r-md mr-3"></span>
-                  사업장 주소
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                    <span className="w-1 h-6 bg-blue-500 rounded-r-md mr-3"></span>
+                    사업장 주소
+                  </h3>
+                  <button 
+                    onClick={() => setShowJibun(!showJibun)}
+                    className="text-[11px] font-semibold px-2 py-1 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                  >
+                    {showJibun ? '도로명 주소 보기' : '지번 주소 보기'}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1">
-                  <InfoCard
-                    icon={MapPin}
-                    label="상세 주소"
-                    value={data.detail_address || data.detailAddress || `${data.location || ''} ${data.city || ''} ${data.dong || ''}`.trim()}
-                    colorClass="bg-gray-100 text-gray-600"
-                    fullWidth={true}
-                  />
+                  <div className={`bg-gray-100 border border-gray-200 rounded-2xl p-4 flex items-center shadow-sm hover:shadow-md transition-shadow col-span-1 lg:col-span-2`}>
+                    <div className={`p-3 rounded-xl mr-4 flex-shrink-0 bg-gray-200 text-gray-600`}>
+                      <MapPin className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-base truncate font-bold text-gray-900`}>
+                        {showJibun 
+                          ? (data.jibun_address || data.jibunAddress || `${data.location || ''} ${data.city || ''} ${data.dong || ''}`.trim())
+                          : (data.road_address || data.roadAddress || data.detail_address || data.detailAddress || `${data.location || ''} ${data.city || ''} ${data.dong || ''}`.trim())
+                        }
+                      </p>
+                      <p className={`text-sm truncate text-gray-600 mt-1`}>
+                        {(data.road_address || data.roadAddress) ? (data.detail_address || data.detailAddress) : ''}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </section>
             </div>

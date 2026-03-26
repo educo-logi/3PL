@@ -27,7 +27,8 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                 experience: currentUser.experience || '',
                 required_area: currentUser.required_area || '',
                 monthly_volume: currentUser.monthly_volume || '',
-                roadAddress: currentUser.detail_address || '', // 기존 전체 주소를 기본 주소로 로드
+                roadAddress: currentUser.road_address || currentUser.detail_address || '', // 기존 전체 주소를 기본 주소로 로드
+                jibunAddress: currentUser.jibun_address || '',
                 detailAddress: '', // 상세 주소는 새로 입력받기 위해 비워둠
                 contact_person: currentUser.contact_person || '',
                 contact_phone: currentUser.contact_phone || '',
@@ -75,6 +76,7 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             city: data.sigungu || data.sido,
             dong: data.bname || '',
             roadAddress: data.buildingName ? `${data.roadAddress} (${data.buildingName})` : data.roadAddress,
+            jibunAddress: data.jibunAddress || data.autoJibunAddress || '',
             detailAddress: '' // 새 검색 시 상세 주소 초기화
         }));
     };
@@ -113,7 +115,7 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
 
             const commonAllowedFields = [
                 'company_name', 'representative', 'phone',
-                'location', 'city', 'dong', 'detail_address',
+                'location', 'city', 'dong', 'detail_address', 'road_address', 'jibun_address',
                 'contact_person', 'contact_phone', 'password'
             ];
 
@@ -136,7 +138,9 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
             ];
 
             // 데이터 정리 및 결합 주소 할당
-            updateData.detail_address = combinedAddress;
+            updateData.detail_address = formData.detailAddress;
+            updateData.road_address = formData.roadAddress;
+            updateData.jibun_address = formData.jibunAddress;
 
             Object.keys(updateData).forEach(key => {
                 if (!allowedFields.includes(key)) {

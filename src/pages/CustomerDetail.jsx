@@ -12,6 +12,7 @@ const CustomerDetail = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isViewed, setIsViewed] = useState(false);
+  const [showJibun, setShowJibun] = useState(false);
 
   const [customer, setCustomer] = useState(null);
 
@@ -38,6 +39,8 @@ const CustomerDetail = () => {
               city: data.city,
               dong: data.dong,
               detailAddress: data.detail_address,
+              roadAddress: data.road_address,
+              jibunAddress: data.jibun_address,
               products: data.products || [],
               requiredArea: data.required_area,
               monthlyVolume: data.monthly_volume,
@@ -127,9 +130,23 @@ const CustomerDetail = () => {
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-8">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-3xl font-bold">{getDisplayNameHelper(customer, 'customer', isViewed)}</h1>
-                <p className="text-blue-100 text-lg">
-                  {customer.detail_address || customer.detailAddress || `${customer.location || ''} ${customer.city || ''} ${customer.dong || ''}`.trim()}
+                <div className="flex items-center mb-2">
+                  <h1 className="text-3xl font-bold mr-4">{getDisplayNameHelper(customer, 'customer', isViewed)}</h1>
+                  <button 
+                    onClick={() => setShowJibun(!showJibun)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-white/40 bg-white/10 text-white hover:bg-white/20 transition-colors shadow-sm"
+                  >
+                    {showJibun ? '도로명 주소 보기' : '지번 주소 보기'}
+                  </button>
+                </div>
+                <p className="text-blue-100 text-lg font-bold">
+                  {showJibun 
+                    ? (customer.jibun_address || customer.jibunAddress || `${customer.location || ''} ${customer.city || ''} ${customer.dong || ''}`.trim())
+                    : (customer.road_address || customer.roadAddress || customer.detail_address || customer.detailAddress || `${customer.location || ''} ${customer.city || ''} ${customer.dong || ''}`.trim())
+                  }
+                </p>
+                <p className="text-blue-200 text-base mt-1">
+                  {(customer.road_address || customer.roadAddress) ? (customer.detail_address || customer.detailAddress) : ''}
                 </p>
               </div>
             </div>

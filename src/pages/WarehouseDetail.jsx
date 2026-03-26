@@ -12,6 +12,7 @@ const WarehouseDetail = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isViewed, setIsViewed] = useState(false);
+  const [showJibun, setShowJibun] = useState(false);
 
   const [warehouse, setWarehouse] = useState(null);
 
@@ -44,6 +45,8 @@ const WarehouseDetail = () => {
               city: data.city,
               dong: data.dong,
               detailAddress: data.detail_address,
+              roadAddress: data.road_address,
+              jibunAddress: data.jibun_address,
               totalArea: data.total_area,
               availableArea: data.available_area,
               palletCount: data.pallet_count,
@@ -150,7 +153,13 @@ const WarehouseDetail = () => {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center mb-2">
-                  <h1 className="text-3xl font-bold">{getDisplayNameHelper(warehouse, 'warehouse', isViewed)}</h1>
+                  <h1 className="text-3xl font-bold mr-4">{getDisplayNameHelper(warehouse, 'warehouse', isViewed)}</h1>
+                  <button 
+                    onClick={() => setShowJibun(!showJibun)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-white/40 bg-white/10 text-white hover:bg-white/20 transition-colors shadow-sm"
+                  >
+                    {showJibun ? '도로명 주소 보기' : '지번 주소 보기'}
+                  </button>
                   {warehouse.isPremium && (
                     <div className="ml-4 bg-secondary-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center">
                       <Star className="w-4 h-4 mr-1" />
@@ -158,8 +167,14 @@ const WarehouseDetail = () => {
                     </div>
                   )}
                 </div>
-                <p className="text-blue-100 text-lg">
-                  {warehouse.detail_address || warehouse.detailAddress || `${warehouse.location || ''} ${warehouse.city || ''} ${warehouse.dong || ''}`.trim()}
+                <p className="text-blue-100 text-lg font-bold">
+                  {showJibun 
+                    ? (warehouse.jibun_address || warehouse.jibunAddress || `${warehouse.location || ''} ${warehouse.city || ''} ${warehouse.dong || ''}`.trim())
+                    : (warehouse.road_address || warehouse.roadAddress || warehouse.detail_address || warehouse.detailAddress || `${warehouse.location || ''} ${warehouse.city || ''} ${warehouse.dong || ''}`.trim())
+                  }
+                </p>
+                <p className="text-blue-200 text-base mt-1">
+                  {(warehouse.road_address || warehouse.roadAddress) ? (warehouse.detail_address || warehouse.detailAddress) : ''}
                 </p>
               </div>
             </div>

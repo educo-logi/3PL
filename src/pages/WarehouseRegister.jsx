@@ -23,6 +23,7 @@ const WarehouseRegister = () => {
     city: '',
     dong: '',
     roadAddress: '', // API 결과 저장용
+    jibunAddress: '', // API 결과 저장용 (지번)
     detailAddress: '', // 직접 입력용
     totalArea: '',
     totalAreaUnit: 'sqm',
@@ -79,6 +80,7 @@ const WarehouseRegister = () => {
       city: data.sigungu || data.sido,
       dong: data.bname || '',
       roadAddress: data.buildingName ? `${data.roadAddress} (${data.buildingName})` : data.roadAddress,
+      jibunAddress: data.jibunAddress || data.autoJibunAddress || '',
       detailAddress: '' // 새 주소 검색 시 상세 주소 초기화
     }));
   };
@@ -150,8 +152,7 @@ const WarehouseRegister = () => {
     }
 
     const hashedPassword = formData.password; // Will not be used — authService handles hashing
-    // 주소 결합
-    const combinedAddress = `${formData.roadAddress} ${formData.detailAddress}`.trim();
+    // Remove combined address combining since we now store them separately.
 
     try {
       const dupCheck = await checkEmailDuplicate(formData.email);
@@ -171,7 +172,9 @@ const WarehouseRegister = () => {
         location: formData.location,
         city: formData.city,
         dong: formData.dong,
-        detail_address: combinedAddress,
+        road_address: formData.roadAddress,
+        jibun_address: formData.jibunAddress,
+        detail_address: formData.detailAddress,
         total_area: parseFloat(formData.totalArea),
         total_area_unit: formData.totalAreaUnit,
         warehouse_count: parseInt(formData.warehouseCount),

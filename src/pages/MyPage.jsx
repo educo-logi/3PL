@@ -29,6 +29,9 @@ const MyPage = () => {
   const [isWelcomeEventModalOpen, setIsWelcomeEventModalOpen] = useState(false);
   const [isEventEligible, setIsEventEligible] = useState(false);
 
+  // 주소 구주소 토글 상태
+  const [showJibun, setShowJibun] = useState(false);
+
   // [신규] 전체 열람 내역 모달 상태
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
@@ -54,9 +57,9 @@ const MyPage = () => {
       let selectFields = 'id, company_name, email, auth_user_id, status, user_type, location, city, dong, detail_address, representative, phone, contact_person, contact_phone, business_number, pallet_count, products, is_premium, premium_end_date';
       
       if (table === 'warehouses') {
-        selectFields += ', total_area, warehouse_area, available_area, storage_types, delivery_companies, other_delivery_company, solutions, other_solution';
+        selectFields += ', total_area, warehouse_area, available_area, storage_types, delivery_companies, other_delivery_company, solutions, other_solution, road_address, jibun_address';
       } else {
-        selectFields += ', required_area, monthly_volume';
+        selectFields += ', required_area, monthly_volume, road_address, jibun_address';
       }
 
       const { data, error } = await supabase
@@ -589,20 +592,32 @@ const MyPage = () => {
                 </div>
               </div>
 
-              {/* 2. 주소 정보 (Web Graphic Style) */}
               <div className="pt-6">
-                <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                  <MapPin className="w-6 h-6 mr-2 text-primary-600" />
-                  사업장 주소
-                </h4>
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="text-xl font-bold text-gray-900 flex items-center">
+                    <MapPin className="w-6 h-6 mr-2 text-primary-600" />
+                    사업장 주소
+                  </h4>
+                  <button 
+                    onClick={() => setShowJibun(!showJibun)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                  >
+                    {showJibun ? '도로명 주소 보기' : '지번 주소 보기'}
+                  </button>
+                </div>
                 <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200 flex items-start space-x-4">
                   <div className="w-12 h-12 bg-gray-50 text-gray-600 rounded-xl flex items-center justify-center flex-shrink-0 mt-1">
                     <Map className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 font-medium mb-1">상세 주소</p>
                     <p className="text-lg font-bold text-gray-900">
-                      {currentUser.detail_address || currentUser.detailAddress || `${currentUser.location || ''} ${currentUser.city || ''} ${currentUser.dong || ''}`.trim()}
+                      {showJibun 
+                        ? (currentUser.jibun_address || `${currentUser.location || ''} ${currentUser.city || ''} ${currentUser.dong || ''}`.trim())
+                        : (currentUser.road_address || currentUser.detail_address || currentUser.detailAddress || `${currentUser.location || ''} ${currentUser.city || ''} ${currentUser.dong || ''}`.trim())
+                      }
+                    </p>
+                    <p className="text-base text-gray-600 mt-1">
+                      {currentUser.road_address ? currentUser.detail_address : ''}
                     </p>
                   </div>
                 </div>
