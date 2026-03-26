@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Building2, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { regions, productTypes, storageTypes, deliveryCompanies, solutions } from '../data/sampleData';
-import { hashPassword } from '../utils/passwordHash';
+import { signup } from '../utils/authService';
 import { supabase } from '../utils/supabaseClient';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
 import { checkEmailDuplicate } from '../utils/authUtils';
@@ -149,7 +149,7 @@ const WarehouseRegister = () => {
       return;
     }
 
-    const hashedPassword = hashPassword(formData.password);
+    const hashedPassword = formData.password; // Will not be used — authService handles hashing
     // 주소 결합
     const combinedAddress = `${formData.roadAddress} ${formData.detailAddress}`.trim();
 
@@ -160,43 +160,40 @@ const WarehouseRegister = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('warehouses')
-        .insert([
-          {
-            company_name: formData.companyName,
-            business_number: formData.businessNumber,
-            representative: formData.representative,
-            phone: formData.phone,
-            contact_person: formData.contactPerson,
-            contact_phone: formData.contactPhone,
-            email: formData.email,
-            password: hashedPassword,
-            location: formData.location,
-            city: formData.city,
-            dong: formData.dong,
-            detail_address: combinedAddress,
-            total_area: parseFloat(formData.totalArea),
-            total_area_unit: formData.totalAreaUnit,
-            warehouse_count: parseInt(formData.warehouseCount),
-            warehouse_area: parseFloat(formData.warehouseArea),
-            warehouse_area_unit: formData.warehouseAreaUnit,
-            available_area: parseFloat(formData.availableArea),
-            available_area_unit: formData.availableAreaUnit,
-            pallet_count: parseInt(formData.palletCount),
-            experience: parseInt(formData.experience),
-            storage_types: formData.storageTypes,
-            delivery_companies: formData.deliveryCompanies,
-            other_delivery_company: formData.other_delivery_company,
-            solutions: formData.solutions,
-            other_solution: formData.other_solution,
-            products: formData.products,
-            status: 'pending',
-            user_type: 'warehouse'
-          }
-        ]);
+      // Supabase Auth 회원가입 (bcrypt 자동 적용) + 프로필 테이블 INSERT
+      const result = await signup(formData.email, formData.password, 'warehouse', {
+        company_name: formData.companyName,
+        business_number: formData.businessNumber,
+        representative: formData.representative,
+        phone: formData.phone,
+        contact_person: formData.contactPerson,
+        contact_phone: formData.contactPhone,
+        location: formData.location,
+        city: formData.city,
+        dong: formData.dong,
+        detail_address: combinedAddress,
+        total_area: parseFloat(formData.totalArea),
+        total_area_unit: formData.totalAreaUnit,
+        warehouse_count: parseInt(formData.warehouseCount),
+        warehouse_area: parseFloat(formData.warehouseArea),
+        warehouse_area_unit: formData.warehouseAreaUnit,
+        available_area: parseFloat(formData.availableArea),
+        available_area_unit: formData.availableAreaUnit,
+        pallet_count: parseInt(formData.palletCount),
+        experience: parseInt(formData.experience),
+        storage_types: formData.storageTypes,
+        delivery_companies: formData.deliveryCompanies,
+        other_delivery_company: formData.other_delivery_company,
+        solutions: formData.solutions,
+        other_solution: formData.other_solution,
+        products: formData.products,
+      });
 
-      if (error) throw error;
+      if (!result.success) {
+        alert(result.message || '등록 중 오류가 발생했습니다.');
+        return;
+      }
+
       trackEvent(GA_EVENTS.REGISTER_WAREHOUSE, { company: formData.companyName });
       setIsSubmitted(true);
     } catch (error) {

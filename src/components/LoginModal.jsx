@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
-import { comparePassword } from '../utils/passwordHash';
-import { supabase } from '../utils/supabaseClient';
+import { login as authLogin, adminLogin } from '../utils/authService';
 
 const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
   const [formData, setFormData] = useState({
@@ -46,48 +45,29 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 관리자 로그인 체크
-    const adminId = import.meta.env.VITE_ADMIN_ID || 'admin';
-    const adminPw = import.meta.env.VITE_ADMIN_PASSWORD || '1231';
-
-    if (formData.email.toLowerCase() === adminId && formData.password === adminPw) {
-      localStorage.setItem('adminAuth', 'true');
-      onClose();
-      navigate('/admin/dashboard');
-      return;
-    }
-
     try {
-      // Supabase에서 사용자 조회
-      const table = formData.userType === 'warehouse' ? 'warehouses' : 'customers';
-
-      const { data: user, error } = await supabase
-        .from(table)
-        .select('*')
-        .eq('email', formData.email)
-        .single();
-
-      if (error || !user) {
-        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
-        return;
+      // 관리자 로그인 체크 (Supabase Auth 우선 → 레거시 Fallback)
+      const emailInput = formData.email.toLowerCase().trim();
+      if (emailInput === 'admin' || (emailInput.includes('@') && formData.password)) {
+        const adminResult = await adminLogin(emailInput, formData.password);
+        if (adminResult.success) {
+          onClose();
+          navigate('/admin/dashboard');
+          return;
+        }
       }
 
-      // 비밀번호 검증
-      const isMatch = comparePassword(formData.password, user.password);
+      // 일반 사용자 로그인 (Supabase Auth 우선 → 레거시 SHA-256 Fallback)
+      const result = await authLogin(formData.email, formData.password, formData.userType);
 
-      if (isMatch) {
-        // 로그인 성공
-        localStorage.removeItem('adminAuth'); // 관리자 권한 제거 (일반 유저 로그인 시)
-        localStorage.setItem('currentUser', JSON.stringify(user));
-
-        // 커스텀 이벤트 발생시켜 Header에 알림
-        window.dispatchEvent(new CustomEvent('userLogin'));
-
+      if (result.success) {
         onClose();
-        // 현재 페이지 유지 또는 메인으로 (보통 모달 로그인은 현재 페이지 유지)
-        // navigate('/'); 
+        if (result.isAdmin) {
+          navigate('/admin/dashboard');
+        }
+        // 일반 사용자는 현재 페이지 유지
       } else {
-        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+        setError(result.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
       }
     } catch (err) {
       console.error('Login error:', err);

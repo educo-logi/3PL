@@ -35,7 +35,6 @@ export const getViewingPassInfo = async () => {
     return null;
   }
 
-  console.log('[DEBUG] Fetched passes:', passes);
 
   if (!passes || passes.length === 0) return null;
 
@@ -44,25 +43,10 @@ export const getViewingPassInfo = async () => {
   // 유효한 열람권 찾기
   const activePass = passes.find(p => {
     const expiry = new Date(p.expires_at);
-    // UTC vs Local 비교 안전하게 (Timestamp 만 비교)
     const isExpired = expiry.getTime() < now.getTime();
     const hasCount = p.remaining_count > 0;
-
-    if (isExpired) {
-      console.log(`[DEBUG] Pass ${p.id} expired. Expiry: ${expiry.toLocaleString()}, Now: ${now.toLocaleString()}`);
-    }
-    if (!hasCount) {
-      console.log(`[DEBUG] Pass ${p.id} no count. Remaining: ${p.remaining_count}`);
-    }
-
     return !isExpired && hasCount;
   });
-
-  if (activePass) {
-    console.log('[DEBUG] Found active pass:', activePass);
-  } else {
-    console.log('[DEBUG] No active pass found among records.');
-  }
 
   return activePass || null;
 };
@@ -208,22 +192,19 @@ export const useViewingPass = async (itemId, itemType, itemName, targetEmail = n
     isSelf = true;
   }
 
-  // 1.5차: 전달받은 이메일 비교 (가장 빠르고 정확함)
+  // 1.5차: 전달받은 이메일 비교
   if (!isSelf && targetEmail && user.email) {
     const userEmail = user.email.trim().toLowerCase();
     const tEmail = targetEmail.trim().toLowerCase();
     if (userEmail === tEmail) {
       isSelf = true;
-      console.log('[DEBUG] Target Email provided matches User Email! It is self-view.');
     }
   }
 
   // 2차: DB 조회 비교 (ID 불일치 시에도 이메일 등으로 본인 확인)
-  // 2차: DB 조회 비교 (ID 불일치 시에도 이메일 등으로 본인 확인)
   if (!isSelf && (itemType === 'warehouse' || itemType === 'customer')) {
     try {
       const table = itemType === 'warehouse' ? 'warehouses' : 'customers';
-      console.log(`[DEBUG] Checking self-view against DB. Table: ${table}, ItemId: ${itemId}`);
 
       const { data: targetItem, error: fetchError } = await supabase
         .from(table)
@@ -231,88 +212,70 @@ export const useViewingPass = async (itemId, itemType, itemName, targetEmail = n
         .eq('id', itemId)
         .maybeSingle();
 
-      if (fetchError) {
-        console.warn('[DEBUG] Target item not found in DB or error:', fetchError);
-      } else if (targetItem) {
-        // [Request] 로그인한(자신)과 열람할 페이지의 이메일이 같은지 매칭
+      if (!fetchError && targetItem) {
         const userEmail = user.email ? user.email.trim().toLowerCase() : '';
-        const targetEmail = targetItem.email ? targetItem.email.trim().toLowerCase() : '';
+        const targetEmailDb = targetItem.email ? targetItem.email.trim().toLowerCase() : '';
 
-        // 1) 이메일 비교 (Primary Check)
-        if (userEmail && targetEmail && userEmail === targetEmail) {
+        // 이메일 비교
+        if (userEmail && targetEmailDb && userEmail === targetEmailDb) {
           isSelf = true;
-          console.log('[DEBUG] Email Match! It is self-view.');
         }
 
-        // 2) ID 재확인 (Fallback)
+        // ID 재확인
         if (!isSelf && String(user.id) === String(targetItem.id)) {
           isSelf = true;
-          console.log('[DEBUG] ID Match! It is self-view.');
         }
-
-        console.log('[DEBUG] DB Check Result:', {
-          userEmail,
-          targetEmail,
-          isSelf,
-          itemType
-        });
       }
     } catch (dbErr) {
-      console.error('[DEBUG] Unexpected error during self-check:', dbErr);
+      console.error('Unexpected error during self-check:', dbErr);
     }
   }
 
   if (isSelf) {
-    console.log('[DEBUG] Self-viewing detected via DB check. No pass deduction.');
     return { success: true, alreadyViewed: true, isSelf: true };
   }
 
-  // 1. 이미 본 항목인지 확인
+  // 1. 이미 본 항목인지 확인 (서버에서도 체크하지만, UX를 위해 미리 확인)
   const alreadyViewed = await isAlreadyViewed(itemId, itemType);
   if (alreadyViewed) {
     return { success: true, alreadyViewed: true };
   }
 
-  // 2. 유효한 열람권 가져오기
-  const activePass = await getViewingPassInfo();
-
-  if (!activePass) {
-    return { success: false, message: '사용 가능한 열람권이 없습니다.' };
-  }
-
-  // 3. 사용 처리 (RPC를 쓰는 게 가장 안전하지만, 여기서는 클라이언트 로직으로 구현)
-  // 주의: 동시성 문제가 있을 수 있으나 MVP 레벨에서는 순차 처리
-
+  // 2. 원자적 열람권 차감 (Supabase RPC)
+  // DB 함수가 하나의 트랜잭션 안에서 다음을 수행:
+  //   ① 이미 열람했는지 재확인 (이중 보호)
+  //   ② 유효한 열람권 찾기 + 행 잠금 (FOR UPDATE SKIP LOCKED)
+  //   ③ remaining_count 차감
+  //   ④ viewing_history INSERT
+  // → Race Condition 구조적 불가능
   try {
-    // 3-1. 기록 생성
-    const { error: historyError } = await supabase
-      .from('viewing_history')
-      .insert({
-        user_id: user.id,
-        item_id: itemId,
-        item_type: itemType,
-        item_name: itemName,
-        package_type: activePass.package_type // [지표 강화] 소진 출처 기록
-      });
+    const { data, error } = await supabase.rpc('use_viewing_pass', {
+      p_user_id: user.id,
+      p_item_id: itemId,
+      p_item_type: itemType,
+      p_item_name: itemName || null
+    });
 
-    if (historyError) throw historyError;
-
-    // 3-2. 갯수 차감
-    const { error: updateError } = await supabase
-      .from('viewing_passes')
-      .update({ remaining_count: activePass.remaining_count - 1 })
-      .eq('id', activePass.id);
-
-    if (updateError) {
-      // 롤백이 안되니 난감하지만, 일단 에러 처리
-      console.error('Failed to decrement pass count:', updateError);
-      return { success: false, message: '열람권 차감 중 오류가 발생했습니다.' };
+    if (error) {
+      console.error('RPC use_viewing_pass error:', error);
+      return { success: false, message: '열람권 사용 중 오류가 발생했습니다.' };
     }
 
-    return { 
-      success: true, 
-      remainingCount: activePass.remaining_count - 1,
-      packageType: activePass.package_type
+    // RPC 결과 해석
+    const result = typeof data === 'string' ? JSON.parse(data) : data;
+
+    if (result.already_viewed) {
+      return { success: true, alreadyViewed: true };
+    }
+
+    if (!result.success) {
+      return { success: false, message: result.message || '사용 가능한 열람권이 없습니다.' };
+    }
+
+    return {
+      success: true,
+      remainingCount: result.remaining_count,
+      packageType: result.package_type
     };
 
   } catch (error) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Users, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { regions, productTypes, deliveryCompanies } from '../data/sampleData';
-import { hashPassword } from '../utils/passwordHash';
+import { signup } from '../utils/authService';
 import { supabase } from '../utils/supabaseClient';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
 import { checkEmailDuplicate } from '../utils/authUtils';
@@ -101,7 +101,6 @@ const CustomerRegister = () => {
       return;
     }
 
-    const hashedPassword = hashPassword(formData.password);
     const combinedAddress = `${formData.roadAddress} ${formData.detailAddress}`.trim();
 
     try {
@@ -111,32 +110,31 @@ const CustomerRegister = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('customers')
-        .insert([{
-          company_name: formData.companyName,
-          business_number: formData.businessNumber,
-          representative: formData.representative,
-          location: formData.location,
-          city: formData.city,
-          dong: formData.dong,
-          detail_address: combinedAddress,
-          phone: formData.phone,
-          contact_person: formData.contactPerson,
-          contact_phone: formData.contactPhone,
-          email: formData.email,
-          password: hashedPassword,
-          required_area: parseFloat(formData.requiredArea),
-          required_area_unit: formData.requiredAreaUnit,
-          monthly_volume: parseFloat(formData.monthlyVolume),
-          pallet_count: parseInt(formData.palletCount),
-          desired_delivery: formData.desiredDelivery,
-          products: formData.products,
-          status: 'pending',
-          user_type: 'customer'
-        }]);
+      // Supabase Auth 회원가입 (bcrypt 자동 적용) + 프로필 테이블 INSERT
+      const result = await signup(formData.email, formData.password, 'customer', {
+        company_name: formData.companyName,
+        business_number: formData.businessNumber,
+        representative: formData.representative,
+        location: formData.location,
+        city: formData.city,
+        dong: formData.dong,
+        detail_address: combinedAddress,
+        phone: formData.phone,
+        contact_person: formData.contactPerson,
+        contact_phone: formData.contactPhone,
+        required_area: parseFloat(formData.requiredArea),
+        required_area_unit: formData.requiredAreaUnit,
+        monthly_volume: parseFloat(formData.monthlyVolume),
+        pallet_count: parseInt(formData.palletCount),
+        desired_delivery: formData.desiredDelivery,
+        products: formData.products,
+      });
 
-      if (error) throw error;
+      if (!result.success) {
+        alert(result.message || '등록 중 오류가 발생했습니다.');
+        return;
+      }
+
       trackEvent(GA_EVENTS.REGISTER_CUSTOMER, { company: formData.companyName });
       setIsSubmitted(true);
     } catch (error) {

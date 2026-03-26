@@ -7,6 +7,7 @@ import WelcomeEventPopup from './WelcomeEventPopup';
 import { checkAndGrantWelcomePass } from '../utils/viewingPassUtils';
 import { getUnreadNotificationCount } from '../utils/notificationUtils';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
+import { logout as authLogout } from '../utils/authService';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -88,14 +89,11 @@ const Header = () => {
     return () => clearInterval(interval);
   }, [currentUser]);
 
-  // 로그아웃 함수
-  const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('adminAuth'); // 관리자 인증 정보도 제거
+  // 로그아웃 함수 (Supabase Auth + localStorage 정리)
+  const handleLogout = async () => {
+    await authLogout(); // Supabase Auth signOut + localStorage 정리
     setCurrentUser(null);
-
-    // 커스텀 이벤트 발생시켜 다른 컴포넌트에 알림
-    window.dispatchEvent(new CustomEvent('userLogout'));
+    setIsAdmin(false);
 
     trackEvent(GA_EVENTS.LOGOUT_CLICK);
     navigate('/');

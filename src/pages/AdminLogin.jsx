@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import { adminLogin } from '../utils/authService';
 
 const AdminLogin = () => {
   const [formData, setFormData] = useState({
@@ -20,18 +21,15 @@ const AdminLogin = () => {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const adminId = import.meta.env.VITE_ADMIN_ID;
-    const adminPw = import.meta.env.VITE_ADMIN_PASSWORD;
-
-    if (formData.username === adminId && formData.password === adminPw) {
-      localStorage.removeItem('currentUser'); // 일반 사용자 권한 제거 (관리자 로그인 시)
-      localStorage.setItem('adminAuth', 'true');
+    const result = await adminLogin(formData.username, formData.password);
+    
+    if (result.success) {
       navigate('/admin/dashboard');
     } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      setError(result.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
     }
   };
 

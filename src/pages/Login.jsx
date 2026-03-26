@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
 import SignupModal from '../components/SignupModal';
 import FindAccountModal from '../components/FindAccountModal';
-import { comparePassword } from '../utils/passwordHash';
-import { supabase } from '../utils/supabaseClient';
+import { login as authLogin, adminLogin } from '../utils/authService';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -30,58 +29,32 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 관리자 로그인 체크
-    const adminId = import.meta.env.VITE_ADMIN_ID;
-    const adminPw = import.meta.env.VITE_ADMIN_PASSWORD;
-
     const emailInput = formData.email.toLowerCase().trim();
     const pwInput = formData.password.trim();
 
-    // 혹시 모를 환경변수 주입 오류를 대비해 리터럴로 직접 비교합니다.
-    if (emailInput === 'admin' && pwInput === '1231') {
-      localStorage.setItem('adminAuth', 'true');
-      localStorage.removeItem('currentUser'); // 기존 일반 유저 세션 정리
-      window.dispatchEvent(new CustomEvent('userLogin')); // 헤더 상태 갱신 트리거
-      navigate('/admin/dashboard');
-      return;
-    }
-
     try {
-      // Supabase에서 사용자 조회
-      const table = formData.userType === 'warehouse' ? 'warehouses' : 'customers';
-
-      const { data: user, error } = await supabase
-        .from(table)
-        .select('*')
-        .eq('email', formData.email)
-        .single();
-
-      if (error || !user) {
-        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
-        return;
+      // 관리자 로그인 체크 (Supabase Auth 우선 → 레거시 환경변수 Fallback)
+      if (emailInput === 'admin' || emailInput.includes('@')) {
+        const adminResult = await adminLogin(emailInput, pwInput);
+        if (adminResult.success) {
+          window.dispatchEvent(new CustomEvent('userLogin'));
+          navigate('/admin/dashboard');
+          return;
+        }
       }
 
-      // 비밀번호 검증
-      const isMatch = comparePassword(formData.password, user.password);
-
-      if (isMatch) {
-        // 로그인 성공
-        localStorage.removeItem('adminAuth'); // 관리자 권한 제거
-
-        // 세션 유지를 위해 localStorage 사용 (실제 앱에서는 Supabase Auth 사용 권장)
-        // 여기서는 기존 로직 호환성을 위해 user 객체를 localStorage에 저장
-        // CamelCase 변환 필요할 수 있으나, currentUser를 사용하는 곳이 많지 않다면 일단 저장
-        // Home.jsx 등에서 currentUser를 어떻게 쓰는지 확인 필요. 
-        // 일단 저장.
-        localStorage.setItem('currentUser', JSON.stringify(user));
-
-        // 커스텀 이벤트 발생시켜 Header에 알림
-        window.dispatchEvent(new CustomEvent('userLogin'));
-
-        // 로그인 성공 시 메인페이지로 이동
-        navigate('/');
+      // 일반 사용자 로그인 (Supabase Auth 우선 → 레거시 SHA-256 Fallback)
+      const result = await authLogin(emailInput, pwInput, formData.userType);
+      
+      if (result.success) {
+        if (result.isAdmin) {
+          window.dispatchEvent(new CustomEvent('userLogin'));
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/');
+        }
       } else {
-        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+        setError(result.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
       }
     } catch (err) {
       console.error('Login error:', err);

@@ -28,6 +28,7 @@ import DesignMockup from './pages/DesignMockup';
 import FAQ from './pages/FAQ';
 import Contact from './pages/Contact';
 import Support from './pages/Support';
+import NotFound from './pages/NotFound';
 import PageTracker from './components/PageTracker';
 
 function App() {
@@ -73,7 +74,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/support" element={<Support />} />
           <Route path="/design-mockup" element={<DesignMockup />} />
-          <Route path="*" element={<TermsOfService />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>
     </Router>

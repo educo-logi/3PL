@@ -9,10 +9,11 @@ import ProfileEditModal from '../components/mypage/ProfileEditModal';
 import WelcomeEventPopup from '../components/WelcomeEventPopup';
 import UserInfoCard from '../components/mypage/UserInfoCard';
 import { supabase } from '../utils/supabaseClient';
+import { setCurrentUser } from '../utils/authService';
 import { Star, Clock } from 'lucide-react';
 
 const MyPage = () => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUserState] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [editData, setEditData] = useState({});
   const [viewingPassInfo, setViewingPassInfo] = useState(null);
@@ -43,26 +44,25 @@ const MyPage = () => {
     }
 
     // 로컬 스토리지 정보로 우선 세팅 (빠른 렌더링)
-    setCurrentUser(user);
+    setCurrentUserState(user);
 
     // DB에서 최신 유저 정보 조회 (싱크 맞추기)
     const fetchFreshUserData = async () => {
       const table = (user.userType === 'warehouse' || user.user_type === 'warehouse') ? 'warehouses' : 'customers';
-      console.log(`🔍 MyPage: Fetching from table: ${table}, ID: ${user.id}`); // Debug Log
-      const { data, error } = await supabase.from(table).select('*').eq('id', user.id).single();
+      const { data, error } = await supabase
+        .from(table)
+        .select('id, company_name, email, auth_user_id, status, user_type, location, city, dong, detail_address, representative, phone, contact_person, contact_phone, business_number, total_area, warehouse_area, available_area, pallet_count, storage_types, delivery_companies, other_delivery_company, solutions, other_solution, products, required_area, monthly_volume, is_premium, premium_expires_at')
+        .eq('id', user.id)
+        .single();
       if (data && !error) {
-        console.log('✅ MyPage: Fetched fresh data from DB:', data);
-        // 중요: 로컬 스토리지도 갱신해줘야 다른 페이지에서도 최신 정보 사용
-        // 단, userType은 DB에 없을 수 있으므로 기존 것 유지
         const mergedUser = { ...data, userType: user.userType };
-        localStorage.setItem('currentUser', JSON.stringify(mergedUser));
+        // authService.setCurrentUser() → password 자동 strip 후 localStorage 저장
         setCurrentUser(mergedUser);
-      } else {
-        console.warn('⚠️ MyPage: Fetch failed or no data:', error);
+        // React state도 갱신
+        setCurrentUserState(mergedUser);
       }
     };
     fetchFreshUserData();
-
     // 열람권 정보 로드
     const loadData = async () => {
       const eligible = await checkEventEligibility(user.id);
@@ -112,7 +112,7 @@ const MyPage = () => {
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
     localStorage.removeItem('adminAuth'); // 관리자 인증 정보도 제거
-    setCurrentUser(null);
+    setCurrentUserState(null);
 
     // 커스텀 이벤트 발생시켜 Header에 알림
     window.dispatchEvent(new CustomEvent('userLogout'));
@@ -147,8 +147,9 @@ const MyPage = () => {
       user.id === currentUser.id ? { ...user, ...editData } : user
     );
     localStorage.setItem('users', JSON.stringify(updatedUsers));
-    localStorage.setItem('currentUser', JSON.stringify({ ...currentUser, ...editData }));
+    // authService.setCurrentUser로 password 자동 제거
     setCurrentUser({ ...currentUser, ...editData });
+    setCurrentUserState({ ...currentUser, ...editData });
     setEditingSection(null);
     setEditData({});
   };
