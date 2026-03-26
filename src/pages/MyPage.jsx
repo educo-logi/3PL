@@ -11,6 +11,7 @@ import UserInfoCard from '../components/mypage/UserInfoCard';
 import { supabase } from '../utils/supabaseClient';
 import { setCurrentUser } from '../utils/authService';
 import { Star, Clock } from 'lucide-react';
+import AddressDisplay from '../components/AddressDisplay';
 
 const MyPage = () => {
   const [currentUser, setCurrentUserState] = useState(null);
@@ -610,15 +611,7 @@ const MyPage = () => {
                     <Map className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-gray-900">
-                      {showJibun 
-                        ? (currentUser.jibun_address || `${currentUser.location || ''} ${currentUser.city || ''} ${currentUser.dong || ''}`.trim())
-                        : (currentUser.road_address || currentUser.detail_address || currentUser.detailAddress || `${currentUser.location || ''} ${currentUser.city || ''} ${currentUser.dong || ''}`.trim())
-                      }
-                    </p>
-                    <p className="text-base text-gray-600 mt-1">
-                      {currentUser.road_address ? currentUser.detail_address : ''}
-                    </p>
+                    <AddressDisplay data={currentUser} showJibun={showJibun} />
                   </div>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { warehouseData } from '../data/sampleData';
 import ContactModal from '../components/ContactModal';
 import { formatArea } from '../utils/areaConverter';
 import { getDisplayNameHelper, isAlreadyViewed } from '../utils/viewingPassUtils';
+import AddressDisplay from '../components/AddressDisplay';
 
 const WarehouseDetail = () => {
   const { id } = useParams();
@@ -167,15 +168,9 @@ const WarehouseDetail = () => {
                     </div>
                   )}
                 </div>
-                <p className="text-blue-100 text-lg font-bold">
-                  {showJibun 
-                    ? (warehouse.jibun_address || warehouse.jibunAddress || `${warehouse.location || ''} ${warehouse.city || ''} ${warehouse.dong || ''}`.trim())
-                    : (warehouse.road_address || warehouse.roadAddress || warehouse.detail_address || warehouse.detailAddress || `${warehouse.location || ''} ${warehouse.city || ''} ${warehouse.dong || ''}`.trim())
-                  }
-                </p>
-                <p className="text-blue-200 text-base mt-1">
-                  {(warehouse.road_address || warehouse.roadAddress) ? (warehouse.detail_address || warehouse.detailAddress) : ''}
-                </p>
+                <div className="text-blue-100">
+                  <AddressDisplay data={warehouse} showJibun={showJibun} />
+                </div>
               </div>
             </div>
           </div>

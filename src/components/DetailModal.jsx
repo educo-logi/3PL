@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Building2, Users, MapPin, Phone, Mail, Square, Package, Calendar } from 'lucide-react';
+import AddressDisplay from './AddressDisplay';
 
 // Reusable Info Card Component
 const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue-600", fullWidth = false, isHighlight = false }) => (
@@ -129,15 +130,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                       <MapPin className="w-6 h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-base truncate font-bold text-gray-900`}>
-                        {showJibun 
-                          ? (data.jibun_address || data.jibunAddress || `${data.location || ''} ${data.city || ''} ${data.dong || ''}`.trim())
-                          : (data.road_address || data.roadAddress || data.detail_address || data.detailAddress || `${data.location || ''} ${data.city || ''} ${data.dong || ''}`.trim())
-                        }
-                      </p>
-                      <p className={`text-sm truncate text-gray-600 mt-1`}>
-                        {(data.road_address || data.roadAddress) ? (data.detail_address || data.detailAddress) : ''}
-                      </p>
+                      <AddressDisplay data={data} showJibun={showJibun} layout="modal" />
                     </div>
                   </div>
                 </div>

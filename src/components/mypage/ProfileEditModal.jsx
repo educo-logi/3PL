@@ -27,9 +27,9 @@ const ProfileEditModal = ({ isOpen, onClose, currentUser, onUpdate }) => {
                 experience: currentUser.experience || '',
                 required_area: currentUser.required_area || '',
                 monthly_volume: currentUser.monthly_volume || '',
-                roadAddress: currentUser.road_address || currentUser.detail_address || '', // 기존 전체 주소를 기본 주소로 로드
+                roadAddress: currentUser.road_address || '', // 기존 데이터 보존. 없으면 빈칸
                 jibunAddress: currentUser.jibun_address || '',
-                detailAddress: '', // 상세 주소는 새로 입력받기 위해 비워둠
+                detailAddress: currentUser.detail_address || '', // 레거시 사용자의 상세주소(전체 문자열)는 일단 여기에 유지.
                 contact_person: currentUser.contact_person || '',
                 contact_phone: currentUser.contact_phone || '',
                 warehouse_count: currentUser.warehouse_count || '',

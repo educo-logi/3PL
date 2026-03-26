@@ -5,6 +5,7 @@ import { customerData } from '../data/sampleData';
 import ContactModal from '../components/ContactModal';
 import { formatArea } from '../utils/areaConverter';
 import { getDisplayNameHelper, isAlreadyViewed } from '../utils/viewingPassUtils';
+import AddressDisplay from '../components/AddressDisplay';
 
 const CustomerDetail = () => {
   const { id } = useParams();
@@ -139,15 +140,9 @@ const CustomerDetail = () => {
                     {showJibun ? '도로명 주소 보기' : '지번 주소 보기'}
                   </button>
                 </div>
-                <p className="text-blue-100 text-lg font-bold">
-                  {showJibun 
-                    ? (customer.jibun_address || customer.jibunAddress || `${customer.location || ''} ${customer.city || ''} ${customer.dong || ''}`.trim())
-                    : (customer.road_address || customer.roadAddress || customer.detail_address || customer.detailAddress || `${customer.location || ''} ${customer.city || ''} ${customer.dong || ''}`.trim())
-                  }
-                </p>
-                <p className="text-blue-200 text-base mt-1">
-                  {(customer.road_address || customer.roadAddress) ? (customer.detail_address || customer.detailAddress) : ''}
-                </p>
+                <div className="text-blue-100">
+                  <AddressDisplay data={customer} showJibun={showJibun} />
+                </div>
               </div>
             </div>
           </div>
