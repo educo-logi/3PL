@@ -51,7 +51,7 @@ const MyPage = () => {
       const table = (user.userType === 'warehouse' || user.user_type === 'warehouse') ? 'warehouses' : 'customers';
       
       // 테이블에 따라 존재하는 컬럼만 분리하여 SELECT (없는 컬럼 요청 시 에러 발생)
-      let selectFields = 'id, company_name, email, auth_user_id, status, user_type, location, city, dong, detail_address, representative, phone, contact_person, contact_phone, business_number, pallet_count, products, is_premium, premium_expires_at';
+      let selectFields = 'id, company_name, email, auth_user_id, status, user_type, location, city, dong, detail_address, representative, phone, contact_person, contact_phone, business_number, pallet_count, products, is_premium, premium_end_date';
       
       if (table === 'warehouses') {
         selectFields += ', total_area, warehouse_area, available_area, storage_types, delivery_companies, other_delivery_company, solutions, other_solution';
