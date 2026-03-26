@@ -159,7 +159,7 @@ const WarehouseDetail = () => {
                   )}
                 </div>
                 <p className="text-blue-100 text-lg">
-                  {warehouse.location} {warehouse.city} {warehouse.dong} {warehouse.detail_address || warehouse.detailAddress || ''}
+                  {warehouse.detail_address || warehouse.detailAddress || `${warehouse.location || ''} ${warehouse.city || ''} ${warehouse.dong || ''}`.trim()}
                 </p>
               </div>
             </div>

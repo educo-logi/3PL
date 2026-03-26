@@ -602,7 +602,7 @@ const MyPage = () => {
                   <div>
                     <p className="text-sm text-gray-500 font-medium mb-1">상세 주소</p>
                     <p className="text-lg font-bold text-gray-900">
-                      {currentUser.location} {currentUser.city} {currentUser.dong} {currentUser.detail_address || currentUser.detailAddress}
+                      {currentUser.detail_address || currentUser.detailAddress || `${currentUser.location || ''} ${currentUser.city || ''} ${currentUser.dong || ''}`.trim()}
                     </p>
                   </div>
                 </div>

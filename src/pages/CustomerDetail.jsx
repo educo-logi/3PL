@@ -129,7 +129,7 @@ const CustomerDetail = () => {
               <div>
                 <h1 className="text-3xl font-bold">{getDisplayNameHelper(customer, 'customer', isViewed)}</h1>
                 <p className="text-blue-100 text-lg">
-                  {customer.location} {customer.city} {customer.dong} {customer.detail_address || customer.detailAddress || ''}
+                  {customer.detail_address || customer.detailAddress || `${customer.location || ''} ${customer.city || ''} ${customer.dong || ''}`.trim()}
                 </p>
               </div>
             </div>

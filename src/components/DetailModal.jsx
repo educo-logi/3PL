@@ -117,7 +117,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                   <InfoCard
                     icon={MapPin}
                     label="상세 주소"
-                    value={`${data.location || ''} ${data.city || ''} ${data.dong || ''} ${data.detail_address || data.detailAddress || ''}`}
+                    value={data.detail_address || data.detailAddress || `${data.location || ''} ${data.city || ''} ${data.dong || ''}`.trim()}
                     colorClass="bg-gray-100 text-gray-600"
                     fullWidth={true}
                   />
