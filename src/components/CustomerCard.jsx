@@ -124,7 +124,7 @@ const CustomerCard = ({ customer, isPremium = false, isPremiumSection = false })
     if (result.success) {
       setIsViewed(true);
       setIsConfirmModalOpen(false);
-      
+
       // 넛지 팝업 조건 확인: 잔여 1회 & 무료 패키지 & 유료 패키지 없음
       if (result.remainingCount === 1 && result.packageType === 'welcome_free') {
         const user = JSON.parse(localStorage.getItem('currentUser'));
@@ -191,7 +191,7 @@ const CustomerCard = ({ customer, isPremium = false, isPremiumSection = false })
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-bold text-gray-900">{displayName}</h3>
             {isOwner && (
-              <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+              <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
                 My
               </span>
             )}
@@ -315,11 +315,11 @@ const CustomerCard = ({ customer, isPremium = false, isPremiumSection = false })
 
       {/* 넛지 팝업 */}
       {isNudgePopupOpen && (
-        <NudgePopup 
+        <NudgePopup
           onClose={() => {
             setIsNudgePopupOpen(false);
             setIsDetailModalOpen(true); // 넛지 닫으면 상세페이지는 보여줘야함
-          }} 
+          }}
         />
       )}
     </>

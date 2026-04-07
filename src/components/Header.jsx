@@ -146,7 +146,7 @@ const Header = () => {
                 onClick={() => navigate('/')}
                 className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200"
               >
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-12 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
                   <span className="text-white font-bold text-lg">33PL</span>
                 </div>
                 <div className="flex flex-col items-start">
