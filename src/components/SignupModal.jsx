@@ -1,3 +1,5 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Building2, Users, ArrowRight } from 'lucide-react';
 import useModalEffect from '../hooks/useModalEffect';
 

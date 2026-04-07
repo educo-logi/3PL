@@ -1,3 +1,4 @@
+import React, { useEffect, useRef } from 'react';
 import { X, Search } from 'lucide-react';
 import useModalEffect from '../hooks/useModalEffect';
 

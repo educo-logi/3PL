@@ -1,3 +1,7 @@
+import React from 'react';
+import { X, Building2, Users, MapPin, Phone, Mail, Square, Package, Calendar } from 'lucide-react';
+import AddressDisplay from './AddressDisplay';
+import { getAreaDisplayValues } from '../utils/areaConverter';
 import useModalEffect from '../hooks/useModalEffect';
 import { isApp } from '../utils/platform';
 

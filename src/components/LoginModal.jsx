@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
 import { login as authLogin, adminLogin } from '../utils/authService';
 import useModalEffect from '../hooks/useModalEffect';
