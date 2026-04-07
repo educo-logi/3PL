@@ -1,24 +1,30 @@
-import React from 'react';
-import { X, Building2, Users, MapPin, Phone, Mail, Square, Package, Calendar } from 'lucide-react';
-import AddressDisplay from './AddressDisplay';
-import { getAreaDisplayValues } from '../utils/areaConverter';
+import useModalEffect from '../hooks/useModalEffect';
+import { isApp } from '../utils/platform';
 
 // Reusable Info Card Component
-const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue-600", fullWidth = false, isHighlight = false }) => (
-  <div className={`bg-white border ${isHighlight ? 'border-primary-200 bg-primary-50/30' : 'border-gray-200'} rounded-2xl p-4 flex items-center shadow-sm hover:shadow-md transition-shadow ${fullWidth ? 'col-span-1 lg:col-span-2' : ''}`}>
-    <div className={`p-3 rounded-xl mr-4 flex-shrink-0 ${colorClass}`}>
-      <Icon className="w-6 h-6" />
+const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue-600", fullWidth = false, isHighlight = false }) => {
+  const isInApp = isApp();
+  
+  return (
+    <div className={`bg-white border ${isHighlight ? 'border-primary-200 bg-primary-50/30' : 'border-gray-200'} rounded-2xl p-4 flex items-center shadow-sm hover:shadow-md transition-shadow ${fullWidth || isInApp ? 'col-span-1 lg:col-span-2' : ''}`}>
+      <div className={`p-3 rounded-xl mr-4 flex-shrink-0 ${colorClass}`}>
+        <Icon className="w-6 h-6" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-xs font-medium mb-1 ${isHighlight ? 'text-primary-800' : 'text-gray-500'}`}>{label}</p>
+        <p className={`text-base ${isInApp ? 'break-words' : 'truncate'} ${isHighlight ? 'font-black text-gray-900' : 'font-bold text-gray-900'}`}>{value || '-'}</p>
+      </div>
     </div>
-    <div className="flex-1 min-w-0">
-      <p className={`text-xs font-medium mb-1 ${isHighlight ? 'text-primary-800' : 'text-gray-500'}`}>{label}</p>
-      <p className={`text-base truncate ${isHighlight ? 'font-black text-gray-900' : 'font-bold text-gray-900'}`}>{value || '-'}</p>
-    </div>
-  </div>
-);
+  );
+};
 
 const DetailModal = ({ isOpen, onClose, data, type }) => {
   const [showJibun, setShowJibun] = React.useState(false);
   const [showAreaPyeong, setShowAreaPyeong] = React.useState(false);
+  const isInApp = isApp();
+
+  // 모달 효과 적용 (배경 잠금, 앱 새로고침 방지)
+  useModalEffect(isOpen);
 
   if (!isOpen || !data) return null;
 
@@ -76,7 +82,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                   <span className="w-1 h-6 bg-blue-500 rounded-r-md mr-3"></span>
                   기본 정보
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className={`grid ${isInApp ? 'grid-cols-1 gap-6' : 'grid-cols-2 gap-4'}`}>
                   <InfoCard
                     icon={Building2}
                     label="회사명"
@@ -155,7 +161,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className={`grid ${isInApp ? 'grid-cols-1 gap-6' : 'grid-cols-2 gap-4'}`}>
                   {type === 'warehouse' ? (
                     <>
                       <InfoCard icon={Square} label="총 면적" value={

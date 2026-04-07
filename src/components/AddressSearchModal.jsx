@@ -1,8 +1,11 @@
-import React, { useEffect, useRef } from 'react';
 import { X, Search } from 'lucide-react';
+import useModalEffect from '../hooks/useModalEffect';
 
 const AddressSearchModal = ({ isOpen, onClose, onComplete }) => {
   const containerRef = useRef(null);
+
+  // 모달 효과 적용 (배경 잠금, 앱 새로고침 방지)
+  useModalEffect(isOpen);
 
   useEffect(() => {
     if (isOpen && containerRef.current) {

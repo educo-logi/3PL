@@ -8,6 +8,7 @@ import { checkAndGrantWelcomePass } from '../utils/viewingPassUtils';
 import { getUnreadNotificationCount } from '../utils/notificationUtils';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
 import { logout as authLogout } from '../utils/authService';
+import { isApp } from '../utils/platform';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -18,9 +19,12 @@ const Header = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
+  const isInApp = isApp();
 
   // 로그인 상태 확인
   useEffect(() => {
+    console.log("Navigator User Agent:", navigator.userAgent);
+    
     const checkUserStatus = () => {
       const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
       const admin = localStorage.getItem('adminAuth');
@@ -145,9 +149,18 @@ const Header = () => {
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">3PL</span>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                Platform
-              </h1>
+              <div className="flex flex-col items-start">
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                    Platform
+                  </h1>
+                  {isInApp && (
+                    <span className="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-md font-black border border-blue-200">
+                      APP
+                    </span>
+                  )}
+                </div>
+              </div>
             </button>
           </div>
 

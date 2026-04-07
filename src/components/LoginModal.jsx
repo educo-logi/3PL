@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { X, LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
 import { login as authLogin, adminLogin } from '../utils/authService';
+import useModalEffect from '../hooks/useModalEffect';
 
 const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
   const [formData, setFormData] = useState({
@@ -13,8 +12,11 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // 모달 효과 적용 (배경 잠금, 앱 새로고침 방지)
+  useModalEffect(isOpen);
+
   // ESC 키로 모달 닫기
-  useEffect(() => {
+  React.useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape') {
         onClose();
@@ -23,13 +25,10 @@ const LoginModal = ({ isOpen, onClose, onSignupClick }) => {
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscKey);
-      // 모달이 열릴 때 body 스크롤 방지
-      document.body.style.overflow = 'hidden';
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscKey);
-      document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
 
