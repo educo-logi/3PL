@@ -7,7 +7,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* 회사 정보 */}
           <div className="col-span-1 md:col-span-2">
-            <h3 className="text-2xl font-bold text-white mb-4">3PL Platform</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">33PL Platform</h3>
             <p className="text-gray-300 mb-4">
               화주사와 물류 창고업체를 연결하는 물류대행 매칭 플랫폼입니다.
             </p>
@@ -51,11 +51,11 @@ const Footer = () => {
               <a href="/refund" className="hover:text-white">환불정책</a>
             </div>
             <div className="text-gray-300 text-sm mt-4 md:mt-0">
-              © 2024 3PL Platform. All rights reserved.
+              © 2024 33PL Platform. All rights reserved.
             </div>
           </div>
           <div className="mt-8 text-gray-500 text-xs text-center leading-relaxed">
-            3PL은 통신판매중개자로서 통신판매의 당사자가 아니며 개별 판매자가 제공하는 서비스에 대한 이행, 계약사항 등과 관련한 의무와 책임은 거래당사자에게 있습니다.
+            33PL은 통신판매중개자로서 통신판매의 당사자가 아니며 개별 판매자가 제공하는 서비스에 대한 이행, 계약사항 등과 관련한 의무와 책임은 거래당사자에게 있습니다.
           </div>
         </div>
       </div>

@@ -1,0 +1,8 @@
+com.educo.pl33.app-pngs-0 C:\cai\01_3pl\android\app\build\generated\res\pngs\debug
+com.educo.pl33.app-resValues-1 C:\cai\01_3pl\android\app\build\generated\res\resValues\debug
+com.educo.pl33.app-updated_navigation_xml-2 C:\cai\01_3pl\android\app\build\generated\updated_navigation_xml\debug
+com.educo.pl33.app-packageDebugResources-3 C:\cai\01_3pl\android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.educo.pl33.app-packageDebugResources-4 C:\cai\01_3pl\android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.educo.pl33.app-debug-5 C:\cai\01_3pl\android\app\build\intermediates\merged_res\debug\mergeDebugResources
+com.educo.pl33.app-debug-6 C:\cai\01_3pl\android\app\src\debug\res
+com.educo.pl33.app-main-7 C:\cai\01_3pl\android\app\src\main\res
