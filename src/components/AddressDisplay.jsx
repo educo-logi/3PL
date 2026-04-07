@@ -1,16 +1,16 @@
 import React from 'react';
 
-const AddressDisplay = ({ data, showJibun, layout = 'mypage' }) => {
+const AddressDisplay = ({ data, showJibun, layout = 'mypage', isInApp = false }) => {
   if (!data) return null;
 
   // Extract address info
   const road_address = data.road_address || data.roadAddress || '';
   const jibun_address = data.jibun_address || data.jibunAddress || '';
   const detail_address = data.detail_address || data.detailAddress || '';
-  
+
   const locationText = `${data.location || ''} ${data.city || ''} ${data.dong || ''}`.trim();
   const isLegacy = !road_address && !jibun_address;
-  
+
   let baseLine = '';
   let detailLine = '';
 
@@ -33,7 +33,7 @@ const AddressDisplay = ({ data, showJibun, layout = 'mypage' }) => {
     // Legacy data: detail_address contains the FULL address string.
     const fullStr = detail_address || locationText;
     const splitResult = trySplitAddress(fullStr);
-    
+
     if (splitResult) {
       if (showJibun) {
         baseLine = locationText;
@@ -57,23 +57,24 @@ const AddressDisplay = ({ data, showJibun, layout = 'mypage' }) => {
     // New data: road and jibun are natively separated.
     baseLine = showJibun ? (jibun_address || locationText) : (road_address || locationText);
     detailLine = detail_address;
-    
+
     // Fallback split in case of buggy save (e.g. user saved full string into road_address by accident)
     if (!detailLine && baseLine) {
-        const splitResult = trySplitAddress(baseLine);
-        if (splitResult) {
-            baseLine = splitResult.base;
-            detailLine = splitResult.detail;
-        }
+      const splitResult = trySplitAddress(baseLine);
+      if (splitResult) {
+        baseLine = splitResult.base;
+        detailLine = splitResult.detail;
+      }
     }
   }
 
   // Formatting styles based on layout context
+  // Always use break-words to prevent address truncation on all platforms
   if (layout === 'modal') {
     return (
       <>
-        <p className="text-base truncate font-bold text-gray-900">{baseLine}</p>
-        <p className="text-sm truncate text-gray-600 mt-1 h-5">{detailLine}</p>
+        <p className="text-base font-bold text-gray-900 break-words">{baseLine}</p>
+        <p className="text-sm text-gray-600 mt-1 break-words">{detailLine}</p>
       </>
     );
   }
@@ -81,8 +82,8 @@ const AddressDisplay = ({ data, showJibun, layout = 'mypage' }) => {
   // Default layout (MyPage, Detail pages)
   return (
     <>
-      <p className="text-lg font-bold text-gray-900">{baseLine}</p>
-      <p className="text-base text-gray-600 mt-1 h-6">{detailLine}</p>
+      <p className="text-lg font-bold text-gray-900 break-words">{baseLine}</p>
+      <p className="text-base text-gray-600 mt-1 break-words">{detailLine}</p>
     </>
   );
 };

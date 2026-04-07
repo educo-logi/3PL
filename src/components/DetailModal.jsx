@@ -8,7 +8,7 @@ import { isApp } from '../utils/platform';
 // Reusable Info Card Component
 const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue-600", fullWidth = false, isHighlight = false }) => {
   const isInApp = isApp();
-  
+
   return (
     <div className={`bg-white border ${isHighlight ? 'border-primary-200 bg-primary-50/30' : 'border-gray-200'} rounded-2xl p-4 flex items-center shadow-sm hover:shadow-md transition-shadow ${fullWidth || isInApp ? 'col-span-1 lg:col-span-2' : ''}`}>
       <div className={`p-3 rounded-xl mr-4 flex-shrink-0 ${colorClass}`}>
@@ -129,7 +129,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                     <span className="w-1 h-6 bg-blue-500 rounded-r-md mr-3"></span>
                     사업장 주소
                   </h3>
-                  <button 
+                  <button
                     onClick={() => setShowJibun(!showJibun)}
                     className="text-[11px] font-semibold px-2 py-1 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
                   >
@@ -142,7 +142,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                       <MapPin className="w-6 h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <AddressDisplay data={data} showJibun={showJibun} layout="modal" />
+                      <AddressDisplay data={data} showJibun={showJibun} layout="modal" isInApp={isInApp} />
                     </div>
                   </div>
                 </div>
@@ -157,7 +157,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                     <span className="w-1 h-6 bg-emerald-500 rounded-r-md mr-3"></span>
                     {type === 'warehouse' ? '창고 스펙' : '물류 요구사항'}
                   </h3>
-                  <button 
+                  <button
                     onClick={() => setShowAreaPyeong(!showAreaPyeong)}
                     className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
                   >
@@ -169,12 +169,12 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                   {type === 'warehouse' ? (
                     <>
                       <InfoCard icon={Square} label="총 면적" value={
-                        (data.totalArea || data.total_area) ? 
-                        (showAreaPyeong ? `${getAreaDisplayValues(data.totalArea || data.total_area, data.totalAreaUnit || data.total_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.totalArea || data.total_area, data.totalAreaUnit || data.total_area_unit || 'sqm').sqm} ㎡`) : '-'
+                        (data.totalArea || data.total_area) ?
+                          (showAreaPyeong ? `${getAreaDisplayValues(data.totalArea || data.total_area, data.totalAreaUnit || data.total_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.totalArea || data.total_area, data.totalAreaUnit || data.total_area_unit || 'sqm').sqm} ㎡`) : '-'
                       } colorClass="bg-blue-50 text-blue-600" />
                       <InfoCard icon={Square} label="이용가능 면적" value={
-                        (data.availableArea || data.available_area) ? 
-                        (showAreaPyeong ? `${getAreaDisplayValues(data.availableArea || data.available_area, data.availableAreaUnit || data.available_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.availableArea || data.available_area, data.availableAreaUnit || data.available_area_unit || 'sqm').sqm} ㎡`) : '-'
+                        (data.availableArea || data.available_area) ?
+                          (showAreaPyeong ? `${getAreaDisplayValues(data.availableArea || data.available_area, data.availableAreaUnit || data.available_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.availableArea || data.available_area, data.availableAreaUnit || data.available_area_unit || 'sqm').sqm} ㎡`) : '-'
                       } colorClass="bg-cyan-50 text-cyan-600" />
                       <InfoCard icon={Building2} label="창고 개수" value={data.warehouseCount ? `${data.warehouseCount}개` : '-'} colorClass="bg-indigo-50 text-indigo-600" />
                       <InfoCard icon={Package} label="팔레트 기준" value={data.palletCount || data.pallet_count ? `${data.palletCount || data.pallet_count} PLT` : '-'} colorClass="bg-violet-50 text-violet-600" />
@@ -190,8 +190,8 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                   ) : (
                     <>
                       <InfoCard icon={Square} label="필요 면적" value={
-                        (data.requiredArea || data.required_area) ? 
-                        (showAreaPyeong ? `${getAreaDisplayValues(data.requiredArea || data.required_area, data.requiredAreaUnit || data.required_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.requiredArea || data.required_area, data.requiredAreaUnit || data.required_area_unit || 'sqm').sqm} ㎡`) : '-'
+                        (data.requiredArea || data.required_area) ?
+                          (showAreaPyeong ? `${getAreaDisplayValues(data.requiredArea || data.required_area, data.requiredAreaUnit || data.required_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.requiredArea || data.required_area, data.requiredAreaUnit || data.required_area_unit || 'sqm').sqm} ㎡`) : '-'
                       } colorClass="bg-blue-50 text-blue-600" />
                       <InfoCard icon={Package} label="팔레트 기준" value={data.palletCount || data.pallet_count ? `${data.palletCount || data.pallet_count} PLT` : '-'} colorClass="bg-cyan-50 text-cyan-600" />
                       <InfoCard icon={Package} label="월 평균 출고량" value={data.monthlyVolume ? `${Number(data.monthlyVolume).toLocaleString()}건/월` : '-'} colorClass="bg-violet-50 text-violet-600" fullWidth={true} />
