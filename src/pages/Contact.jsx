@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Mail, Phone, Send, Info } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Send, Info, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
 import { User, MessageCircle, CheckCircle, Clock } from 'lucide-react'; // 아이콘 추가
@@ -8,6 +8,7 @@ const Contact = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
     const [error, setError] = useState('');
 
@@ -294,10 +295,53 @@ const Contact = () => {
                                             />
                                             <span className="ml-2 text-sm text-gray-600">
                                                 <span className="font-medium text-gray-900">[필수]</span> 개인정보 수집 및 이용에 동의합니다.
-                                                <button type="button" className="text-xs text-gray-400 underline ml-2 hover:text-gray-600">내용보기</button>
+                                                <button type="button" onClick={(e) => { e.preventDefault(); setShowPrivacyModal(true); }} className="text-xs text-primary-600 underline ml-2 hover:text-primary-800 font-medium">내용보기</button>
                                             </span>
                                         </label>
                                     </div>
+
+                                    {/* 개인정보 수집·이용 동의 전문보기 모달 */}
+                                    {showPrivacyModal && (
+                                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setShowPrivacyModal(false)}>
+                                            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                                <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between rounded-t-2xl">
+                                                    <h3 className="text-lg font-bold text-gray-900">개인정보 수집 및 이용 동의</h3>
+                                                    <button onClick={() => setShowPrivacyModal(false)} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                                                        <X className="w-5 h-5 text-gray-500" />
+                                                    </button>
+                                                </div>
+                                                <div className="px-6 py-5 space-y-5 text-sm text-gray-700 leading-relaxed">
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 mb-2">1. 수집 목적</h4>
+                                                        <p>고객 문의 접수 및 답변, 서비스 관련 상담 처리, 불만 사항 해결 및 개선</p>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 mb-2">2. 수집 항목</h4>
+                                                        <ul className="list-disc list-inside space-y-1">
+                                                            <li><strong>필수:</strong> 이메일 주소, 문의 유형, 문의 제목, 문의 내용</li>
+                                                            <li><strong>선택:</strong> 연락처(전화번호)</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 mb-2">3. 보유 및 이용 기간</h4>
+                                                        <p>문의 처리 완료 후 <strong>3년간</strong> 보관 (전자상거래법에 따른 소비자 불만 또는 분쟁 처리에 관한 기록 보존) 후 지체 없이 파기합니다.</p>
+                                                    </div>
+                                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                                        <h4 className="font-bold text-gray-900 mb-2">4. 동의 거부 권리 및 불이익</h4>
+                                                        <p>귀하는 위 개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있습니다. 다만, <strong>필수 항목에 대한 동의를 거부하실 경우 1:1 문의 접수가 제한</strong>됩니다. 선택 항목에 대한 동의 거부 시에는 서비스 이용에 제한이 없습니다.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                                                    <button
+                                                        onClick={() => setShowPrivacyModal(false)}
+                                                        className="w-full py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                                                    >
+                                                        확인
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {error && (
                                         <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center">

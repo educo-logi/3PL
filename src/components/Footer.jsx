@@ -47,7 +47,7 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-300 text-sm">
               <a href="/terms" className="hover:text-white mr-4">이용약관</a>
-              <a href="/privacy" className="hover:text-white mr-4">개인정보처리방침</a>
+              <a href="/privacy" className="hover:text-white mr-4 font-bold text-gray-100 border-b border-gray-100">개인정보처리방침</a>
               <a href="/refund" className="hover:text-white">환불정책</a>
             </div>
             <div className="text-gray-300 text-sm mt-4 md:mt-0">

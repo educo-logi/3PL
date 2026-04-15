@@ -248,36 +248,32 @@ export const login = async (email, password, userType) => {
 /**
  * 관리자 로그인
  * Supabase Auth로 로그인 후 app_metadata.role === 'admin' 검증
- * Fallback: 환경변수 기반 (이행 기간)
+ * (레거시 환경변수 방식 제거됨 - 빌드 파일에 비밀번호 노출 방지)
  */
 export const adminLogin = async (username, password) => {
-  // 1차: Supabase Auth 시도 (username이 이메일 형식인 경우)
-  if (username.includes('@')) {
-    try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: username,
-        password
-      });
+  // Supabase Auth (이메일 기반)
+  const email = username.includes('@') ? username : `${username}@admin.local`;
 
-      if (!error && authData.user?.app_metadata?.role === 'admin') {
-        localStorage.setItem('adminAuth', 'true');
-        localStorage.removeItem('currentUser');
-        return { success: true };
-      }
-    } catch (err) {
-      console.warn('[AuthService] Admin Supabase Auth failed:', err);
+  try {
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (!error && authData.user?.app_metadata?.role === 'admin') {
+      localStorage.setItem('adminAuth', 'true');
+      localStorage.removeItem('currentUser');
+      return { success: true };
     }
-  }
 
-  // 2차: 레거시 환경변수 Fallback (이행 기간)
-  // TODO: Supabase Auth 관리자 마이그레이션 후 제거
-  const adminId = import.meta.env.VITE_ADMIN_ID;
-  const adminPw = import.meta.env.VITE_ADMIN_PASSWORD;
-
-  if (username === adminId && password === adminPw) {
-    localStorage.setItem('adminAuth', 'true');
-    localStorage.removeItem('currentUser');
-    return { success: true };
+    // 로그인은 됐지만 admin 역할이 없는 경우
+    if (!error && authData.user) {
+      // 세션 정리
+      await supabase.auth.signOut();
+      return { success: false, message: '관리자 권한이 없는 계정입니다.' };
+    }
+  } catch (err) {
+    console.warn('[AuthService] Admin login error:', err);
   }
 
   return { success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' };
