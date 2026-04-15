@@ -165,11 +165,11 @@ export const login = async (email, password, userType) => {
       // Supabase Auth 로그인 성공
       const authUser = authData.user;
       
-      // 관리자 체크
+      // 관리자 계정은 일반 로그인 경로에서 차단 (접근통제 분리)
+      // adminLogin() 전용 함수를 통해서만 관리자 세션 생성 가능
       if (authUser.app_metadata?.role === 'admin') {
-        localStorage.setItem('adminAuth', 'true');
-        localStorage.removeItem('currentUser');
-        return { success: true, isAdmin: true, user: authUser };
+        await supabase.auth.signOut(); // 세션 정리
+        return { success: true, isAdmin: true, user: null };
       }
 
       // 프로필 조회 (password 제외)

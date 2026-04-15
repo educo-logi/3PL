@@ -1,0 +1,8 @@
+com.educo.pl33.app-pngs-0 C:\cai\01_3pl\android\app\build\generated\res\pngs\release
+com.educo.pl33.app-resValues-1 C:\cai\01_3pl\android\app\build\generated\res\resValues\release
+com.educo.pl33.app-updated_navigation_xml-2 C:\cai\01_3pl\android\app\build\generated\updated_navigation_xml\release
+com.educo.pl33.app-packageReleaseResources-3 C:\cai\01_3pl\android\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
+com.educo.pl33.app-packageReleaseResources-4 C:\cai\01_3pl\android\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
+com.educo.pl33.app-release-5 C:\cai\01_3pl\android\app\build\intermediates\merged_res\release\mergeReleaseResources
+com.educo.pl33.app-main-6 C:\cai\01_3pl\android\app\src\main\res
+com.educo.pl33.app-release-7 C:\cai\01_3pl\android\app\src\release\res

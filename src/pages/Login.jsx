@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, Building2, Users } from 'lucide-react';
 import SignupModal from '../components/SignupModal';
 import FindAccountModal from '../components/FindAccountModal';
-import { login as authLogin, adminLogin } from '../utils/authService';
+import { login as authLogin } from '../utils/authService';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -33,26 +33,17 @@ const Login = () => {
     const pwInput = formData.password.trim();
 
     try {
-      // 관리자 로그인 체크 (Supabase Auth 우선 → 레거시 환경변수 Fallback)
-      if (emailInput === 'admin' || emailInput.includes('@')) {
-        const adminResult = await adminLogin(emailInput, pwInput);
-        if (adminResult.success) {
-          window.dispatchEvent(new CustomEvent('userLogin'));
-          navigate('/admin/dashboard');
-          return;
-        }
-      }
-
       // 일반 사용자 로그인 (Supabase Auth 우선 → 레거시 SHA-256 Fallback)
+      // ※ 관리자 계정은 /admin/login 전용 경로에서만 로그인 가능 (접근통제 분리)
       const result = await authLogin(emailInput, pwInput, formData.userType);
       
       if (result.success) {
         if (result.isAdmin) {
-          window.dispatchEvent(new CustomEvent('userLogin'));
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/');
+          // 관리자 계정이 일반 로그인으로 접근한 경우 → 차단
+          setError('관리자 계정은 관리자 전용 페이지에서 로그인해 주세요.');
+          return;
         }
+        navigate('/');
       } else {
         setError(result.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
       }
