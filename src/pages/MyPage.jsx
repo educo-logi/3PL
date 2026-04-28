@@ -26,7 +26,7 @@ const MyPage = () => {
   // 상세 모달 상태
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  
+
   // 웰컴 이벤트 모달 상태
   const [isWelcomeEventModalOpen, setIsWelcomeEventModalOpen] = useState(false);
   const [isEventEligible, setIsEventEligible] = useState(false);
@@ -57,10 +57,10 @@ const MyPage = () => {
     // DB에서 최신 유저 정보 조회 (싱크 맞추기)
     const fetchFreshUserData = async () => {
       const table = (user.userType === 'warehouse' || user.user_type === 'warehouse') ? 'warehouses' : 'customers';
-      
+
       // 테이블에 따라 존재하는 컬럼만 분리하여 SELECT (없는 컬럼 요청 시 에러 발생)
       let selectFields = 'id, company_name, email, auth_user_id, status, user_type, location, city, dong, detail_address, representative, phone, contact_person, contact_phone, business_number, pallet_count, products, is_premium, premium_end_date';
-      
+
       if (table === 'warehouses') {
         selectFields += ', total_area, total_area_unit, warehouse_area, warehouse_area_unit, available_area, available_area_unit, storage_types, delivery_companies, other_delivery_company, solutions, other_solution, road_address, jibun_address';
       } else {
@@ -72,7 +72,7 @@ const MyPage = () => {
         .select(selectFields)
         .eq('id', user.id)
         .single();
-        
+
       if (data && !error) {
         const mergedUser = { ...data, userType: user.userType };
         // authService.setCurrentUser() → password 자동 strip 후 localStorage 저장
@@ -295,7 +295,7 @@ const MyPage = () => {
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-600">유효기간</span>
                       <span className="font-semibold text-gray-900">
-                        {new Date(viewingPassInfo.expires_at).toLocaleDateString('ko-KR')}까지
+                        {viewingPassInfo.expires_at ? new Date(viewingPassInfo.expires_at).toLocaleDateString('ko-KR') : '-'}까지
                       </span>
                     </div>
                     {getRemainingDays(viewingPassInfo) > 0 && (
@@ -440,7 +440,7 @@ const MyPage = () => {
                         <div className="flex justify-between items-start group-hover:translate-x-1 transition duration-200">
                           <div>
                             <p className="text-sm font-bold text-gray-800">{item.itemName}</p>
-                            <span className="text-[10px] text-gray-400">{new Date(item.date).toLocaleDateString('ko-KR')}</span>
+                            <span className="text-[10px] text-gray-400">{item.date ? new Date(item.date).toLocaleDateString('ko-KR') : '-'}</span>
                           </div>
                           <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full font-medium">
                             - {item.countUsed}
@@ -449,7 +449,7 @@ const MyPage = () => {
                       </div>
                     ))}
                     {usageHistory.length > 5 && (
-                      <button 
+                      <button
                         onClick={() => {
                           setHistoryPage(1);
                           setIsHistoryModalOpen(true);
@@ -472,13 +472,13 @@ const MyPage = () => {
           <div className="lg:col-span-2 space-y-6">
 
             {isEventEligible && (
-              <div 
+              <div
                 onClick={() => navigate('/payment')}
                 className="bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl p-5 text-white shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 flex items-center justify-between group overflow-hidden relative"
               >
                 <div className="absolute -right-6 -top-6 w-24 h-24 bg-rose-400 rounded-full opacity-30 blur-2xl group-hover:scale-125 transition-transform duration-300"></div>
                 <div className="absolute right-12 bottom-0 w-20 h-20 bg-pink-400 rounded-full opacity-30 blur-xl"></div>
-                
+
                 <div className="flex items-center gap-4 relative z-10">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl">
                     🌸
@@ -493,7 +493,7 @@ const MyPage = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 <button className="bg-white text-rose-600 px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-rose-50 transition-colors flex items-center shrink-0 ml-4 group-hover:scale-105 duration-200">
                   혜택 보기
                   <ArrowLeft className="w-4 h-4 ml-1 rotate-180 group-hover:translate-x-1 transition-transform" />
@@ -603,7 +603,7 @@ const MyPage = () => {
                     <MapPin className="w-6 h-6 mr-2 text-primary-600" />
                     사업장 주소
                   </h4>
-                  <button 
+                  <button
                     onClick={() => setShowJibun(!showJibun)}
                     className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
                   >
@@ -630,7 +630,7 @@ const MyPage = () => {
                       <Building2 className="w-6 h-6 mr-2 text-primary-600" />
                       시설 및 운영 정보
                     </h4>
-                    <button 
+                    <button
                       onClick={() => setShowAreaPyeong(!showAreaPyeong)}
                       className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
                     >
@@ -646,7 +646,7 @@ const MyPage = () => {
                       </div>
                       <p className="text-xs text-gray-500 mb-1">대지면적</p>
                       <p className="text-lg font-bold text-gray-800 group-hover:text-primary-600 transition">
-                        {currentUser.total_area || currentUser.landArea 
+                        {currentUser.total_area || currentUser.landArea
                           ? (showAreaPyeong ? `${getAreaDisplayValues(currentUser.total_area || currentUser.landArea, currentUser.total_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(currentUser.total_area || currentUser.landArea, currentUser.total_area_unit || 'sqm').sqm} ㎡`)
                           : '-'}
                       </p>
@@ -657,7 +657,7 @@ const MyPage = () => {
                       </div>
                       <p className="text-xs text-gray-500 mb-1">창고 연면적</p>
                       <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition">
-                        {currentUser.warehouse_area || currentUser.totalWarehouseArea 
+                        {currentUser.warehouse_area || currentUser.totalWarehouseArea
                           ? (showAreaPyeong ? `${getAreaDisplayValues(currentUser.warehouse_area || currentUser.totalWarehouseArea, currentUser.warehouse_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(currentUser.warehouse_area || currentUser.totalWarehouseArea, currentUser.warehouse_area_unit || 'sqm').sqm} ㎡`)
                           : '-'}
                       </p>
@@ -668,7 +668,7 @@ const MyPage = () => {
                       </div>
                       <p className="text-xs text-gray-500 mb-1">계약 가능 면적</p>
                       <p className="text-lg font-bold text-gray-800 group-hover:text-green-600 transition">
-                        {currentUser.available_area || currentUser.availableArea 
+                        {currentUser.available_area || currentUser.availableArea
                           ? (showAreaPyeong ? `${getAreaDisplayValues(currentUser.available_area || currentUser.availableArea, currentUser.available_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(currentUser.available_area || currentUser.availableArea, currentUser.available_area_unit || 'sqm').sqm} ㎡`)
                           : '-'}
                       </p>
@@ -679,7 +679,7 @@ const MyPage = () => {
                       </div>
                       <p className="text-xs text-gray-500 mb-1">팔레트 기준</p>
                       <p className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition">
-                        {currentUser.pallet_count || currentUser.palletCount ? `${Number(currentUser.pallet_count || currentUser.palletCount).toLocaleString()} PLT` : '-'}
+                        {currentUser.pallet_count || currentUser.palletCount ? `${Number(currentUser.pallet_count || currentUser.palletCount || 0).toLocaleString()} PLT` : '-'}
                       </p>
                     </div>
                   </div>
@@ -783,7 +783,7 @@ const MyPage = () => {
                       <User className="w-6 h-6 mr-2 text-primary-600" />
                       물류 요구 사항
                     </h4>
-                    <button 
+                    <button
                       onClick={() => setShowAreaPyeong(!showAreaPyeong)}
                       className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
                     >
@@ -799,7 +799,7 @@ const MyPage = () => {
                       </div>
                       <p className="text-sm text-gray-500 mb-1">필요 면적</p>
                       <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition">
-                        {currentUser.required_area || currentUser.requiredArea 
+                        {currentUser.required_area || currentUser.requiredArea
                           ? (showAreaPyeong ? `${getAreaDisplayValues(currentUser.required_area || currentUser.requiredArea, currentUser.required_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(currentUser.required_area || currentUser.requiredArea, currentUser.required_area_unit || 'sqm').sqm} ㎡`)
                           : '-'}
                       </p>
@@ -811,7 +811,7 @@ const MyPage = () => {
                       </div>
                       <p className="text-sm text-gray-500 mb-1">월 평균 출고량</p>
                       <p className="text-2xl font-bold text-gray-800 group-hover:text-purple-600 transition">
-                        {currentUser.monthly_volume || currentUser.monthlyVolume ? `${Number(currentUser.monthly_volume || currentUser.monthlyVolume).toLocaleString()} 건` : '-'}
+                        {currentUser.monthly_volume || currentUser.monthlyVolume ? `${Number(currentUser.monthly_volume || currentUser.monthlyVolume || 0).toLocaleString()} 건` : '-'}
                       </p>
                     </div>
 
@@ -821,7 +821,7 @@ const MyPage = () => {
                       </div>
                       <p className="text-sm text-gray-500 mb-1">팔레트 기준</p>
                       <p className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition">
-                        {currentUser.pallet_count || currentUser.palletCount ? `${Number(currentUser.pallet_count || currentUser.palletCount).toLocaleString()} PLT` : '-'}
+                        {currentUser.pallet_count || currentUser.palletCount ? `${Number(currentUser.pallet_count || currentUser.palletCount || 0).toLocaleString()} PLT` : '-'}
                       </p>
                     </div>
                   </div>
@@ -897,8 +897,8 @@ const MyPage = () => {
                 {usageHistory
                   .slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage)
                   .map((item, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer flex justify-between items-center"
                       onClick={() => {
                         handleHistoryItemClick(item);
@@ -913,21 +913,21 @@ const MyPage = () => {
                         - {item.countUsed}
                       </span>
                     </div>
-                ))}
+                  ))}
               </div>
 
               {/* 페이지네이션 (하단 영역) */}
               <div className="flex justify-center items-center gap-4 mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
-                <button 
-                  disabled={historyPage === 1} 
+                <button
+                  disabled={historyPage === 1}
                   onClick={() => setHistoryPage(p => p - 1)}
                   className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm disabled:opacity-50"
                 >
                   이전
                 </button>
                 <span className="text-sm font-medium text-gray-600">{historyPage} / {Math.ceil(usageHistory.length / itemsPerPage)}</span>
-                <button 
-                  disabled={historyPage >= Math.ceil(usageHistory.length / itemsPerPage)} 
+                <button
+                  disabled={historyPage >= Math.ceil(usageHistory.length / itemsPerPage)}
                   onClick={() => setHistoryPage(p => p + 1)}
                   className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm disabled:opacity-50"
                 >

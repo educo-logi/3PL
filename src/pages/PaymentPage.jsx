@@ -244,11 +244,11 @@ const PaymentPage = () => {
                         <div className="flex flex-col items-start md:items-end shrink-0 md:pl-8 md:border-l border-rose-200/50 mt-4 md:mt-0 w-full md:w-auto">
                           <div className="flex flex-col md:items-end">
                             <span className="text-gray-400 text-sm decoration-2 line-through font-medium">
-                              {pkg.originalPrice.toLocaleString()}원
+                              {Number(pkg.originalPrice || 0).toLocaleString()}원
                             </span>
                             <div className="flex items-baseline gap-1">
                               <span className="text-4xl font-black text-rose-600">
-                                {pkg.price.toLocaleString()}
+                                {Number(pkg.price || 0).toLocaleString()}
                               </span>
                               <span className="text-xl font-bold text-rose-600">원</span>
                             </div>
@@ -302,7 +302,7 @@ const PaymentPage = () => {
                         </p>
 
                         <p className="text-lg font-bold text-gray-900 mt-5">
-                          {pkg.price.toLocaleString()}원
+                          {Number(pkg.price || 0).toLocaleString()}원
                         </p>
 
                         {selectedPackage === key && !pkg.disabled && (
@@ -335,7 +335,7 @@ const PaymentPage = () => {
                   <div className="flex justify-between pt-2 border-t">
                     <span className="text-lg font-semibold text-gray-900">결제 금액</span>
                     <span className={`text-2xl font-bold ${selectedPackage === 'welcome_event' ? 'text-rose-600' : 'text-primary-600'}`}>
-                      {selectedPackageInfo.price.toLocaleString()}원
+                      {Number(selectedPackageInfo.price || 0).toLocaleString()}원
                     </span>
                   </div>
                 </div>
@@ -393,7 +393,7 @@ const PaymentPage = () => {
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5 mr-2" />
-                      {`${selectedPackageInfo.price.toLocaleString()}원 결제하기`}
+                      {`${Number(selectedPackageInfo.price || 0).toLocaleString()}원 결제하기`}
                     </>
                   )}
                 </button>

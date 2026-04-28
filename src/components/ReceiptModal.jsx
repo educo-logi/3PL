@@ -76,7 +76,7 @@ const ReceiptModal = ({ isOpen, onClose, payment }) => {
                             </div>
                             <div className="row flex justify-between text-sm">
                                 <span className="label text-gray-500">거래일시</span>
-                                <span className="value font-semibold text-gray-900">{new Date(payment.created_at).toLocaleString('ko-KR')}</span>
+                                <span className="value font-semibold text-gray-900">{payment.created_at ? new Date(payment.created_at).toLocaleString('ko-KR') : '-'}</span>
                             </div>
                             <div className="row flex justify-between text-sm">
                                 <span className="label text-gray-500">승인번호</span>
@@ -95,16 +95,16 @@ const ReceiptModal = ({ isOpen, onClose, payment }) => {
                             </div>
                             <div className="row flex justify-between text-sm">
                                 <span className="label text-gray-600">공급가액</span>
-                                <span className="value text-gray-900">{Math.round(payment.amount / 1.1).toLocaleString()}원</span>
+                                <span className="value text-gray-900">{Math.round((payment?.amount || 0) / 1.1).toLocaleString()}원</span>
                             </div>
                             <div className="row flex justify-between text-sm">
                                 <span className="label text-gray-600">부가세</span>
-                                <span className="value text-gray-900">{Math.round(payment.amount - (payment.amount / 1.1)).toLocaleString()}원</span>
+                                <span className="value text-gray-900">{Math.round((payment?.amount || 0) - ((payment?.amount || 0) / 1.1)).toLocaleString()}원</span>
                             </div>
 
                             <div className="row total-row flex justify-between text-lg font-bold border-t-2 border-gray-600 pt-3 mt-3">
                                 <span className="label text-gray-900">합계</span>
-                                <span className="value text-primary-600">{Number(payment.amount).toLocaleString()}원</span>
+                                <span className="value text-primary-600">{Number(payment?.amount || 0).toLocaleString()}원</span>
                             </div>
                         </div>
 

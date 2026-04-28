@@ -174,7 +174,7 @@ const PaymentSuccessPage = () => {
         {amount && (
           <div className="bg-gray-50 p-4 rounded-lg mb-6 text-left">
             <p className="text-sm text-gray-700 mb-2">
-              <strong>결제 금액:</strong> {Number(amount).toLocaleString()}원
+              <strong>결제 금액:</strong> {Number(amount || 0).toLocaleString()}원
             </p>
             {orderId && (
               <p className="text-xs text-gray-500">

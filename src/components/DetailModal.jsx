@@ -34,10 +34,15 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
 
   const formatArea = (squareMeters) => {
     if (!squareMeters && squareMeters !== 0) return '-';
-    const num = Number(squareMeters);
-    if (isNaN(num)) return squareMeters;
-    const pyeong = Math.round(num * 0.3025);
-    return `${num.toLocaleString()}㎡ (${pyeong}평)`;
+    const numValue = Number(squareMeters || 0);
+    if (isNaN(numValue)) return squareMeters;
+    try {
+      const pyeong = Math.round(numValue * 0.3025);
+      return `${numValue.toLocaleString()}㎡ (${pyeong}평)`;
+    } catch (err) {
+      console.warn('formatArea error:', err);
+      return squareMeters || '-';
+    }
   };
 
   // 기타 항목 처리 헬퍼
@@ -194,7 +199,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                           (showAreaPyeong ? `${getAreaDisplayValues(data.requiredArea || data.required_area, data.requiredAreaUnit || data.required_area_unit || 'sqm').pyeong} 평` : `${getAreaDisplayValues(data.requiredArea || data.required_area, data.requiredAreaUnit || data.required_area_unit || 'sqm').sqm} ㎡`) : '-'
                       } colorClass="bg-blue-50 text-blue-600" />
                       <InfoCard icon={Package} label="팔레트 기준" value={data.palletCount || data.pallet_count ? `${data.palletCount || data.pallet_count} PLT` : '-'} colorClass="bg-cyan-50 text-cyan-600" />
-                      <InfoCard icon={Package} label="월 평균 출고량" value={data.monthlyVolume ? `${Number(data.monthlyVolume).toLocaleString()}건/월` : '-'} colorClass="bg-violet-50 text-violet-600" fullWidth={true} />
+                      <InfoCard icon={Package} label="월 평균 출고량" value={data.monthlyVolume ? `${Number(data.monthlyVolume || 0).toLocaleString('ko-KR')}건/월` : '-'} colorClass="bg-violet-50 text-violet-600" fullWidth={true} />
                       <InfoCard icon={Package} label="취급 물품" value={Array.isArray(data.products) ? data.products.join(', ') : data.products} colorClass="bg-rose-50 text-rose-600" fullWidth={true} />
                       <InfoCard icon={Package} label="희망 배송사" value={formatListWithOther(data.desiredDelivery, data.other_desired_delivery)} colorClass="bg-emerald-50 text-emerald-600" fullWidth={true} />
                     </>

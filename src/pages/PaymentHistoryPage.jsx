@@ -113,7 +113,7 @@ const PaymentHistoryPage = () => {
                                                 {payment.package_type || '알 수 없는 상품'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                                {Number(payment.amount).toLocaleString()}원
+                                                {Number(payment.amount || 0).toLocaleString()}원
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${payment.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

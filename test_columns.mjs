@@ -11,10 +11,11 @@ envContent.split('\n').forEach(line => {
 const supabase = createClient(env['VITE_SUPABASE_URL'], env['VITE_SUPABASE_ANON_KEY']);
 
 async function run() {
-  const w = await supabase.from('warehouses').select('*').limit(1);
-  console.log('Warehouses Columns:', Object.keys(w.data[0] || {}));
-
-  const c = await supabase.from('customers').select('*').limit(1);
-  console.log('Customers Columns:', Object.keys(c.data[0] || {}));
+  const { data: cData, error: cError } = await supabase.from('customers').select('is_premium').limit(1);
+  if (cError) {
+    console.error('Customers is_premium check Error:', cError);
+  } else {
+    console.log('Customers is_premium column exists!');
+  }
 }
 run();

@@ -298,7 +298,7 @@ const PremiumApplyPage = () => {
                         유효기간: {pkg.days}일
                       </p>
                       <p className="text-lg font-bold text-gray-900">
-                        {pkg.price.toLocaleString()}원
+                        {Number(pkg.price || 0).toLocaleString()}원
                       </p>
 
                       {selectedPackage === key && (
@@ -331,7 +331,7 @@ const PremiumApplyPage = () => {
                 <div className="flex justify-between pt-2 border-t mt-2">
                   <span className="text-lg font-semibold text-gray-900">결제 금액</span>
                   <span className="text-2xl font-bold text-primary-600">
-                    {selectedPackageInfo.price.toLocaleString()}원
+                    {Number(selectedPackageInfo.price || 0).toLocaleString()}원
                   </span>
                 </div>
               </div>
@@ -402,7 +402,7 @@ const PremiumApplyPage = () => {
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5 mr-2" />
-                    {selectedPackageInfo.price.toLocaleString()}원 결제하기
+                    {Number(selectedPackageInfo.price || 0).toLocaleString()}원 결제하기
                   </>
                 )}
               </button>

@@ -246,7 +246,7 @@ const WarehouseCard = ({ warehouse, isPremium = false, isPremiumSection = false 
             <Square className="w-4 h-4 mr-2 mt-1" />
             <div className="flex flex-col">
               <span>이용가능: {formatArea(warehouse.availableArea)}</span>
-              <span>이용가능 팔레트: {warehouse.palletCount}개</span>
+              <span>이용가능 팔레트: {warehouse.palletCount ? Number(warehouse.palletCount).toLocaleString() : '0'}개</span>
             </div>
           </div>
 
@@ -254,7 +254,7 @@ const WarehouseCard = ({ warehouse, isPremium = false, isPremiumSection = false 
 
           <div className="flex items-center text-gray-600">
             <Truck className="w-4 h-4 mr-2" />
-            <span>배송사: {warehouse.delivery.join(', ')}</span>
+            <span>배송사: {Array.isArray(warehouse.delivery) ? warehouse.delivery.join(', ') : (warehouse.delivery || '-')}</span>
           </div>
         </div>
 

@@ -67,7 +67,7 @@ const AdminDashboard = () => {
       }));
       const sortedWarehouses = [...processedWarehouses].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
       setWarehouses(sortedWarehouses);
-      
+
       const pendingWarehouses = processedWarehouses.filter(w => w.status === 'pending')
         .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
       setPendingWarehouseList(pendingWarehouses);
@@ -83,10 +83,10 @@ const AdminDashboard = () => {
         submittedAt: c.submitted_at,
         approvedAt: c.approved_at
       }));
-      
+
       const sortedCustomers = [...processedCustomers].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
       setCustomers(sortedCustomers);
-      
+
       const pendingCustomers = processedCustomers.filter(c => c.status === 'pending')
         .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
       setPendingCustomerList(pendingCustomers);
@@ -142,7 +142,7 @@ const AdminDashboard = () => {
           .from('premium_applications')
           .select('*')
           .order('created_at', { ascending: false });
-        
+
         const localApps = JSON.parse(localStorage.getItem('premiumApplications') || '[]');
         const mappedLocal = localApps.map(a => ({
           ...a,
@@ -278,7 +278,7 @@ const AdminDashboard = () => {
 
   const handleGrantPass = async (count, reason) => {
     if (!grantTarget) return;
-    
+
     // 지급 실행
     const result = await grantAdminViewingPass(grantTarget.id, count, reason);
     if (result.success) {
@@ -303,23 +303,23 @@ const AdminDashboard = () => {
 
   const handleGrantPremium = async (days, reason) => {
     if (!premiumGrantTarget) return;
-    
+
     const result = await createPremiumApplication(
-      premiumGrantTarget.userId, 
-      premiumGrantTarget.type, 
-      premiumGrantTarget.itemId, 
-      premiumGrantTarget.type, 
-      'admin_custom', 
-      null, 
-      null, 
+      premiumGrantTarget.userId,
+      premiumGrantTarget.type,
+      premiumGrantTarget.itemId,
+      premiumGrantTarget.type,
+      'admin_custom',
+      null,
+      null,
       days
     );
-    
+
     if (result.success) {
       createNotification(
-        premiumGrantTarget.userId, 
-        'purchase', 
-        '👑 프리미엄 혜택 특별 지급', 
+        premiumGrantTarget.userId,
+        'purchase',
+        '👑 프리미엄 혜택 특별 지급',
         `관리자가 프리미엄 서비스를 ${days}일 동안 특별 지급했습니다. 사유: ${reason || '이벤트'}`
       );
       alert(`[${premiumGrantTarget.name}] 님에게 프리미엄 ${days}일이 지급되었습니다.`);
@@ -349,13 +349,13 @@ const AdminDashboard = () => {
 
   const handleDownloadWarehouseCSV = () => {
     const headers = [
-      '가입일', '승인일', '회사명', '사업자등록번호', '대표자명', '전화번호', 
-      '담당자명', '담당자 연락처', '이메일', '지역', '시군구', '동', '상세주소', 
-      '대지면적', '대지면적단위', '창고개수', '창고총면적', '총면적단위', 
-      '계약가능면적', '계약단위', '팔레트수', '경력', '보관방식', '배송사', 
+      '가입일', '승인일', '회사명', '사업자등록번호', '대표자명', '전화번호',
+      '담당자명', '담당자 연락처', '이메일', '지역', '시군구', '동', '상세주소',
+      '대지면적', '대지면적단위', '창고개수', '창고총면적', '총면적단위',
+      '계약가능면적', '계약단위', '팔레트수', '경력', '보관방식', '배송사',
       '기타배송사', '솔루션', '기타솔루션', '취급종류', '상태'
     ];
-    
+
     const rows = warehouses.map(w => [
       formatDate(w.submittedAt),
       formatDate(w.approvedAt),
@@ -393,11 +393,11 @@ const AdminDashboard = () => {
 
   const handleDownloadCustomerCSV = () => {
     const headers = [
-      '가입일', '승인일', '회사명', '사업자등록번호', '대표자명', '전화번호', 
-      '담당자명', '담당자 연락처', '이메일', '지역', '시군구', '동', '상세주소', 
+      '가입일', '승인일', '회사명', '사업자등록번호', '대표자명', '전화번호',
+      '담당자명', '담당자 연락처', '이메일', '지역', '시군구', '동', '상세주소',
       '필요면적', '면적단위', '팔레트수', '월물동량', '원하는배송사', '취급종류', '상태'
     ];
-    
+
     const rows = customers.map(c => [
       formatDate(c.submittedAt),
       formatDate(c.approvedAt),
@@ -507,8 +507,8 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <StatCard icon={CreditCard} title="전체 보유 잔여량" value={`${totalRemainingPasses}회`} color="blue" />
             <StatCard icon={TrendingUp} title="오늘 소진량" value={`${todayUsage}회`} color="red" />
-            <StatCard icon={Building2} title="창고 보유량" value={`${warehousePasses.reduce((s,p)=>s+(p.remaining_count||0),0)}회`} color="green" />
-            <StatCard icon={Users} title="고객사 보유량" value={`${customerPasses.reduce((s,p)=>s+(p.remaining_count||0),0)}회`} color="purple" />
+            <StatCard icon={Building2} title="창고 보유량" value={`${warehousePasses.reduce((s, p) => s + (p.remaining_count || 0), 0)}회`} color="green" />
+            <StatCard icon={Users} title="고객사 보유량" value={`${customerPasses.reduce((s, p) => s + (p.remaining_count || 0), 0)}회`} color="purple" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -530,7 +530,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="bg-white shadow rounded-lg p-6 overflow-hidden">
-              <h3 className="text-lg font-bold mb-2 flex items-center text-green-600"><Building2 className="mr-1 h-5 w-5"/> 창고업체 보유 현황</h3>
+              <h3 className="text-lg font-bold mb-2 flex items-center text-green-600"><Building2 className="mr-1 h-5 w-5" /> 창고업체 보유 현황</h3>
               <DataTable
                 headers={['이메일', '회사명', '패키지', '잔여']}
                 data={warehousePasses.slice(0, 10)}
@@ -553,7 +553,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="bg-white shadow rounded-lg p-6 overflow-hidden">
-              <h3 className="text-lg font-bold mb-2 flex items-center text-purple-600"><Users className="mr-1 h-5 w-5"/> 고객사 보유 현황</h3>
+              <h3 className="text-lg font-bold mb-2 flex items-center text-purple-600"><Users className="mr-1 h-5 w-5" /> 고객사 보유 현황</h3>
               <DataTable
                 headers={['이메일', '회사명', '패키지', '잔여']}
                 data={customerPasses.slice(0, 10)}
@@ -606,7 +606,7 @@ const AdminDashboard = () => {
                 const isActive = app.status === 'active' && new Date(app.end_date) > new Date();
                 return (
                   <>
-                    <td className="px-6 py-4 text-sm font-medium">{(app.item_id || '').substring(0,8)}...</td>
+                    <td className="px-6 py-4 text-sm font-medium">{(app.item_id || '').substring(0, 8)}...</td>
                     <td className="px-6 py-4 text-sm">{app.item_type === 'warehouse' ? '창고' : '고객사'}</td>
                     <td className="px-6 py-4 text-sm">{app.package_type}</td>
                     <td className="px-6 py-4 text-xs text-gray-500">{formatDate(app.start_date)} ~ {formatDate(app.end_date)}</td>
@@ -698,7 +698,7 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <StatCard icon={Building2} title="총 창고 수" value={`${warehouses.length}개`} color="blue" />
               <StatCard icon={Users} title="총 고객사 수" value={`${customers.length}개`} color="green" />
-              <StatCard icon={TrendingUp} title="총 매출" value={`${totalRevenue.toLocaleString()}원`} color="yellow" />
+              <StatCard icon={TrendingUp} title="총 매출" value={`${(totalRevenue || 0).toLocaleString()}원`} color="yellow" />
               <StatCard icon={Eye} title="주간 방문수" value={`${humanViews.length}회 (봇 ${botViews.length}회)`} color="purple" />
             </div>
 
@@ -749,9 +749,9 @@ const AdminDashboard = () => {
                     <div key={p.id} className="flex justify-between items-center">
                       <div>
                         <p className="font-medium text-gray-900">{p.package_type} 결제</p>
-                        <p className="text-sm text-gray-500">{new Date(p.created_at).toLocaleDateString()} - {p.userName}</p>
+                        <p className="text-sm text-gray-500">{p.created_at ? new Date(p.created_at).toLocaleDateString('ko-KR') : '-'} - {p.userName}</p>
                       </div>
-                      <span className="font-bold text-gray-900">+{Number(p.amount).toLocaleString()}원</span>
+                      <span className="font-bold text-gray-900">+{Number(p.amount || 0).toLocaleString()}원</span>
                     </div>
                   ))}
                   {payments.length === 0 && <p className="text-gray-500 text-center py-4">결제 내역이 없습니다.</p>}
@@ -773,35 +773,35 @@ const AdminDashboard = () => {
               </button>
             </div>
             <DataTable
-            headers={['가입일', '승인일', '회사명', '사업자등록번호', '이메일', '지역', '면적', '연락처', '액션']}
-            data={warehouses}
-            renderRow={(w) => (
-              <>
-                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.submittedAt)}</td>
-                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.approvedAt)}</td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => handleViewDetails(w, 'warehouse')}
-                    className="font-medium text-primary-600 hover:text-primary-800 hover:underline text-left"
-                  >
-                    {w.companyName}
-                    {w.status === 'pending' && <span className="ml-1 text-xs font-bold text-red-500">(대기)</span>}
-                  </button>
-                </td>
-                <td className="px-6 py-4 text-sm">{w.business_number || w.businessNumber || '-'}</td>
-                <td className="px-6 py-4 text-sm text-gray-600 break-all">{w.email}</td>
-                <td className="px-6 py-4 text-sm">{w.location}</td>
-                <td className="px-6 py-4 text-sm">{w.availableArea ? w.availableArea.toLocaleString() : ''} / {w.totalArea ? w.totalArea.toLocaleString() : ''}</td>
-                <td className="px-6 py-4 text-sm">{w.phone}</td>
-                <td className="px-6 py-4 flex gap-2">
-                  <ActionButton icon={Eye} onClick={() => handleViewDetails(w, 'warehouse')} title="상세보기" />
-                  <ActionButton icon={Gift} color="blue" onClick={() => handleOpenGrantModal(w, 'warehouse')} title="열람권 지급" />
-                  <ActionButton icon={Gift} color="orange" onClick={() => handleOpenPremiumGrantModal(w, 'warehouse')} title="프리미엄 지급" />
-                  <ActionButton icon={Trash2} color="red" onClick={() => handleDelete('warehouses', w.id)} />
-                </td>
-              </>
-            )}
-          />
+              headers={['가입일', '승인일', '회사명', '사업자등록번호', '이메일', '지역', '면적', '연락처', '액션']}
+              data={warehouses}
+              renderRow={(w) => (
+                <>
+                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.submittedAt)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(w.approvedAt)}</td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => handleViewDetails(w, 'warehouse')}
+                      className="font-medium text-primary-600 hover:text-primary-800 hover:underline text-left"
+                    >
+                      {w.companyName}
+                      {w.status === 'pending' && <span className="ml-1 text-xs font-bold text-red-500">(대기)</span>}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-sm">{w.business_number || w.businessNumber || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600 break-all">{w.email}</td>
+                  <td className="px-6 py-4 text-sm">{w.location}</td>
+                  <td className="px-6 py-4 text-sm">{w.availableArea ? Number(w.availableArea).toLocaleString() : '0'} / {w.totalArea ? Number(w.totalArea).toLocaleString() : '0'}</td>
+                  <td className="px-6 py-4 text-sm">{w.phone}</td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <ActionButton icon={Eye} onClick={() => handleViewDetails(w, 'warehouse')} title="상세보기" />
+                    <ActionButton icon={Gift} color="blue" onClick={() => handleOpenGrantModal(w, 'warehouse')} title="열람권 지급" />
+                    <ActionButton icon={Gift} color="orange" onClick={() => handleOpenPremiumGrantModal(w, 'warehouse')} title="프리미엄 지급" />
+                    <ActionButton icon={Trash2} color="red" onClick={() => handleDelete('warehouses', w.id)} />
+                  </td>
+                </>
+              )}
+            />
           </div>
         )}
 
@@ -817,35 +817,35 @@ const AdminDashboard = () => {
               </button>
             </div>
             <DataTable
-            headers={['가입일', '승인일', '회사명', '사업자등록번호', '이메일', '지역', '월 물동량', '연락처', '액션']}
-            data={customers}
-            renderRow={(c) => (
-              <>
-                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.submittedAt)}</td>
-                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.approvedAt)}</td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => handleViewDetails(c, 'customer')}
-                    className="font-medium text-primary-600 hover:text-primary-800 hover:underline text-left"
-                  >
-                    {c.companyName}
-                    {c.status === 'pending' && <span className="ml-1 text-xs font-bold text-red-500">(대기)</span>}
-                  </button>
-                </td>
-                <td className="px-6 py-4 text-sm">{c.business_number || c.businessNumber || '-'}</td>
-                <td className="px-6 py-4 text-sm text-gray-600 break-all">{c.email}</td>
-                <td className="px-6 py-4 text-sm">{c.location}</td>
-                <td className="px-6 py-4 text-sm">{c.monthlyVolume ? c.monthlyVolume.toLocaleString() : ''}</td>
-                <td className="px-6 py-4 text-sm">{c.phone}</td>
-                <td className="px-6 py-4 flex gap-2">
-                  <ActionButton icon={Eye} onClick={() => handleViewDetails(c, 'customer')} title="상세보기" />
-                  <ActionButton icon={Gift} color="blue" onClick={() => handleOpenGrantModal(c, 'customer')} title="열람권 지급" />
-                  <ActionButton icon={Gift} color="orange" onClick={() => handleOpenPremiumGrantModal(c, 'customer')} title="프리미엄 지급" />
-                  <ActionButton icon={Trash2} color="red" onClick={() => handleDelete('customers', c.id)} />
-                </td>
-              </>
-            )}
-          />
+              headers={['가입일', '승인일', '회사명', '사업자등록번호', '이메일', '지역', '월 물동량', '연락처', '액션']}
+              data={customers}
+              renderRow={(c) => (
+                <>
+                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.submittedAt)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(c.approvedAt)}</td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => handleViewDetails(c, 'customer')}
+                      className="font-medium text-primary-600 hover:text-primary-800 hover:underline text-left"
+                    >
+                      {c.companyName}
+                      {c.status === 'pending' && <span className="ml-1 text-xs font-bold text-red-500">(대기)</span>}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-sm">{c.business_number || c.businessNumber || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600 break-all">{c.email}</td>
+                  <td className="px-6 py-4 text-sm">{c.location}</td>
+                  <td className="px-6 py-4 text-sm">{c.monthlyVolume ? Number(c.monthlyVolume).toLocaleString() : '0'}</td>
+                  <td className="px-6 py-4 text-sm">{c.phone}</td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <ActionButton icon={Eye} onClick={() => handleViewDetails(c, 'customer')} title="상세보기" />
+                    <ActionButton icon={Gift} color="blue" onClick={() => handleOpenGrantModal(c, 'customer')} title="열람권 지급" />
+                    <ActionButton icon={Gift} color="orange" onClick={() => handleOpenPremiumGrantModal(c, 'customer')} title="프리미엄 지급" />
+                    <ActionButton icon={Trash2} color="red" onClick={() => handleDelete('customers', c.id)} />
+                  </td>
+                </>
+              )}
+            />
           </div>
         )}
 
@@ -854,7 +854,7 @@ const AdminDashboard = () => {
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="font-bold text-gray-800">전체 결제 내역</h3>
-              <span className="text-lg font-bold text-primary-600">Total: {totalRevenue.toLocaleString()}원</span>
+              <span className="text-lg font-bold text-primary-600">Total: {(totalRevenue || 0).toLocaleString()}원</span>
             </div>
             <DataTable
               headers={['이메일', '일시', '사용자', '상품명', '금액', '상태']}
@@ -862,7 +862,7 @@ const AdminDashboard = () => {
               renderRow={(p) => (
                 <>
                   <td className="px-6 py-4 text-sm text-gray-600 break-all">{p.email}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{new Date(p.created_at).toLocaleString()}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{p.created_at ? new Date(p.created_at).toLocaleString('ko-KR') : '-'}</td>
                   <td className="px-6 py-4 font-medium">{p.userName}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded text-xs font-bold ${p.package_type && p.package_type.includes('event') ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -964,12 +964,12 @@ const AdminDashboard = () => {
                 <CreditCard className="w-6 h-6 mr-2 text-primary-600" />
                 <h3 className="text-xl font-bold text-gray-900">사용자 결제 페이지 바로가기</h3>
               </div>
-              
+
               <p className="text-gray-600 mb-6 text-sm">
                 사용자가 플랫폼에서 열람권이나 프리미엄 서비스를 이용할 때 마주하는 페이지입니다.<br />
                 관리자 계정 상태에서는 실제 연동 테스트나 레이아웃 확인용으로 활용해 주세요.
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 열람권 구매 페이지 */}
                 <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow bg-gradient-to-br from-white to-blue-50">
@@ -985,7 +985,7 @@ const AdminDashboard = () => {
                   <p className="text-sm text-gray-600 mb-6 h-12 flex items-center">
                     창고 및 고객사 상세 연락처를 확인하기 위한 열람권 구매 화면입니다.
                   </p>
-                  <button 
+                  <button
                     onClick={() => window.open('/payment', '_blank')}
                     className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-sm"
                   >
@@ -1007,7 +1007,7 @@ const AdminDashboard = () => {
                   <p className="text-sm text-gray-600 mb-6 h-12 flex items-center">
                     검색 결과 상단 노출 및 홍보 혜택을 제공하는 프리미엄 서비스 신청 화면입니다.
                   </p>
-                  <button 
+                  <button
                     onClick={() => window.open('/premium-apply', '_blank')}
                     className="w-full flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-sm"
                   >
@@ -1204,7 +1204,7 @@ const GrantPassModal = ({ isOpen, onClose, target, onConfirm }) => {
           <Gift className="w-6 h-6 mr-2 text-blue-600" />
           열람권 개별 지급
         </h2>
-        
+
         <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
           <p className="text-sm text-gray-500">지급 대상</p>
           <p className="font-bold text-gray-900">{target.name} <span className="text-xs font-normal">({target.type === 'warehouse' ? '창고' : '고객사'})</span></p>
@@ -1279,7 +1279,7 @@ const GrantPremiumModal = ({ isOpen, onClose, target, onConfirm }) => {
           <Gift className="w-6 h-6 mr-2 text-orange-500" />
           프리미엄 혜택 지급
         </h2>
-        
+
         <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
           <p className="text-sm text-gray-500">지급 대상</p>
           <p className="font-bold text-gray-900">{target.name} <span className="text-xs font-normal">({target.type === 'warehouse' ? '창고' : '고객사'})</span></p>

@@ -186,7 +186,7 @@ const CustomerDetail = () => {
                       월 평균 출고량
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      {customer.monthlyVolume.toLocaleString()}개
+                      {customer.monthlyVolume ? Number(customer.monthlyVolume).toLocaleString() : '0'}개
                     </p>
                   </div>
 

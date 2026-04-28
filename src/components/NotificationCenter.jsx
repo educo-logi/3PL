@@ -197,7 +197,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
                         {notification.message}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {new Date(notification.createdAt).toLocaleString('ko-KR')}
+                        {notification.createdAt ? new Date(notification.createdAt).toLocaleString('ko-KR') : '-'}
                       </p>
                     </div>
                   </div>
