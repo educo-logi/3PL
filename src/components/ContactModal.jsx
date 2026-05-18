@@ -9,6 +9,7 @@ const ContactModal = ({ isOpen, onClose, contactInfo, type }) => {
   const [loading, setLoading] = useState(false);
   const [hasPass, setHasPass] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [secureContact, setSecureContact] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
@@ -23,6 +24,20 @@ const ContactModal = ({ isOpen, onClose, contactInfo, type }) => {
     setHasPass(has);
   };
 
+  const fetchSecureInfo = async () => {
+    try {
+      const { data: contactData } = await supabase.rpc('get_secure_contact_info', {
+        p_item_id: contactInfo.id,
+        p_item_type: type
+      });
+      if (contactData) {
+        setSecureContact(contactData);
+      }
+    } catch (e) {
+      console.error("Failed to fetch secure contact", e);
+    }
+  };
+
   const handleUsePass = async () => {
     setLoading(true);
     setErrorMsg('');
@@ -34,6 +49,7 @@ const ContactModal = ({ isOpen, onClose, contactInfo, type }) => {
 
       if (result.success) {
         trackEvent(GA_EVENTS.CONTACT_SUBMIT, { type: type, company: companyName });
+        await fetchSecureInfo();
         setIsRevealed(true);
       } else {
         if (result.expired) {
@@ -52,7 +68,12 @@ const ContactModal = ({ isOpen, onClose, contactInfo, type }) => {
     }
   };
 
+  // 뷰가 처음 열릴 때 이미 권한이 있으면(예: 본인, 관리자 등) fetchSecureInfo 호출 방안 추가 가능하지만
+  // ContactModal은 '열람권 사용' 목적이 주이므로 생략. (필요시 useEffect 추가)
+
   if (!isOpen) return null;
+
+  const displayData = { ...contactInfo, ...secureContact };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -81,22 +102,22 @@ const ContactModal = ({ isOpen, onClose, contactInfo, type }) => {
                   <Phone className="w-5 h-5 text-primary-600 mr-3" />
                   <div>
                     <p className="text-xs text-gray-500">전화번호</p>
-                    <p className="font-bold text-gray-900">{contactInfo.contactPhone || contactInfo.phone || '정보 없음'}</p>
+                    <p className="font-bold text-gray-900">{displayData.contactPhone || displayData.phone || '정보 없음'}</p>
                   </div>
                 </div>
                 <div className="flex items-center p-3 bg-white rounded border border-gray-200">
                   <Mail className="w-5 h-5 text-primary-600 mr-3" />
                   <div>
                     <p className="text-xs text-gray-500">이메일</p>
-                    <p className="font-bold text-gray-900">{contactInfo.email || '정보 없음'}</p>
+                    <p className="font-bold text-gray-900">{displayData.email || '정보 없음'}</p>
                   </div>
                 </div>
-                {contactInfo.representative && (
+                {displayData.representative && (
                   <div className="flex items-center p-3 bg-white rounded border border-gray-200">
                     <Star className="w-5 h-5 text-primary-600 mr-3" />
                     <div>
                       <p className="text-xs text-gray-500">대표자</p>
-                      <p className="font-bold text-gray-900">{contactInfo.representative}</p>
+                      <p className="font-bold text-gray-900">{displayData.representative}</p>
                     </div>
                   </div>
                 )}

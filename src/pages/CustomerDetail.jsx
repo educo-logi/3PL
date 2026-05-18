@@ -28,7 +28,7 @@ const CustomerDetail = () => {
       if (!found) {
         try {
           const { data, error } = await supabase
-            .from('customers')
+            .from('vw_public_customers')
             .select('*')
             .eq('id', id)
             .single();

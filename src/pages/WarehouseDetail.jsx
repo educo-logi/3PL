@@ -28,7 +28,7 @@ const WarehouseDetail = () => {
       if (!found) {
         try {
           const { data, error } = await supabase
-            .from('warehouses')
+            .from('vw_public_warehouses')
             .select('*')
             .eq('id', id)
             .single();

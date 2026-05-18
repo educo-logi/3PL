@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Building2, Users, MapPin, Phone, Mail, Square, Package, Calendar } from 'lucide-react';
 import AddressDisplay from './AddressDisplay';
 import { getAreaDisplayValues } from '../utils/areaConverter';
 import useModalEffect from '../hooks/useModalEffect';
 import { isApp } from '../utils/platform';
+import { supabase } from '../utils/supabaseClient';
 
 // Reusable Info Card Component
 const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue-600", fullWidth = false, isHighlight = false }) => {
@@ -23,14 +24,42 @@ const InfoCard = ({ icon: Icon, label, value, colorClass = "bg-blue-50 text-blue
 };
 
 const DetailModal = ({ isOpen, onClose, data, type }) => {
-  const [showJibun, setShowJibun] = React.useState(false);
-  const [showAreaPyeong, setShowAreaPyeong] = React.useState(false);
+  const [showJibun, setShowJibun] = useState(false);
+  const [showAreaPyeong, setShowAreaPyeong] = useState(false);
+  const [secureContact, setSecureContact] = useState(null);
   const isInApp = isApp();
 
   // 모달 효과 적용 (배경 잠금, 앱 새로고침 방지)
   useModalEffect(isOpen);
 
+  // 보안 연락처 정보 패칭
+  useEffect(() => {
+    const fetchContact = async () => {
+      if (isOpen && data?.id) {
+        try {
+          const { data: contactData, error } = await supabase.rpc('get_secure_contact_info', {
+            p_item_id: data.id,
+            p_item_type: type
+          });
+          if (contactData) {
+            setSecureContact(contactData);
+          } else {
+            setSecureContact(null);
+          }
+        } catch (e) {
+          console.error("Failed to fetch secure contact info", e);
+        }
+      } else {
+        setSecureContact(null);
+      }
+    };
+    fetchContact();
+  }, [isOpen, data?.id, type]);
+
   if (!isOpen || !data) return null;
+
+  // 원본 데이터와 보안 연락처 데이터 병합
+  const displayData = { ...data, ...secureContact };
 
   const formatArea = (squareMeters) => {
     if (!squareMeters && squareMeters !== 0) return '-';
@@ -54,8 +83,9 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
     return formatted.join(', ');
   };
 
-  const contactPerson = data.contactPerson || data.contact_person;
-  const contactPhone = data.contactPhone || data.contact_phone;
+  const contactPerson = displayData.contactPerson || displayData.contact_person;
+  const contactPhone = displayData.contactPhone || displayData.contact_phone;
+  const email = displayData.email;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
@@ -102,7 +132,7 @@ const DetailModal = ({ isOpen, onClose, data, type }) => {
                   <InfoCard
                     icon={Mail}
                     label="이메일"
-                    value={data.email}
+                    value={email || '열람 제한'}
                     colorClass="bg-purple-50 text-purple-600"
                   />
 

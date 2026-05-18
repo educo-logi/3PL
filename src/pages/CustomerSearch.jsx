@@ -28,7 +28,7 @@ const CustomerSearch = () => {
     const fetchCustomers = async () => {
       try {
         const { data, error } = await supabase
-          .from('customers')
+          .from('vw_public_customers')
           .select('*');
           // .eq('status', 'approved');
 

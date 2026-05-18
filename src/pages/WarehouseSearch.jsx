@@ -28,7 +28,7 @@ const WarehouseSearch = () => {
     const fetchWarehouses = async () => {
       try {
         const { data, error } = await supabase
-          .from('warehouses')
+          .from('vw_public_warehouses')
           .select('*');
           // .eq('status', 'approved');
 

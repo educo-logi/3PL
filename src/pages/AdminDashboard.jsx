@@ -21,6 +21,7 @@ import { supabase } from '../utils/supabaseClient';
 import { grantAdminViewingPass } from '../utils/viewingPassUtils';
 import { createPremiumApplication } from '../utils/premiumUtils';
 import { createNotification } from '../utils/notificationUtils';
+import { isAdmin } from '../utils/authService';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -179,16 +180,20 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    const isAdmin = localStorage.getItem('adminAuth');
-    if (!isAdmin) {
-      navigate('/admin/login');
-      return;
-    }
-    fetchData();
+    const checkAuth = async () => {
+      const adminStatus = await isAdmin();
+      if (!adminStatus) {
+        navigate('/admin/login');
+        return;
+      }
+      fetchData();
+    };
+    checkAuth();
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem('adminAuth');
+    await supabase.auth.signOut();
     navigate('/admin/login');
   };
 

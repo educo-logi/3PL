@@ -18,7 +18,7 @@ const Home = () => {
       // 1. Fetch Warehouses
       try {
         const { data: wData, error: wError } = await supabase
-          .from('warehouses')
+          .from('vw_public_warehouses')
           .select('*');
           // .eq('status', 'approved');
 
@@ -79,7 +79,7 @@ const Home = () => {
       // 2. Fetch Customers
       try {
         const { data: cData, error: cError } = await supabase
-          .from('customers')
+          .from('vw_public_customers')
           .select('*');
           // .eq('status', 'approved');
 

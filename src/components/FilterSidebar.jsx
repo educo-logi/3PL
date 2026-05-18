@@ -100,10 +100,14 @@ const FilterSidebar = ({ filters, setFilters, isOpen, setIsOpen }) => {
         onClick={() => toggleSection(sectionKey)}
         className="flex items-center justify-between w-full text-left py-3 px-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
       >
-        <span 
-          className="text-base font-medium text-gray-800 whitespace-pre-line"
-          dangerouslySetInnerHTML={{ __html: title.replace(/\\n/g, '<br>') }}
-        />
+        <span className="text-base font-medium text-gray-800 whitespace-pre-line">
+          {title.split('\\n').map((line, index, array) => (
+            <React.Fragment key={index}>
+              {line}
+              {index < array.length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </span>
         {isExpanded ? (
           <ChevronUp className="w-5 h-5 text-gray-600" />
         ) : (
