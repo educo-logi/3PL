@@ -63,11 +63,11 @@
     *   `authService.js`에 따르면 기존 클라이언트 단 해싱 방식에서 강력한 서버 단 bcrypt 기반의 Supabase Auth 방식으로의 이행(Migration) 구조가 잘 마련되어 있습니다.
 
 ### ⚠️ 조치 필요 항목 (취약점 발견)
-*   **[XSS] `dangerouslySetInnerHTML` 사용 최소화 필요**: 
+*   **[XSS] `dangerouslySetInnerHTML` 사용 최소화 필요 (수정 완료)**: 
     *   **위치**: `src/components/FilterSidebar.jsx` (105 라인 부근)
     *   **내용**: 문자열의 줄바꿈(`\n`) 처리를 위해 React에서 권장하지 않는 `dangerouslySetInnerHTML` 속성을 사용 중입니다. 현재는 하드코딩된 필터 제목으로 쓰여 당장의 위험은 낮으나, 추후 사용자 입력값이 포함될 경우 심각한 크로스 사이트 스크립팅(XSS) 취약점이 발생할 수 있습니다.
     *   **조치 방안**: `.split('\n').map(...)` 형태로 React Node를 반환하는 방식으로 리팩토링이 필요합니다.
-*   **[접근 통제] 관리자 페이지 등 인가(Authorization) 가드 취약점**:
+*   **[접근 통제] 관리자 페이지 등 인가(Authorization) 가드 취약점 (수정 완료)**:
     *   **위치**: `src/pages/AdminDashboard.jsx`, `src/App.jsx` 등
     *   **조치 방안**: UI 컴포넌트 마운트 시 `supabase.auth.getSession()`을 호출하여 실제 유효한 서버 측 세션(JWT)을 확인하는 로직으로 강화해야 합니다. (수정 완료)
 
@@ -78,9 +78,9 @@
 본 항목은 개인정보보호법 기반 안전조치 의무 및 데이터베이스 내 민감 정보 보호 체계를 점검한 결과입니다.
 
 ### ⚠️ 조치 필요 항목 (취약점 발견)
-*   **[DB 설정] RLS(Row Level Security) 전면 개방으로 인한 대량 정보 유출 위험**:
+*   **[DB 설정] RLS(Row Level Security) 전면 개방으로 인한 대량 정보 유출 위험 (수정 완료)**:
     *   **내용**: Supabase 스키마 확인 결과, `warehouses`, `customers` 테이블의 RLS 정책이 `true`(모두 허용)로 설정되어 있거나 비활성화되어 있습니다. 클라이언트 키(Anon Key)만 있으면 누구나 악의적으로 전체 회원의 이름, 연락처, 주소 등을 무단 수집(크롤링)할 수 있는 치명적인 상태입니다.
-    *   **조치 방안**: 즉시 각 테이블에 대해 "자신의 계정 데이터만 읽기/수정 가능"하도록 `auth.uid() = auth_user_id` 기반의 강력한 RLS 정책을 수립하고, 타인의 정보 조회는 철저히 열람권(Viewing Pass) API를 통해서만 제한적으로 이루어지도록 접근 제어를 서버(DB) 단에서 차단해야 합니다.
+    *   **조치 방안**: 즉시 각 테이블에 대해 "자신의 계정 데이터만 읽기/수정 가능"하도록 `auth.uid() = auth_user_id` 기반의 강력한 RLS 정책을 수립하고, 타인의 정보 조회는 철저히 열람권(Viewing Pass) API를 통해서만 제한적으로 이루어지도록 접근 제어를 서버(DB) 단에서 차단해야 합니다. (View 및 RPC 도입으로 해결 완료)
 *   **[데이터 저장] 개인정보(PII) DB 내 평문 저장**:
     *   **내용**: 비밀번호는 안전하게 해싱되어 있으나, 사용자의 이름(`contact_person`), 연락처(`phone`), 이메일(`email`) 등의 정보가 평문(Plain-text)으로 저장되어 있습니다.
     *   **조치 방안**: 필요에 따라 Supabase의 `pgcrypto` 확장 모듈 등을 활용해 DB 내 민감 정보를 양방향 암호화하여 저장할 것을 권장합니다.
