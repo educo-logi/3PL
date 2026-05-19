@@ -55,7 +55,11 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     try {
       // 1. Warehouses
-      const { data: wData } = await supabase.from('warehouses').select('*');
+      const { data: wData } = await supabase.from('vw_admin_warehouses').select('*');
+      
+      // 관리자 대시보드 리스트 조회 로그 기록
+      await supabase.rpc('log_admin_action', { p_action: 'VIEW_DASHBOARD_LIST', p_target_table: 'all' });
+
       const processedWarehouses = (wData || []).map(w => ({
         ...w,
         companyName: w.company_name,
@@ -74,7 +78,7 @@ const AdminDashboard = () => {
       setPendingWarehouseList(pendingWarehouses);
 
       // 2. Customers
-      const { data: cData } = await supabase.from('customers').select('*');
+      const { data: cData } = await supabase.from('vw_admin_customers').select('*');
       const processedCustomers = (cData || []).map(c => ({
         ...c,
         companyName: c.company_name,
