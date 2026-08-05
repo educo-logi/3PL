@@ -30,6 +30,7 @@ import Contact from './pages/Contact';
 import Support from './pages/Support';
 import NotFound from './pages/NotFound';
 import PageTracker from './components/PageTracker';
+import SeoManager from './components/SeoManager';
 
 function App() {
   useEffect(() => {
@@ -46,6 +47,7 @@ function App() {
     <Router>
       <ScrollToTop />
       <PageTracker />
+      <SeoManager />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
