@@ -2,17 +2,5 @@ User-agent: *
 Allow: /
 
 Disallow: /admin/
-Disallow: /login
-Disallow: /mypage
-Disallow: /payment
-Disallow: /payment/
-Disallow: /payment-history
-Disallow: /premium-apply
-Disallow: /warehouse-register
-Disallow: /customer-register
-Disallow: /favorites
-Disallow: /recent-viewed
-Disallow: /compare
-Disallow: /design-mockup
 
 Sitemap: https://www.33pl.co.kr/sitemap.xml

@@ -65,10 +65,12 @@ const SeoManager = () => {
 
   useEffect(() => {
     const isDetailPage = /^\/(warehouse|customer)\/[^/]+$/.test(pathname);
+    const isPublicRoute = Boolean(ROUTES[pathname]);
     const page = ROUTES[pathname] || (isDetailPage
       ? { title: '3PL 물류 정보 | 33PL', description: DEFAULT.description }
-      : DEFAULT);
-    const noindex = NOINDEX_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`));
+      : { title: '페이지를 찾을 수 없습니다 | 33PL', description: DEFAULT.description });
+    const isPrivateRoute = NOINDEX_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`));
+    const noindex = isPrivateRoute || isDetailPage || !isPublicRoute;
     const canonicalUrl = `${SITE_URL}${pathname === '/' ? '/' : pathname}`;
     const socialDescription = page.description.length > 100 ? `${page.description.slice(0, 97)}...` : page.description;
 

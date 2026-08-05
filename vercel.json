@@ -17,9 +17,23 @@
             "headers": [
                 { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
             ]
+        },
+        {
+            "source": "/(warehouse|customer)/(.*)",
+            "headers": [
+                { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+            ]
         }
     ],
     "rewrites": [
+        { "source": "/warehouse-search", "destination": "/warehouse-search/index.html" },
+        { "source": "/customer-search", "destination": "/customer-search/index.html" },
+        { "source": "/faq", "destination": "/faq/index.html" },
+        { "source": "/support", "destination": "/support/index.html" },
+        { "source": "/contact", "destination": "/contact/index.html" },
+        { "source": "/terms", "destination": "/terms/index.html" },
+        { "source": "/privacy", "destination": "/privacy/index.html" },
+        { "source": "/refund", "destination": "/refund/index.html" },
         {
             "source": "/(.*)",
             "destination": "/index.html"
