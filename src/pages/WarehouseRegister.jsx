@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Building2, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { regions, productTypes, storageTypes, deliveryCompanies, solutions } from '../data/sampleData';
+import { productTypes, storageTypes, deliveryCompanies, solutions } from '../data/sampleData';
 import { signup } from '../utils/authService';
-import { supabase } from '../utils/supabaseClient';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
-import { checkEmailDuplicate } from '../utils/authUtils';
+import { normalizeEmail } from '../utils/email';
 import AddressSearchModal from '../components/AddressSearchModal';
 
 const WarehouseRegister = () => {
@@ -43,6 +42,8 @@ const WarehouseRegister = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLock = useRef(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [thirdPartyAgreed, setThirdPartyAgreed] = useState(false);
   const [optionalAgreed, setOptionalAgreed] = useState(false);
@@ -143,6 +144,7 @@ const WarehouseRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitLock.current) return;
     let hasError = false;
 
     if (!termsAgreed) {
@@ -171,23 +173,18 @@ const WarehouseRegister = () => {
       return;
     }
 
-    const hashedPassword = formData.password; // Will not be used — authService handles hashing
     // Remove combined address combining since we now store them separately.
 
+    submitLock.current = true;
+    setIsSubmitting(true);
     try {
-      const dupCheck = await checkEmailDuplicate(formData.email);
-      if (dupCheck.isDuplicate) {
-        alert(dupCheck.message + '\n다른 이메일을 사용해주세요.');
-        return;
-      }
-
       // 선택 정보 동의 여부에 따른 데이터 필터링 로직 (민감 정보 보호 및 IT보안 가이드 준수)
       const submissionData = {
         company_name: formData.companyName,
         business_number: formData.businessNumber,
         contact_person: formData.contactPerson,
         contact_phone: formData.contactPhone,
-        email: formData.email,
+        email: normalizeEmail(formData.email),
         ...(optionalAgreed ? {
           representative: formData.representative,
           phone: formData.phone,
@@ -208,9 +205,9 @@ const WarehouseRegister = () => {
           experience: parseInt(formData.experience) || null,
           storage_types: formData.storageTypes,
           delivery_companies: formData.deliveryCompanies,
-          other_delivery_company: formData.other_delivery_company,
+          other_delivery_company: formData.otherDeliveryCompany,
           solutions: formData.solutions,
-          other_solution: formData.other_solution,
+          other_solution: formData.otherSolution,
           products: formData.products,
         } : {
           // 동의 미체크 시 기본 빈 값으로 전송 (최소 수집 원칙 준수)
@@ -235,8 +232,8 @@ const WarehouseRegister = () => {
         })
       };
 
-      // Supabase Auth 회원가입 (bcrypt 자동 적용) + 프로필 테이블 INSERT
-      const result = await signup(formData.email, formData.password, 'warehouse', submissionData);
+      // 서버에서 인증 계정과 업체 정보를 함께 저장합니다.
+      const result = await signup(normalizeEmail(formData.email), formData.password, 'warehouse', submissionData);
 
       if (!result.success) {
         alert(result.message || '등록 중 오류가 발생했습니다.');
@@ -245,9 +242,11 @@ const WarehouseRegister = () => {
 
       trackEvent(GA_EVENTS.REGISTER_WAREHOUSE, { company: formData.companyName });
       setIsSubmitted(true);
-    } catch (error) {
-      console.error('Error submitting warehouse:', error);
-      alert('등록 중 오류가 발생했습니다. 다시 시도해주세요.\n' + error.message);
+    } catch {
+      alert('등록 처리를 완료하지 못했습니다. 입력 내용을 유지한 채 다시 시도해주세요.');
+    } finally {
+      submitLock.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -573,8 +572,8 @@ const WarehouseRegister = () => {
             </div>
 
             <div className="pt-4">
-              <button type="submit" disabled={!privacyAgreed || !termsAgreed || !thirdPartyAgreed} className={`w-full py-3 px-4 rounded-lg text-lg font-semibold transition-colors ${privacyAgreed && termsAgreed && thirdPartyAgreed ? 'bg-primary-600 text-white hover:bg-primary-700' : 'bg-gray-300 text-gray-500'}`}>
-                창고 등록하기
+              <button type="submit" aria-busy={isSubmitting} disabled={isSubmitting || !privacyAgreed || !termsAgreed || !thirdPartyAgreed} className={`w-full py-3 px-4 rounded-lg text-lg font-semibold transition-colors ${!isSubmitting && privacyAgreed && termsAgreed && thirdPartyAgreed ? 'bg-primary-600 text-white hover:bg-primary-700' : 'bg-gray-300 text-gray-500'}`}>
+                {isSubmitting ? '등록 중…' : '창고 등록하기'}
               </button>
             </div>
           </form>

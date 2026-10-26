@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Users, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { regions, productTypes, deliveryCompanies } from '../data/sampleData';
+import { deliveryCompanies } from '../data/sampleData';
 import { signup } from '../utils/authService';
-import { supabase } from '../utils/supabaseClient';
 import { trackEvent, GA_EVENTS } from '../utils/gtm';
-import { checkEmailDuplicate } from '../utils/authUtils';
+import { normalizeEmail } from '../utils/email';
 import AddressSearchModal from '../components/AddressSearchModal';
 
 const CustomerRegister = () => {
@@ -34,6 +33,8 @@ const CustomerRegister = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLock = useRef(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [thirdPartyAgreed, setThirdPartyAgreed] = useState(false);
   const [optionalAgreed, setOptionalAgreed] = useState(false);
@@ -94,6 +95,7 @@ const CustomerRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitLock.current) return;
     let hasError = false;
 
     if (!termsAgreed) {
@@ -123,20 +125,16 @@ const CustomerRegister = () => {
 
     // Remove combined address combining since we now store them separately.
 
+    submitLock.current = true;
+    setIsSubmitting(true);
     try {
-      const dupCheck = await checkEmailDuplicate(formData.email);
-      if (dupCheck.isDuplicate) {
-        alert(dupCheck.message + '\n다른 이메일을 사용해주세요.');
-        return;
-      }
-
       // 선택 정보 동의 여부에 따른 데이터 필터링 로직 (최소 수집 원칙 준수)
       const submissionData = {
         company_name: formData.companyName,
         business_number: formData.businessNumber,
         contact_person: formData.contactPerson,
         contact_phone: formData.contactPhone,
-        email: formData.email,
+        email: normalizeEmail(formData.email),
         ...(optionalAgreed ? {
           representative: formData.representative,
           location: formData.location,
@@ -170,8 +168,8 @@ const CustomerRegister = () => {
         })
       };
 
-      // Supabase Auth 회원가입 (bcrypt 자동 적용) + 프로필 테이블 INSERT
-      const result = await signup(formData.email, formData.password, 'customer', submissionData);
+      // 서버에서 인증 계정과 업체 정보를 함께 저장합니다.
+      const result = await signup(normalizeEmail(formData.email), formData.password, 'customer', submissionData);
 
       if (!result.success) {
         alert(result.message || '등록 중 오류가 발생했습니다.');
@@ -180,9 +178,11 @@ const CustomerRegister = () => {
 
       trackEvent(GA_EVENTS.REGISTER_CUSTOMER, { company: formData.companyName });
       setIsSubmitted(true);
-    } catch (error) {
-      console.error('Error submitting customer:', error);
-      alert('등록 중 오류가 발생했습니다. 다시 시도해주세요.\n' + error.message);
+    } catch {
+      alert('등록 처리를 완료하지 못했습니다. 입력 내용을 유지한 채 다시 시도해주세요.');
+    } finally {
+      submitLock.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -454,8 +454,8 @@ const CustomerRegister = () => {
             </div>
 
             <div className="pt-4">
-              <button type="submit" disabled={!privacyAgreed || !termsAgreed || !thirdPartyAgreed} className={`w-full py-4 px-4 rounded-xl text-lg font-bold transition-all shadow-lg ${privacyAgreed && termsAgreed && thirdPartyAgreed ? 'bg-primary-600 text-white hover:bg-primary-700 hover:-translate-y-0.5 shadow-primary-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'}`}>
-                고객사 등록하기
+              <button type="submit" aria-busy={isSubmitting} disabled={isSubmitting || !privacyAgreed || !termsAgreed || !thirdPartyAgreed} className={`w-full py-4 px-4 rounded-xl text-lg font-bold transition-all shadow-lg ${!isSubmitting && privacyAgreed && termsAgreed && thirdPartyAgreed ? 'bg-primary-600 text-white hover:bg-primary-700 hover:-translate-y-0.5 shadow-primary-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'}`}>
+                {isSubmitting ? '등록 중…' : '고객사 등록하기'}
               </button>
             </div>
           </form>

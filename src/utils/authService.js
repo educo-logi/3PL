@@ -6,7 +6,9 @@
  * - 로그인: Supabase Auth 우선 → 실패 시 레거시 테이블 비밀번호 비교
  * - 관리자: app_metadata.role === 'admin' (서버 측 검증)
  */
-import { supabase } from './supabaseClient';
+import { supabase, createRegistrationClient } from './supabaseClient';
+import { normalizeEmail } from './email';
+import { createSignup } from './registrationService';
 
 // ============================================================
 // 세션 관리
@@ -89,59 +91,7 @@ export const isAdminSync = () => {
  * @param {'warehouse'|'customer'} userType 사용자 유형
  * @param {Object} profileData 프로필 데이터 (password 제외)
  */
-export const signup = async (email, password, userType, profileData) => {
-  try {
-    // 1. Supabase Auth 계정 생성 (bcrypt 자동 적용)
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { user_type: userType } // user_metadata에 저장
-      }
-    });
-
-    if (authError) {
-      // 이미 존재하는 이메일 등
-      console.error('[AuthService] Signup auth error:', authError);
-      return { 
-        success: false, 
-        message: authError.message === 'User already registered' 
-          ? '이미 등록된 이메일입니다.' 
-          : `회원가입 중 오류: ${authError.message}` 
-      };
-    }
-
-    const authUserId = authData.user?.id;
-    if (!authUserId) {
-      return { success: false, message: '인증 계정 생성에 실패했습니다.' };
-    }
-
-    // 2. 프로필 테이블에 INSERT (password는 저장하지 않음)
-    const table = userType === 'warehouse' ? 'warehouses' : 'customers';
-    const { error: profileError } = await supabase
-      .from(table)
-      .insert([{
-        ...profileData,
-        email,
-        auth_user_id: authUserId,
-        password: 'SUPABASE_AUTH', // 레거시 호환 마커 (해시가 아님을 명시)
-        status: 'pending',
-        user_type: userType
-      }]);
-
-    if (profileError) {
-      console.error('[AuthService] Profile insert error:', profileError);
-      // Auth 계정은 생성됐지만 프로필 실패 → 에러 반환 (수동 정리 필요)
-      return { success: false, message: '프로필 정보 저장에 실패했습니다: ' + profileError.message };
-    }
-
-    return { success: true, user: authData.user };
-
-  } catch (error) {
-    console.error('[AuthService] Signup unexpected error:', error);
-    return { success: false, message: '회원가입 처리 중 오류가 발생했습니다.' };
-  }
-};
+export const signup = createSignup(createRegistrationClient);
 
 // ============================================================
 // 로그인 (이중 모드: Supabase Auth 우선 → 레거시 Fallback)
@@ -154,6 +104,8 @@ export const signup = async (email, password, userType, profileData) => {
  * @param {'warehouse'|'customer'} userType 사용자 유형
  */
 export const login = async (email, password, userType) => {
+  const originalEmail = email;
+  email = normalizeEmail(email);
   // === 1차: Supabase Auth 시도 (신규 사용자) ===
   try {
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -213,12 +165,17 @@ export const login = async (email, password, userType) => {
     const { comparePassword } = await import('./passwordHash');
 
     const table = userType === 'warehouse' ? 'warehouses' : 'customers';
-    const { data: user, error } = await supabase
+    let { data: user, error } = await supabase
       .from(table)
       .select('id, company_name, business_number, email, password, auth_user_id, status, user_type, location, city, dong, representative, phone, contact_person, contact_phone')
       .eq('email', email)
       .maybeSingle();
 
+    if (!error && !user && originalEmail !== email) {
+      ({ data: user, error } = await supabase.from(table)
+        .select('id, company_name, business_number, email, password, auth_user_id, status, user_type, location, city, dong, representative, phone, contact_person, contact_phone')
+        .eq('email', originalEmail).maybeSingle());
+    }
     if (error || !user) {
       return { success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' };
     }
